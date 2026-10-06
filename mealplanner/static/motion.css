@@ -1,0 +1,113 @@
+/* Motion layer: ambient glow, scroll reveal, tap ripples, sparkle bursts, stamps.
+   Everything that moves on its own is off when the phone asks for reduced motion. */
+
+.aurora { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+.aurora i { position: absolute; width: 70vmax; height: 70vmax; border-radius: 50%; filter: blur(60px); opacity: .16;
+  background: radial-gradient(circle, var(--fuji) 0%, transparent 62%); }
+.aurora i:nth-child(1) { left: -30vmax; top: -35vmax; }
+.aurora i:nth-child(2) { right: -35vmax; top: 20vh; opacity: .1; background: radial-gradient(circle, var(--seal) 0%, transparent 62%); }
+.aurora i:nth-child(3) { left: -10vmax; bottom: -45vmax; opacity: .08; background: radial-gradient(circle, var(--fuji-deep) 0%, transparent 62%); }
+[data-mode="light"] .aurora i { opacity: .22; }
+
+.loadbar { position: fixed; z-index: 20; top: 0; left: 0; height: 3px; width: 0; pointer-events: none; border-radius: 0 3px 3px 0;
+  background: linear-gradient(90deg, var(--fuji-deep), var(--fuji), var(--fuji-light)); box-shadow: 0 0 12px var(--fuji); opacity: 0; }
+.loadbar.go { opacity: 1; width: 85%; transition: width 4s cubic-bezier(.1, .7, .2, 1), opacity .2s; }
+
+.btn, .chip, nav.bottom a, .menu a, .boost-add, .key, .opt span, .work-tick .tick { position: relative; overflow: hidden; isolation: isolate; }
+.ripple { position: absolute; z-index: -1; border-radius: 50%; pointer-events: none; transform: translate(-50%, -50%) scale(0);
+  background: currentColor; opacity: .22; animation: ripple .6s var(--ease) forwards; }
+@keyframes ripple { to { transform: translate(-50%, -50%) scale(1); opacity: 0; } }
+
+.spark { position: fixed; z-index: 30; width: 7px; height: 7px; border-radius: 2px; pointer-events: none;
+  background: var(--c, var(--fuji)); animation: spark .7s var(--ease) forwards; }
+@keyframes spark { from { transform: translate(-50%, -50%) rotate(0); opacity: 1; }
+  to { transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) rotate(var(--r)); opacity: 0; } }
+
+@media (prefers-reduced-motion: no-preference) {
+  .aurora i:nth-child(1) { animation: drift1 26s ease-in-out infinite alternate; }
+  .aurora i:nth-child(2) { animation: drift2 32s ease-in-out infinite alternate; }
+  .aurora i:nth-child(3) { animation: drift1 38s ease-in-out infinite alternate-reverse; }
+  @keyframes drift1 { to { transform: translate(18vw, 22vh) scale(1.15); } }
+  @keyframes drift2 { to { transform: translate(-22vw, 30vh) scale(.9); } }
+
+  /* cards slide up as they scroll in (shown anyway after 2.5 s if the script never runs) */
+  html.motion :is(.card, .plate, .day-head, .day-info, .boost, .menu a, .list > li, .tile):not(.rise):not(.in) {
+    opacity: 0; transform: translateY(18px) scale(.985); animation: reveal-safety 0s 2.5s forwards; }
+  html.motion .in { animation: reveal .6s var(--ease) both; animation-delay: var(--d, 0ms); }
+  @keyframes reveal { from { opacity: 0; transform: translateY(18px) scale(.985); filter: blur(3px); } }
+  @keyframes reveal-safety { to { opacity: 1; transform: none; } }
+
+  /* page titles wipe in, the Japanese word drops in after */
+  main > h1, main > .line > h1 { animation: wipe .8s var(--ease) both; }
+  @keyframes wipe { from { clip-path: inset(0 100% 0 0); transform: translateX(-6px); } to { clip-path: inset(-10% -5% -10% 0); } }
+  h1 .jp { display: inline-block; animation: jp-in .6s var(--spring) both .35s; }
+  @keyframes jp-in { from { opacity: 0; transform: translateY(8px) rotate(-8deg); } }
+
+  /* hanko stamp thuds down */
+  .stamp { animation: stamp .55s cubic-bezier(.2, 1.4, .4, 1) both .35s; }
+  @keyframes stamp { 0% { opacity: 0; transform: scale(1.9) rotate(-18deg); } 60% { opacity: 1; transform: scale(.92) rotate(-6deg); }
+    100% { transform: scale(1) rotate(-8deg); } }
+  .status-pill:not(.approved) { animation: pill-pulse 2.4s ease-in-out infinite; }
+  @keyframes pill-pulse { 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--fuji) 18%, transparent); } }
+  .status-pill.approved { animation: stamp .5s cubic-bezier(.2, 1.4, .4, 1) both .2s; }
+
+  /* bottom bar: the lit key bounces and gets a dot */
+  nav.bottom a.active { animation: nav-pop .5s var(--spring) both; }
+  nav.bottom a.active::after { content: ""; position: absolute; bottom: 5px; left: 50%; width: 5px; height: 5px; margin-left: -2.5px;
+    border-radius: 50%; background: var(--on-fuji); animation: dot-in .4s var(--spring) both .25s; }
+  @keyframes nav-pop { 0% { transform: scale(.9); } 60% { transform: scale(1.06); } }
+  @keyframes dot-in { from { transform: scale(0); } }
+  nav.bottom a b { transition: transform .2s var(--spring); }
+  nav.bottom a:active b { transform: translateY(-2px) scale(1.12); }
+
+  /* today shimmers */
+  .day-head.today h2 { background: linear-gradient(90deg, var(--fuji), var(--fuji-light), var(--seal), var(--fuji)); background-size: 300% 100%;
+    -webkit-background-clip: text; background-clip: text; color: transparent; animation: sheen 6s linear infinite; }
+  @keyframes sheen { to { background-position: 300% 0; } }
+
+  /* meters get a moving sheen once filled */
+  .meter > i { position: relative; overflow: hidden; }
+  .meter > i::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .45), transparent); animation: meter-sheen 2.8s ease-in-out infinite 1.3s; }
+  @keyframes meter-sheen { 60%, 100% { transform: translateX(100%); } }
+
+  .ticket { box-shadow: 0 10px 40px -18px var(--fuji); }
+  .ticket .meal-name { animation: rise .6s var(--ease) both .45s; }
+
+  /* shine sweeps across buttons on hover / focus */
+  .btn::before { content: ""; position: absolute; z-index: -1; inset: 0; transform: translateX(-120%) skewX(-20deg);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .35), transparent); }
+  .btn:hover::before, .btn:focus-visible::before { transition: transform .7s var(--ease); transform: translateX(120%) skewX(-20deg); }
+  .btn:not(.secondary):not(.danger) { box-shadow: var(--press), 0 6px 22px -10px var(--fuji); }
+
+  .card, .plate { transition: box-shadow .3s var(--ease); }
+  @media (hover: hover) {
+    .card:hover, .plate:hover { box-shadow: 0 14px 40px -24px var(--fuji); }
+    .menu a:hover svg { animation: wiggle .5s var(--spring); }
+  }
+  .menu a:active svg { animation: wiggle .5s var(--spring); }
+  @keyframes wiggle { 30% { transform: rotate(-12deg) scale(1.1); } 60% { transform: rotate(8deg); } }
+  .key.flagged .badge { animation: pill-pulse 1.6s ease-in-out infinite; }
+
+  /* "Got work" tick */
+  .work-tick input:checked { animation: tick-pop .4s var(--spring); }
+  @keyframes tick-pop { 40% { transform: scale(1.35); } }
+  .work-tick.open .work-times { animation: slide-open .4s var(--ease) both; }
+  .work-tick.open .work-times > * { animation: rise .45s var(--ease) both; }
+  .work-tick.open .work-times > :nth-child(2) { animation-delay: .04s; } .work-tick.open .work-times > :nth-child(3) { animation-delay: .08s; }
+  .work-tick.open .work-times > :nth-child(4) { animation-delay: .12s; } .work-tick.open .work-times > :nth-child(5) { animation-delay: .16s; }
+  @keyframes slide-open { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 -10% 0); } }
+
+  /* taste boosters */
+  .boost-add { transition: transform .25s var(--spring), background .2s; }
+  @media (hover: hover) { .boost-add:hover { transform: rotate(90deg) scale(1.06); } }
+  .boost-add.sent { transform: rotate(180deg) scale(.85); background: var(--fuji-light); }
+  .boost-add.done { animation: stamp .45s cubic-bezier(.2, 1.4, .4, 1) both; transform: none; }
+  .boost-jump .chip { transition: transform .2s var(--spring), background .2s, color .2s; }
+  .boost-jump .chip.here { background: var(--fuji); color: var(--on-fuji); transform: translateY(-2px); }
+
+  /* flashes: a timer line runs out before they leave */
+  .flash:not(.flash-error)::after { content: ""; position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; transform-origin: left;
+    background: var(--fuji); opacity: .6; animation: timer 3.5s linear both; }
+  @keyframes timer { to { transform: scaleX(0); } }
+}

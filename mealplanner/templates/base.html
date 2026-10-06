@@ -7,9 +7,13 @@
   <title>{% block title %}Meal Planner{% endblock %}</title>
   <link rel="preload" href="{{ url_for('static', filename='fonts/dela-gothic-one-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='motion.css') }}">
+  <script>if (!matchMedia("(prefers-reduced-motion: reduce)").matches) document.documentElement.classList.add("motion");</script>
 </head>
 <body>
   {% from "_icons.html" import icon %}
+  <div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
+  <div class="loadbar" aria-hidden="true"></div>
 
   <header class="top">
     <a class="brand" href="{{ url_for('main.home') }}">食券<small>Meal Planner</small></a>

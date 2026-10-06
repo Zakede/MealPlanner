@@ -108,11 +108,137 @@ document.querySelectorAll(".work-tick").forEach((form) => {
   const tick = form.querySelector("[data-work-tick]");
   tick.addEventListener("change", () => {
     if (tick.checked) {
+      burst(tick);
       form.classList.add("open");
       form.querySelector("input[type=time]").focus();
     } else {
-      form.submit();
+      loading();
+      setTimeout(() => form.submit(), calm ? 0 : 180);
     }
   });
   form.querySelector("[data-work-open]")?.addEventListener("click", () => form.classList.toggle("open"));
 });
+
+// ---- motion ----
+
+// Sparkles fly out of an element (ticks, adds, approvals).
+function burst(el, count = 12) {
+  if (calm || !el) return;
+  const r = el.getBoundingClientRect();
+  const colors = ["var(--fuji)", "var(--fuji-light)", "var(--seal)", "var(--ok)"];
+  for (let i = 0; i < count; i++) {
+    const s = document.createElement("i");
+    const angle = (Math.PI * 2 * i) / count + Math.random() * 0.5;
+    const dist = 28 + Math.random() * 30;
+    s.className = "spark";
+    s.style.left = r.left + r.width / 2 + "px";
+    s.style.top = r.top + r.height / 2 + "px";
+    s.style.setProperty("--x", Math.cos(angle) * dist + "px");
+    s.style.setProperty("--y", Math.sin(angle) * dist + "px");
+    s.style.setProperty("--r", Math.round(Math.random() * 360) + "deg");
+    s.style.setProperty("--c", colors[i % colors.length]);
+    if (i % 3 === 0) s.style.borderRadius = "50%";
+    document.body.append(s);
+    s.addEventListener("animationend", () => s.remove(), { once: true });
+  }
+}
+
+// Thin bar along the top while the next page loads.
+function loading() {
+  const bar = document.querySelector(".loadbar");
+  if (bar) requestAnimationFrame(() => bar.classList.add("go"));
+}
+document.addEventListener("submit", (e) => { if (!e.defaultPrevented) loading(); });
+document.addEventListener("click", (e) => {
+  const a = e.target.closest("a[href]");
+  if (!a || e.defaultPrevented || a.target || e.metaKey || e.ctrlKey || a.getAttribute("href").startsWith("#")) return;
+  loading();
+});
+// coming back with the browser's back button: no stuck bar
+addEventListener("pageshow", () => document.querySelector(".loadbar")?.classList.remove("go"));
+
+// Ripple from where you touched a key.
+document.addEventListener("pointerdown", (e) => {
+  if (calm) return;
+  const el = e.target.closest(".btn, .chip, nav.bottom a, .menu a, .boost-add, .key, .opt span, .work-tick .tick");
+  if (!el) return;
+  const r = el.getBoundingClientRect();
+  const size = Math.max(r.width, r.height) * 2.2;
+  const dot = document.createElement("span");
+  dot.className = "ripple";
+  dot.style.width = dot.style.height = size + "px";
+  dot.style.left = e.clientX - r.left + "px";
+  dot.style.top = e.clientY - r.top + "px";
+  el.append(dot);
+  dot.addEventListener("animationend", () => dot.remove(), { once: true });
+});
+
+// Cards rise in as they scroll into view, a few at a time.
+if (!calm && "IntersectionObserver" in window) {
+  const targets = document.querySelectorAll(
+    "main :is(.card, .plate, .day-head, .day-info, .boost, .menu a, .list > li, .tile):not(.rise)");
+  let batch = 0, frame = 0;
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      entry.target.style.setProperty("--d", Math.min(batch++, 8) * 55 + "ms");
+      entry.target.classList.add("in");
+      io.unobserve(entry.target);
+    });
+    cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(() => { batch = 0; });
+  }, { rootMargin: "0px 0px -6% 0px" });
+  targets.forEach((t) => io.observe(t));
+} else {
+  document.documentElement.classList.remove("motion");
+}
+
+// Approve and taste-booster adds: sparkle first, then send.
+document.querySelectorAll("form").forEach((form) => {
+  const add = form.querySelector(".boost-add");
+  const approve = /\/approve/.test(form.action) ? form.querySelector(".btn") : null;
+  const el = add || approve;
+  if (!el || calm) return;
+  form.addEventListener("submit", (e) => {
+    if (form.dataset.sent) return;
+    e.preventDefault();
+    form.dataset.sent = "1";
+    el.classList.add("sent");
+    burst(el, approve ? 18 : 12);
+    loading();
+    setTimeout(() => form.submit(), 320);
+  });
+});
+
+// Booster page: the jump chip for the section you're reading lights up.
+const jumps = document.querySelectorAll(".boost-jump a[href^='#']");
+if (jumps.length && "IntersectionObserver" in window) {
+  const byId = new Map([...jumps].map((a) => [a.getAttribute("href").slice(1), a]));
+  const spy = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      jumps.forEach((a) => a.classList.remove("here"));
+      byId.get(entry.target.id)?.classList.add("here");
+    });
+  }, { rootMargin: "-30% 0px -60% 0px" });
+  byId.forEach((_, id) => { const sec = document.getElementById(id); if (sec) spy.observe(sec); });
+  jumps.forEach((a) => a.addEventListener("click", (e) => {
+    const sec = document.getElementById(a.getAttribute("href").slice(1));
+    if (!sec) return;
+    e.preventDefault();
+    sec.scrollIntoView({ behavior: calm ? "auto" : "smooth", block: "start" });
+    history.replaceState(null, "", a.getAttribute("href"));
+  }));
+}
+
+// Next-meal ticket and tiles lean toward the pointer (mouse only, phones keep the press).
+if (!calm && matchMedia("(hover: hover) and (pointer: fine)").matches) {
+  document.querySelectorAll(".ticket, .plate, .keys > .key").forEach((el) => {
+    el.addEventListener("pointermove", (e) => {
+      const r = el.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5;
+      el.style.transform = `perspective(700px) rotateX(${-y * 6}deg) rotateY(${x * 8}deg) translateY(-2px)`;
+    });
+    el.addEventListener("pointerleave", () => { el.style.transform = ""; });
+  });
+}
