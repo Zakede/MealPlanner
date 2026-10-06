@@ -2,7 +2,9 @@ from flask import Blueprint, flash, redirect, render_template, request, url_for
 
 from .. import store
 from ..db import execute
-from ..nutrition import ACTIVITY_LEVELS, MAX_PACE_KG_WEEK, cm_to_in, in_to_cm, kg_to_lb, lb_to_kg
+from ..diet import AVOID_OPTIONS, DIETS
+from ..nutrition import (JOB_LEVELS, MAX_PACE_KG_WEEK, TRAINING_LEVELS, activity_multiplier, cm_to_in, in_to_cm,
+                         kg_to_lb, lb_to_kg)
 
 bp = Blueprint("settings", __name__, url_prefix="/settings")
 
@@ -18,7 +20,7 @@ NUMBER_RANGES = {
     "eat_out_budget_yen": (0, 20000),
     "eat_out_kcal": (0, 2500),
     "snack_kcal": (0, 800),
-    "spice_tolerance": (1, 5),
+    "spice_tolerance": (0, 5),
 }
 INT_FIELDS = {"age", "weekly_budget_yen", "eat_out_slots", "eat_out_budget_yen",
               "eat_out_kcal", "snack_kcal", "spice_tolerance"}
@@ -59,8 +61,17 @@ def parse_form(form):
 
     sex = form.get("sex") or None
     values["sex"] = sex if sex in ("male", "female") else None
-    activity = form.get("activity", "light")
-    values["activity"] = activity if activity in ACTIVITY_LEVELS else "light"
+    job = form.get("job", "desk")
+    values["job"] = job if job in JOB_LEVELS else "desk"
+    intensity = form.get("training_intensity", "moderate")
+    values["training_intensity"] = intensity if intensity in TRAINING_LEVELS else "moderate"
+    try:
+        values["training_days"] = max(0, min(7, int(form.get("training_days", 3))))
+    except ValueError:
+        errors.append("training days must be a number")
+    d = form.get("diet", "any")
+    values["diet"] = d if d in DIETS else "any"
+    values["avoid"] = ",".join(k for k in AVOID_OPTIONS if form.get(f"avoid_{k}"))
     for field in TEXT_FIELDS:
         values[field] = form.get(field, "").strip()
     theme, mode = form.get("theme"), form.get("mode")
@@ -110,7 +121,12 @@ def edit():
         "settings.html",
         s=display_values(s),
         targets=store.targets(s),
-        activity_levels=ACTIVITY_LEVELS,
+        jobs=JOB_LEVELS,
+        intensities=TRAINING_LEVELS,
+        diets=DIETS,
+        avoid_options=AVOID_OPTIONS,
+        avoid_on=store.split_list(s.get("avoid")),
+        multiplier=activity_multiplier(s["job"], s["training_days"], s["training_intensity"]),
         themes=THEMES,
         modes=MODES,
         max_pace=MAX_PACE_KG_WEEK,

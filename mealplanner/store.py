@@ -1,6 +1,6 @@
 """Small data-access helpers shared by the views and the planner."""
 from .db import query
-from .nutrition import compute_targets
+from .nutrition import activity_multiplier, compute_targets
 
 
 def settings():
@@ -21,7 +21,8 @@ def targets(s=None):
         height_cm=s["height_cm"],
         age=s["age"],
         sex=s["sex"],
-        activity=s["activity"],
+        activity=activity_multiplier(s.get("job", "desk"), s.get("training_days", 3),
+                                     s.get("training_intensity", "moderate")),
         pace_kg_week=s["pace_kg_week"],
         goal_weight_kg=s["goal_weight_kg"],
     )
@@ -115,3 +116,19 @@ def recipe(recipe_id):
     if not row:
         return None
     return _with_numbers(row, recipe_ingredients(recipe_id).get(recipe_id, []))
+
+
+def recipe_prefs():
+    return {r["recipe_id"]: r["status"] for r in query("SELECT * FROM recipe_prefs")}
+
+
+def set_recipe_pref(recipe_id, status):
+    """status: favorite / never / try, or None to clear."""
+    from .db import get_db
+    db = get_db()
+    if status in ("favorite", "never", "try"):
+        db.execute("INSERT INTO recipe_prefs (recipe_id, status) VALUES (?, ?)"
+                   " ON CONFLICT(recipe_id) DO UPDATE SET status = excluded.status", (recipe_id, status))
+    else:
+        db.execute("DELETE FROM recipe_prefs WHERE recipe_id = ?", (recipe_id,))
+    db.commit()

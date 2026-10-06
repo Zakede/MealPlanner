@@ -80,13 +80,30 @@ def save_recipe(form, recipe_id=None):
     return recipe_id
 
 
+FILTERS = {"": "All", "favorite": "Favourites", "try": "Want to try", "never": "Not for me"}
+
+
 @bp.route("/")
 def index():
+    from .. import diet
     meal_type = request.args.get("type", "")
+    pref_filter = request.args.get("pref", "")
+    s = store.settings()
+    prefs = store.recipe_prefs()
+    avoid = store.split_list(s.get("avoid"))
     items = store.recipes()
+    for r in items:
+        r["pref"] = prefs.get(r["id"])
+        r["fits"] = diet.allowed(r, s.get("diet") or "any", avoid)
     if meal_type in MEAL_TYPES:
         items = [r for r in items if meal_type in r["type_list"]]
-    return render_template("recipes/index.html", recipes=items, meal_type=meal_type, meal_types=MEAL_TYPES)
+    if pref_filter in FILTERS and pref_filter:
+        items = [r for r in items if r["pref"] == pref_filter]
+    else:
+        items = [r for r in items if r["pref"] != "never"]
+    items.sort(key=lambda r: (not r["fits"], r["pref"] != "favorite", r["name"]))
+    return render_template("recipes/index.html", recipes=items, meal_type=meal_type, meal_types=MEAL_TYPES,
+                           pref_filter=pref_filter, filters=FILTERS)
 
 
 @bp.route("/<int:recipe_id>")
@@ -99,7 +116,8 @@ def view(recipe_id):
     except ValueError:
         portions = 1.0
     factor = portions / r["servings"]
-    return render_template("recipes/view.html", r=r, portions=portions, factor=factor)
+    return render_template("recipes/view.html", r=r, portions=portions, factor=factor,
+                           pref=store.recipe_prefs().get(recipe_id))
 
 
 @bp.route("/new", methods=["GET", "POST"])
@@ -126,6 +144,20 @@ def delete(recipe_id):
     db.commit()
     flash("Recipe deleted.", "ok")
     return redirect(url_for("recipes.index"))
+
+
+@bp.route("/<int:recipe_id>/pref", methods=["POST"])
+def pref(recipe_id):
+    from .. import plans
+    status = request.form.get("status")
+    if status == "never":
+        swapped = plans.never_again(recipe_id)
+        flash("Won't plan this again." + (f" Swapped it out of {swapped} upcoming meal{'s' if swapped != 1 else ''}."
+                                          if swapped else ""), "ok")
+    else:
+        store.set_recipe_pref(recipe_id, status)
+        flash({"favorite": "Added to favourites.", "try": "Added to want to try."}.get(status, "Cleared."), "ok")
+    return redirect(request.referrer or url_for("recipes.view", recipe_id=recipe_id))
 
 
 @bp.route("/boosters")
@@ -167,6 +199,41 @@ def ai():
     recipe, problems, warnings = recipe_ai.validate(data, s)
     return render_template("recipes/ai_preview.html", r=recipe, problems=problems, warnings=warnings,
                            raw=json.dumps(data), request_text=request_text)
+
+
+@bp.route("/import", methods=["GET", "POST"])
+def ai_import():
+    from .. import llm, recipe_ai
+    p = llm.provider()
+    if request.method == "GET":
+        return render_template("recipes/import.html", available=p is not None)
+    source = (request.form.get("source") or "").strip()
+    if not source:
+        flash("Paste a recipe, a caption or a link.", "error")
+        return redirect(url_for("recipes.ai_import"))
+    if p is None:
+        flash("No recipe model is set up. Install opencode, or set MEALPLANNER_LLM.", "error")
+        return redirect(url_for("recipes.ai_import"))
+    text = source
+    if source.startswith(("http://", "https://")) and not any(c.isspace() for c in source):
+        try:
+            html = recipe_ai.fetch_url(source)
+        except ValueError as e:
+            flash(f"{e}. Paste the recipe text instead.", "error")
+            return redirect(url_for("recipes.ai_import"))
+        text = recipe_ai.recipe_from_jsonld(html) or recipe_ai.page_text(html)
+        if len(text) < 80:
+            flash("That page didn't show a recipe (video sites often hide it). Paste the caption text instead.", "error")
+            return redirect(url_for("recipes.ai_import"))
+    s = store.settings()
+    try:
+        data = llm.extract_json(p.complete(recipe_ai.build_import_prompt(text, store.foods(), s)))
+    except llm.LLMError as e:
+        flash(f"Couldn't read that recipe: {e}. Try again.", "error")
+        return redirect(url_for("recipes.ai_import"))
+    recipe, problems, warnings = recipe_ai.validate(data, s)
+    return render_template("recipes/ai_preview.html", r=recipe, problems=problems, warnings=warnings,
+                           raw=json.dumps(data), request_text="", imported=True)
 
 
 @bp.route("/ai/save", methods=["POST"])

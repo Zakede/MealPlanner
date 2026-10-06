@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}Setup · Meal Planner{% endblock %}
+{% block content %}
+<div class="wizard-progress" aria-hidden="true"><i id="prog"></i></div>
+<form method="post" id="wizard" class="wizard">
+
+  <section class="step" data-title="About you">
+    <h1>About you</h1>
+    <p class="muted">Used only to work out your calories and protein.</p>
+    <div class="opts two">
+      {% for v, label in [('male', 'Male'), ('female', 'Female')] %}
+      <label class="opt"><input type="radio" name="sex" value="{{ v }}" {{ 'checked' if s.sex == v }} required><span><b>{{ label }}</b></span></label>
+      {% endfor %}
+    </div>
+    <div class="row form">
+      <label>Age<input name="age" type="number" inputmode="numeric" value="{{ s.age or '' }}" required></label>
+      <label>Height (cm)<input name="height_cm" type="number" step="0.1" value="{{ s.height_cm }}" required></label>
+    </div>
+    <div class="row form">
+      <label>Weight now (kg)<input name="weight_kg" type="number" step="0.1" value="{{ s.weight_kg }}" required></label>
+      <label>Goal (kg)<input name="goal_weight_kg" type="number" step="0.1" value="{{ s.goal_weight_kg }}" required></label>
+    </div>
+    <h2>How fast?</h2>
+    <div class="opts">
+      {% for v, label, sub in paces %}
+      <label class="opt"><input type="radio" name="pace_kg_week" value="{{ v }}" {{ 'checked' if (s.pace_kg_week - v)|abs < 0.01 }}><span><b>{{ label }}</b><small>{{ sub }}</small></span></label>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="step" data-title="Your days">
+    <h1>Your days</h1>
+    <h2>Work or study</h2>
+    <div class="opts">
+      {% for k, (mult, label, sub) in jobs.items() %}
+      <label class="opt"><input type="radio" name="job" value="{{ k }}" {{ 'checked' if s.job == k }}><span><b>{{ label }}</b><small>{{ sub }}</small></span></label>
+      {% endfor %}
+    </div>
+    <h2>Training days a week</h2>
+    <div class="opts seven">
+      {% for n in range(8) %}
+      <label class="opt"><input type="radio" name="training_days" value="{{ n }}" {{ 'checked' if s.training_days == n }}><span><b>{{ n }}</b></span></label>
+      {% endfor %}
+    </div>
+    <h2>How hard?</h2>
+    <div class="opts">
+      {% for k, (per, label, sub) in intensities.items() %}
+      <label class="opt"><input type="radio" name="training_intensity" value="{{ k }}" {{ 'checked' if s.training_intensity == k }}><span><b>{{ label }}</b><small>{{ sub }}</small></span></label>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="step" data-title="Your week">
+    <h1>Your week</h1>
+    <h2>Days you work</h2>
+    <div class="tag-picks left">
+      {% for d in sched %}<input type="checkbox" name="work_{{ d.weekday }}" id="w{{ d.weekday }}" {{ 'checked' if d.work_start }}><label for="w{{ d.weekday }}">{{ weekdays[d.weekday][:3] }}</label>{% endfor %}
+    </div>
+    <div class="row3 form">
+      <label>From<input type="time" name="work_start" value="{{ work.work_start if work else '09:00' }}"></label>
+      <label>Until<input type="time" name="work_end" value="{{ work.work_end if work else '18:00' }}"></label>
+      <label>Commute min<input type="number" name="commute_min" value="{{ work.commute_min if work else 30 }}"></label>
+    </div>
+    <h2>Gym days</h2>
+    <div class="tag-picks left">
+      {% for d in sched %}<input type="checkbox" name="gym_{{ d.weekday }}" id="g{{ d.weekday }}" {{ 'checked' if d.gym }}><label for="g{{ d.weekday }}">{{ weekdays[d.weekday][:3] }}</label>{% endfor %}
+    </div>
+    <h2>Cooking on work days</h2>
+    <div class="opts">{% for k, label in efforts %}<label class="opt"><input type="radio" name="weekday_effort" value="{{ k }}" {{ 'checked' if k == (work.effort if work else 'low') }}><span><b>{{ label }}</b></span></label>{% endfor %}</div>
+    <h2>Cooking on days off</h2>
+    <div class="opts">{% for k, label in efforts %}<label class="opt"><input type="radio" name="weekend_effort" value="{{ k }}" {{ 'checked' if k == 'full' }}><span><b>{{ label }}</b></span></label>{% endfor %}</div>
+  </section>
+
+  <section class="step" data-title="What you eat">
+    <h1>What you eat</h1>
+    <div class="opts">
+      {% for k, (label, sub) in diets.items() %}
+      <label class="opt"><input type="radio" name="diet" value="{{ k }}" {{ 'checked' if s.diet == k }}><span><b>{{ label }}</b><small>{{ sub }}</small></span></label>
+      {% endfor %}
+    </div>
+    <h2>Skip these</h2>
+    <div class="tag-picks left">
+      {% for k, (label, cats, words) in avoid.items() %}<input type="checkbox" name="avoid_{{ k }}" id="a{{ k }}" {{ 'checked' if k in avoid_on }}><label for="a{{ k }}">{{ label }}</label>{% endfor %}
+    </div>
+    <div class="form">
+      <label>Allergies<input name="allergies" value="{{ s.allergies }}" placeholder="peanut, shrimp"></label>
+      <label>Anything else you won't eat<input name="dislikes" value="{{ s.dislikes }}" placeholder="natto, celery"></label>
+      <label>Spice: <output id="sp">{{ s.spice_tolerance }}</output>/5
+        <input type="range" name="spice_tolerance" min="0" max="5" value="{{ s.spice_tolerance }}" oninput="document.getElementById('sp').value=this.value"></label>
+    </div>
+  </section>
+
+  <section class="step" data-title="What tastes good">
+    <h1>What tastes good to you?</h1>
+    <p class="muted">Pick a few. Meals lean this way and learn from your ratings.</p>
+    <h2>Flavours</h2>
+    <div class="tag-picks left">
+      {% for f in flavors %}<input type="checkbox" name="flavor_{{ f }}" id="f{{ loop.index }}" {{ 'checked' if f in flavor_on }}><label for="f{{ loop.index }}">{{ f }}</label>{% endfor %}
+    </div>
+    <h2>Food styles</h2>
+    <div class="tag-picks left">
+      {% for c in cuisines %}<input type="checkbox" name="cuisine_{{ c }}" id="c{{ loop.index }}" {{ 'checked' if c in cuisine_on }}><label for="c{{ loop.index }}">{{ c|capitalize }}</label>{% endfor %}
+    </div>
+  </section>
+
+  <section class="step" data-title="Money">
+    <h1>Money</h1>
+    <div class="form">
+      <label>Food budget per week (¥), eating out included<input name="weekly_budget_yen" type="number" value="{{ s.weekly_budget_yen }}" required></label>
+      <div class="row">
+        <label>Meals out a week<input name="eat_out_slots" type="number" value="{{ s.eat_out_slots }}"></label>
+        <label>¥ per meal out<input name="eat_out_budget_yen" type="number" value="{{ s.eat_out_budget_yen }}"></label>
+      </div>
+    </div>
+    <button class="btn wide" type="submit">Plan my week</button>
+  </section>
+
+  <div class="wizard-nav">
+    <button type="button" class="btn secondary" id="back">Back</button>
+    <button type="button" class="btn" id="next">Next</button>
+  </div>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+// One step at a time when JavaScript is on; everything on one page otherwise.
+(() => {
+  const form = document.getElementById("wizard");
+  const steps = [...form.querySelectorAll(".step")];
+  const back = document.getElementById("back"), next = document.getElementById("next"), prog = document.getElementById("prog");
+  let i = 0;
+  form.classList.add("js");
+  function show() {
+    steps.forEach((s, k) => s.classList.toggle("on", k === i));
+    back.style.visibility = i === 0 ? "hidden" : "visible";
+    next.hidden = i === steps.length - 1;
+    prog.style.width = ((i + 1) / steps.length * 100) + "%";
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  next.addEventListener("click", () => {
+    const bad = [...steps[i].querySelectorAll("input")].find(el => !el.checkValidity());
+    if (bad) { bad.reportValidity(); return; }
+    i = Math.min(i + 1, steps.length - 1); show();
+  });
+  back.addEventListener("click", () => { i = Math.max(i - 1, 0); show(); });
+  show();
+})();
+</script>
+{% endblock %}

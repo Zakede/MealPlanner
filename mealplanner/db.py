@@ -29,6 +29,14 @@ def close_db(_exc=None):
 MIGRATIONS = [
     ("settings", "theme", "TEXT NOT NULL DEFAULT 'apothecary'"),
     ("settings", "mode", "TEXT NOT NULL DEFAULT 'dark'"),
+    ("settings", "job", "TEXT NOT NULL DEFAULT 'desk'"),
+    ("settings", "training_days", "INTEGER NOT NULL DEFAULT 3"),
+    ("settings", "training_intensity", "TEXT NOT NULL DEFAULT 'moderate'"),
+    ("settings", "diet", "TEXT NOT NULL DEFAULT 'any'"),
+    ("settings", "avoid", "TEXT NOT NULL DEFAULT ''"),
+    ("settings", "setup_done", "INTEGER NOT NULL DEFAULT 0"),
+    ("foods", "category", "TEXT NOT NULL DEFAULT ''"),
+    ("recipes", "builtin", "INTEGER NOT NULL DEFAULT 0"),
 ]
 
 

@@ -21,6 +21,15 @@
   </form>
 </div>
 
+<div class="pref-row" style="margin-bottom:12px">
+  {% for status, label in [('favorite', '♥ Favourite'), ('try', '☆ Want to try'), ('never', 'Tried it, not for me')] %}
+  <form method="post" action="{{ url_for('recipes.pref', recipe_id=r.id) }}">
+    <input type="hidden" name="status" value="{{ '' if pref == status else status }}">
+    <button class="btn small secondary {{ 'on' if pref == status }}">{{ label }}</button>
+  </form>
+  {% endfor %}
+</div>
+
 <div class="card">
   <h2>Ingredients</h2>
   <table>

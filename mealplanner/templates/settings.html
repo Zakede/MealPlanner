@@ -59,13 +59,17 @@
     </label>
     <label>Loss pace ({{ 'lb' if imp else 'kg' }}/week)<input name="pace_kg_week" type="number" step="0.05" value="{{ s.pace_kg_week }}" required></label>
   </div>
-  <label>Activity
-    <select name="activity">
-      {% for key, (mult, desc) in activity_levels.items() %}
-        <option value="{{ key }}" {{ 'selected' if s.activity == key }}>{{ desc }} (×{{ mult }})</option>
-      {% endfor %}
-    </select>
+  <h2>Lifestyle</h2>
+  <label>Work or study
+    <select name="job">{% for k, (m, label, sub) in jobs.items() %}<option value="{{ k }}" {{ 'selected' if s.job == k }}>{{ label }} ({{ sub|lower }})</option>{% endfor %}</select>
   </label>
+  <div class="row">
+    <label>Training days / week<input name="training_days" type="number" min="0" max="7" value="{{ s.training_days }}"></label>
+    <label>Training intensity
+      <select name="training_intensity">{% for k, (p, label, sub) in intensities.items() %}<option value="{{ k }}" {{ 'selected' if s.training_intensity == k }}>{{ label }}</option>{% endfor %}</select>
+    </label>
+  </div>
+  <p class="muted small">Activity multiplier ×{{ multiplier }}</p>
 
   <h2>Money (¥)</h2>
   <label>Weekly food budget, including eating out<input name="weekly_budget_yen" type="number" value="{{ s.weekly_budget_yen }}" required></label>
@@ -79,10 +83,16 @@
   </div>
 
   <h2>Food</h2>
+  <label>Diet style
+    <select name="diet">{% for k, (label, sub) in diets.items() %}<option value="{{ k }}" {{ 'selected' if s.diet == k }}>{{ label }}: {{ sub|lower }}</option>{% endfor %}</select>
+  </label>
+  <div class="tag-picks left" style="margin-bottom:12px">
+    {% for k, (label, c, w) in avoid_options.items() %}<input type="checkbox" name="avoid_{{ k }}" id="av{{ k }}" {{ 'checked' if k in avoid_on }}><label for="av{{ k }}">No {{ label|lower }}</label>{% endfor %}
+  </div>
   <label>Allergies (comma separated)<input name="allergies" value="{{ s.allergies }}" placeholder="e.g. shrimp, peanut"></label>
   <label>Hard dislikes<input name="dislikes" value="{{ s.dislikes }}" placeholder="e.g. celery, natto"></label>
   <label>Spice tolerance: <output id="spice-out">{{ s.spice_tolerance }}</output>/5
-    <input name="spice_tolerance" type="range" min="1" max="5" value="{{ s.spice_tolerance }}" oninput="document.getElementById('spice-out').value=this.value">
+    <input name="spice_tolerance" type="range" min="0" max="5" value="{{ s.spice_tolerance }}" oninput="document.getElementById('spice-out').value=this.value">
   </label>
 
   <h2>Taste</h2>

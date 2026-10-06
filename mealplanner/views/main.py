@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from flask import Blueprint, render_template
+from flask import Blueprint, redirect, render_template, url_for
 
 from .. import plans, planner, store, today
 from ..db import query
@@ -39,8 +39,8 @@ def reminders(on, recipes_by_id):
 def home():
     s = store.settings()
     targets = store.targets(s)
-    if targets is None:
-        return render_template("home.html", needs_profile=True)
+    if targets is None or not s.get("setup_done"):
+        return redirect(url_for("setup.start"))
 
     on = today()
     recipes_by_id = {r["id"]: r for r in store.recipes()}

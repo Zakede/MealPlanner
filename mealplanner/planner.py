@@ -11,6 +11,7 @@ Order of decisions per slot:
 """
 from datetime import timedelta
 
+from . import diet
 from .costing import MACROS
 from .nutrition import day_targets
 from .schedule import busy, hhmm, minutes, slot_limits
@@ -25,7 +26,9 @@ MAX_BATCH_MEALS = 4
 EAT_OUT_PROTEIN_GUESS = 30
 PACKABLE_MAX_ACTIVE = 10
 
-W_TASTE, W_PROTEIN, W_BUDGET, W_EXPIRY, W_PANTRY = 0.30, 0.25, 0.15, 0.20, 0.10
+# taste comes first: a plan you won't eat saves nothing
+W_TASTE, W_PROTEIN, W_BUDGET, W_EXPIRY, W_PANTRY = 0.40, 0.22, 0.13, 0.15, 0.10
+FAVORITE_BONUS, TRY_BONUS = 0.2, 0.1
 
 
 class PantrySim:
@@ -94,7 +97,11 @@ def best_portion(kcal_per_serving, target):
 
 
 def blocked(recipe, ctx):
-    """Hard filters that never change during a plan: allergies, dislikes, spice."""
+    """Hard filters that never change during a plan: allergies, dislikes, spice, diet, "never again"."""
+    if ctx.get("prefs", {}).get(recipe["id"]) == "never":
+        return True
+    if not diet.allowed(recipe, ctx.get("diet", "any"), ctx.get("avoid", [])):
+        return True
     allergies = ctx["allergies"]
     names = [ing["name"].lower() for ing in recipe["ingredients"]]
     for word in allergies:
@@ -140,6 +147,9 @@ def score(recipe, portion, target, check, ctx, date, chosen, gym, budget_left, m
     per_meal_budget = budget_left / max(1, meals_left)
 
     total = W_TASTE * taste
+    pref = ctx.get("prefs", {}).get(recipe["id"])
+    total += FAVORITE_BONUS if pref == "favorite" else TRY_BONUS if pref == "try" else 0
+    total += diet.bonus(recipe, ctx.get("diet", "any"))
     total += protein_weight * min(1.0, protein_share / 0.40)
     total += W_BUDGET * (1 - min(1.0, check["buy"] / max(1.0, per_meal_budget)))
     total += W_EXPIRY * min(1.0, check["expiring_g"] / 150)
@@ -147,7 +157,8 @@ def score(recipe, portion, target, check, ctx, date, chosen, gym, budget_left, m
     total -= 0.4 * abs(kcal - target) / max(1, target)
 
     gap = recently_eaten(recipe["id"], date, ctx, chosen)
-    cooldown = FAVORITE_COOLDOWN_DAYS if recipe["id"] in ctx["favorites"] else COOLDOWN_DAYS
+    favorite = recipe["id"] in ctx["favorites"] or pref == "favorite"
+    cooldown = FAVORITE_COOLDOWN_DAYS if favorite else COOLDOWN_DAYS
     if gap is not None and gap < cooldown:
         total -= 0.35 * (cooldown - gap) / cooldown + 0.1
     uses = sum(1 for m in chosen if m.get("recipe_id") == recipe["id"] and m["kind"] != "leftover")

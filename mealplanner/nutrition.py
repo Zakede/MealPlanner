@@ -23,6 +23,26 @@ ACTIVITY_LEVELS = {
 }
 
 
+# Daily life, without training.
+JOB_LEVELS = {
+    "desk": (1.2, "Desk job or studying", "Sitting most of the day"),
+    "standing": (1.35, "On your feet", "Retail, teaching, waiting tables"),
+    "physical": (1.5, "Physical job", "Construction, warehouse, moving"),
+}
+# Extra multiplier per training day a week.
+TRAINING_LEVELS = {
+    "light": (0.025, "Light", "Walks, easy cycling, light weights"),
+    "moderate": (0.035, "Moderate", "Normal gym sessions"),
+    "hard": (0.05, "Hard", "Heavy lifting, sports, HIIT"),
+}
+
+
+def activity_multiplier(job, training_days, intensity):
+    base = JOB_LEVELS.get(job, JOB_LEVELS["desk"])[0]
+    per_day = TRAINING_LEVELS.get(intensity, TRAINING_LEVELS["moderate"])[0]
+    return round(min(2.0, base + per_day * max(0, min(7, training_days))), 3)
+
+
 def bmr_mifflin(weight_kg, height_cm, age, sex):
     """Mifflin-St Jeor resting energy in kcal/day."""
     base = 10 * weight_kg + 6.25 * height_cm - 5 * age
@@ -34,7 +54,9 @@ def bmr_mifflin(weight_kg, height_cm, age, sex):
 
 
 def tdee(bmr, activity):
-    return bmr * ACTIVITY_LEVELS[activity][0]
+    """activity is a named level or a multiplier."""
+    mult = activity if isinstance(activity, (int, float)) else ACTIVITY_LEVELS[activity][0]
+    return bmr * mult
 
 
 def clamp_pace(pace_kg_week, weight_kg, goal_weight_kg):

@@ -4,20 +4,20 @@ from mealplanner import store
 from mealplanner.db import query
 
 
-def buldak(app):
+def teriyaki(app):
     with app.app_context():
-        rid = query("SELECT id FROM recipes WHERE name LIKE 'Buldak noodles%'", one=True)["id"]
+        rid = query("SELECT id FROM recipes WHERE name = 'Chicken teriyaki rice bowl'", one=True)["id"]
         return store.recipe(rid)
 
 
 def test_seeded_recipes_have_computed_macros(app):
-    r = buldak(app)
+    r = teriyaki(app)
     s = r["per_serving"]
-    # 140 g ramen + 60 g onion + 35 g pepper + 40 g lettuce
-    expected = 140 * 3.79 + 60 * 0.37 + 35 * 0.22 + 40 * 0.12
+    # 150 g chicken, 180 g rice, 15 g soy sauce, 15 g mirin, 80 g broccoli
+    expected = 150 * 1.05 + 180 * 1.56 + 15 * 0.76 + 15 * 2.41 + 80 * 0.37
     assert s["kcal"] == pytest.approx(expected)
-    assert s["cost"] == pytest.approx(140 * 1.8 + 60 * 0.4 + 35 * 1.0 + 40 * 0.8)
-    assert "wheat" in r["allergens"]
+    assert s["cost"] == pytest.approx(150 * 0.85 + 180 * 0.3 + 15 * 0.5 + 15 * 0.6 + 80 * 0.7)
+    assert "wheat" in r["allergens"] and "soy" in r["allergens"]
 
 
 def test_batch_recipe_divides_by_servings(app):
@@ -29,14 +29,14 @@ def test_batch_recipe_divides_by_servings(app):
 
 
 def test_cost_follows_latest_pantry_price(app, client):
-    before = buldak(app)["per_serving"]["cost"]
+    before = teriyaki(app)["per_serving"]["cost"]
     client.post("/pantry/new", data={
-        "name": "Buldak ramen", "quantity": "5", "unit": "pcs", "price_paid": "700",
-        "location": "shelf", "kcal": "379", "protein": "8.6", "carbs": "59.3", "fat": "12.1",
+        "name": "Chicken breast", "quantity": "500", "unit": "g", "price_paid": "300",
+        "location": "fridge", "kcal": "105", "protein": "23.3", "carbs": "0", "fat": "1.9",
     })
-    after = buldak(app)["per_serving"]["cost"]
-    # 700 yen / 700 g = 100 yen per 100 g, down from the 180 reference price
-    assert after == pytest.approx(before - 140 * 0.8)
+    after = teriyaki(app)["per_serving"]["cost"]
+    # 300 yen / 500 g = 60 yen per 100 g, down from the 85 reference price
+    assert after == pytest.approx(before - 150 * 0.25)
 
 
 def form(**kw):

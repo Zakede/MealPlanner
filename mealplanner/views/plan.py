@@ -89,6 +89,34 @@ def undo():
     return redirect(request.referrer or url_for("plan.week"))
 
 
+@bp.route("/add", methods=["GET", "POST"])
+def add():
+    from datetime import date as date_cls
+    from .. import diet
+    if request.method == "POST":
+        try:
+            on = date_cls.fromisoformat(request.form.get("date", ""))
+            slot = request.form.get("slot")
+            if slot not in ("breakfast", "lunch", "dinner", "snack"):
+                raise ValueError("pick a meal")
+            plans.add_meal(on, slot, int(request.form.get("recipe_id", 0)))
+        except ValueError as e:
+            flash(str(e), "error")
+            return redirect(url_for("plan.add", date=request.form.get("date"), slot=request.form.get("slot")))
+        flash("Added.", "ok")
+        current, _ = plans.current_week()
+        return redirect(url_for("plan.week", week="next" if on >= current + timedelta(days=7) else None))
+    on = request.args.get("date") or today().isoformat()
+    slot = request.args.get("slot", "dinner")
+    s = store.settings()
+    prefs = store.recipe_prefs()
+    avoid = store.split_list(s.get("avoid"))
+    options = [r for r in store.recipes() if slot in r["type_list"] and prefs.get(r["id"]) != "never"
+               and diet.allowed(r, s.get("diet") or "any", avoid)]
+    options.sort(key=lambda r: (prefs.get(r["id"]) != "favorite", r["name"]))
+    return render_template("plan/add.html", on=on, slot=slot, options=options, prefs=prefs)
+
+
 @bp.route("/shopping")
 def shopping():
     first = selected_week()

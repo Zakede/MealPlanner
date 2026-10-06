@@ -29,6 +29,6 @@
   {% if r and not problems %}
   <form method="post" action="{{ url_for('recipes.ai_save') }}"><input type="hidden" name="raw" value="{{ raw }}"><button class="btn">Save recipe</button></form>
   {% endif %}
-  <form method="post" action="{{ url_for('recipes.ai') }}"><input type="hidden" name="request" value="{{ request_text }}"><input type="hidden" name="use_expiring" value="on"><button class="btn secondary">Another idea</button></form>
+  {% if not imported %}<form method="post" action="{{ url_for('recipes.ai') }}"><input type="hidden" name="request" value="{{ request_text }}"><input type="hidden" name="use_expiring" value="on"><button class="btn secondary">Another idea</button></form>{% endif %}
 </div>
 {% endblock %}

@@ -305,3 +305,50 @@ tr:last-child td { border-bottom: 0; }
 [data-palette="apothecary"] .day-head h2::before { content: "❖ "; color: var(--gold); font-size: .8em; }
 [data-palette="apothecary"] .tile small,
 [data-palette="apothecary"] .lp .t { letter-spacing: .02em; }
+
+/* expandable plan rows */
+details.meal { background: var(--surface); border-radius: 18px; overflow: hidden; }
+[data-palette="apothecary"] details.meal { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 20%, transparent); }
+details.meal > summary { list-style: none; cursor: pointer; background: transparent; box-shadow: none !important; }
+details.meal > summary::-webkit-details-marker { display: none; }
+details.meal.done summary b { opacity: .55; }
+details.meal.flagged { outline: 2px dashed var(--b); outline-offset: -2px; }
+details.meal .chev { transition: transform .2s ease; }
+details.meal[open] .chev { transform: rotate(180deg); }
+.meal-body { padding: 0 14px 14px 76px; }
+@media (max-width: 420px) { .meal-body { padding-left: 14px; } }
+.ing-mini { list-style: none; margin: 0 0 6px; padding: 0; display: grid; gap: 2px; }
+.ing-mini li { display: flex; justify-content: space-between; font-size: .88rem; padding: 3px 0; border-bottom: 1px dashed var(--line); }
+.ing-mini b { font-variant-numeric: tabular-nums; }
+.add-row { display: block; text-align: center; padding: 10px; border-radius: 18px; border: 2px dashed var(--line); color: var(--soft); font-weight: 700; font-size: .9rem; }
+.add-row:hover { color: var(--a-ink); border-color: var(--a); }
+.pick-row { margin: 0; }
+.pref-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.pref-row .btn.on { background: var(--a); color: var(--on-a); }
+.recipe-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 10px; align-items: center; }
+.recipe-card.off { opacity: .5; }
+@media (prefers-reduced-motion: no-preference) {
+  details.meal[open] .meal-body { animation: drop .2s ease-out; }
+  @keyframes drop { from { opacity: 0; transform: translateY(-4px); } }
+}
+
+/* setup wizard */
+.wizard-progress { height: 6px; border-radius: 9px; background: var(--line); overflow: hidden; margin: 0 0 16px; }
+.wizard-progress i { display: block; height: 100%; width: 0; background: var(--b); border-radius: 9px; transition: width .3s ease; }
+.wizard.js .step { display: none; }
+.wizard.js .step.on { display: block; animation: drop .25s ease-out; }
+.step h2 { margin-top: 18px; }
+.wizard-nav { display: flex; justify-content: space-between; gap: 10px; margin-top: 18px; }
+.wizard:not(.js) .wizard-nav { display: none; }
+.opts { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+.opts.two { grid-template-columns: 1fr 1fr; margin-bottom: 12px; }
+.opts.seven { grid-template-columns: repeat(8, 1fr); }
+.opt { position: relative; cursor: pointer; }
+.opt input { position: absolute; opacity: 0; pointer-events: none; }
+.opt span { display: grid; gap: 2px; padding: 12px 14px; border-radius: var(--r-sm); background: var(--surface); border: 2px solid transparent; height: 100%; }
+.opts.seven .opt span { padding: 10px 0; text-align: center; }
+.opt small { color: var(--soft); font-size: .78rem; }
+.opt input:checked + span { border-color: var(--b); background: var(--b-tint); }
+.opt input:focus-visible + span { outline: 3px solid var(--b); outline-offset: 2px; }
+.tag-picks.left { justify-content: flex-start; }
+.tag-picks label { background: var(--surface); }

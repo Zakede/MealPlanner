@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Import a recipe · Meal Planner{% endblock %}
+{% block content %}
+<h1>Import a recipe</h1>
+{% if not available %}
+  <div class="card empty"><p>No recipe model found. Install opencode and log in, then reload.</p></div>
+{% else %}
+<form method="post" class="card form" id="imp">
+  <label for="source">Paste a recipe, a video caption, or a recipe page link</label>
+  <textarea id="source" name="source" placeholder="Saw a good one on TikTok? Paste the caption here." required></textarea>
+  <button class="btn wide" id="go">Import</button>
+  <p class="muted small" id="wait" hidden>Reading it… about 15 seconds.</p>
+</form>
+<p class="muted small">Ingredients get matched to your food list, calories and cost are worked out by the app, and allergens are checked before saving. Video links usually hide the recipe, so paste the caption text for those.</p>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script>
+const f = document.getElementById("imp");
+if (f) f.addEventListener("submit", () => {
+  document.getElementById("go").disabled = true;
+  document.getElementById("wait").hidden = false;
+});
+</script>
+{% endblock %}

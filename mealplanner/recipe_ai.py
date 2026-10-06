@@ -130,3 +130,84 @@ def to_form(recipe):
     if recipe["portable"]:
         form["portable"] = "on"
     return form, [(i["name"], str(i["grams"])) for i in recipe["ingredients"]]
+
+
+def build_import_prompt(source_text, foods, s):
+    food_names = "\n".join(f"- {f['name']}" for f in foods)
+    return f"""Turn the recipe below into a simple home recipe for one person in Japan.
+
+Rules:
+- Map every ingredient to the closest item in the list below, spelled exactly as written.
+  Leave out salt, pepper, water and anything with no close match.
+- Convert cups, spoons and pieces into grams for the whole recipe.
+- Keep the original idea and flavour. Make it a little lighter if it is very oily or sugary.
+- Never use these (allergies): {s["allergies"] or "none"}.
+- Steps: short, plain sentences with clear doneness cues.
+
+Recipe:
+\"\"\"
+{source_text[:6000]}
+\"\"\"
+
+Ingredients you may use:
+{food_names}
+
+Reply with ONE JSON object and nothing else, in this shape:
+{{"name": "...", "servings": 1, "active_min": 10, "total_min": 15,
+  "meal_types": ["lunch", "dinner"], "tags": ["garlicky"], "cuisine": "korean",
+  "spice_level": 1, "portable": false, "batch_ok": false,
+  "ingredients": [{{"food": "Chicken breast", "grams": 150}}],
+  "steps": ["...", "..."]}}
+"""
+
+
+def recipe_from_jsonld(html):
+    """Pull a schema.org Recipe out of a web page, as plain text for the model. None if absent."""
+    import json
+    import re
+    for block in re.findall(r'<script[^>]+application/ld\+json[^>]*>(.*?)</script>', html, re.S | re.I):
+        try:
+            data = json.loads(block.strip())
+        except ValueError:
+            continue
+        stack = data if isinstance(data, list) else [data]
+        while stack:
+            item = stack.pop()
+            if isinstance(item, dict):
+                if "@graph" in item:
+                    stack.extend(item["@graph"])
+                kind = item.get("@type")
+                if kind == "Recipe" or (isinstance(kind, list) and "Recipe" in kind):
+                    steps = item.get("recipeInstructions") or []
+                    if isinstance(steps, list):
+                        steps = [x.get("text", "") if isinstance(x, dict) else str(x) for x in steps]
+                    else:
+                        steps = [str(steps)]
+                    return "\n".join([str(item.get("name", "")), f"Serves: {item.get('recipeYield', '')}",
+                                      "Ingredients:", *map(str, item.get("recipeIngredient") or []),
+                                      "Steps:", *steps])
+    return None
+
+
+def page_text(html):
+    """Rough visible text of a page, for pages without structured recipe data."""
+    import re
+    html = re.sub(r"<(script|style)[^>]*>.*?</\1>", " ", html, flags=re.S | re.I)
+    text = re.sub(r"<[^>]+>", " ", html)
+    return re.sub(r"\s+", " ", text).strip()[:6000]
+
+
+def fetch_url(url, timeout=10, max_bytes=2_000_000):
+    """Download a page for import. Only http(s); errors become ValueError."""
+    from urllib.parse import urlparse
+    from urllib.request import Request, urlopen
+    if urlparse(url).scheme not in ("http", "https"):
+        raise ValueError("only http and https links work")
+    req = Request(url, headers={"User-Agent": "Mozilla/5.0 (meal planner recipe import)"})
+    try:
+        with urlopen(req, timeout=timeout) as resp:
+            raw = resp.read(max_bytes)
+            charset = resp.headers.get_content_charset() or "utf-8"
+    except Exception as e:  # network errors come in many types
+        raise ValueError(f"couldn't open the link ({e.__class__.__name__})")
+    return raw.decode(charset, errors="replace")

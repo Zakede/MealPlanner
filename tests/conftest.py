@@ -29,5 +29,5 @@ def client(app):
 def profile(app):
     """Fill in the fields that have no defaults."""
     with app.app_context():
-        execute("UPDATE settings SET age = 25, sex = 'male' WHERE id = 1")
+        execute("UPDATE settings SET age = 25, sex = 'male', setup_done = 1 WHERE id = 1")
     return app

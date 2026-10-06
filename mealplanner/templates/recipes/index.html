@@ -4,30 +4,28 @@
 <h1>Recipes</h1>
 <div class="actions">
   <a class="btn" href="{{ url_for('recipes.ai') }}">Get an idea</a>
-  <a class="btn secondary" href="{{ url_for('recipes.edit') }}">+ New recipe</a>
-  <a class="btn secondary" href="{{ url_for('recipes.boosters') }}">Flavour boosters</a>
+  <a class="btn secondary" href="{{ url_for('recipes.ai_import') }}">Import</a>
+  <a class="btn secondary" href="{{ url_for('recipes.edit') }}">+ Write one</a>
 </div>
 <div class="actions">
-  <a class="chip {{ 'ok' if not meal_type }}" href="{{ url_for('recipes.index') }}">All</a>
-  {% for t in meal_types %}<a class="chip {{ 'ok' if meal_type == t }}" href="{{ url_for('recipes.index', type=t) }}">{{ t }}</a>{% endfor %}
+  {% for key, label in filters.items() %}<a class="chip {{ 'ok' if pref_filter == key }}" href="{{ url_for('recipes.index', pref=key or None, type=meal_type or None) }}">{{ label }}</a>{% endfor %}
 </div>
-<div class="card">
-  <ul class="list">
+<div class="actions">
+  <a class="chip {{ 'ok' if not meal_type }}" href="{{ url_for('recipes.index', pref=pref_filter or None) }}">Any meal</a>
+  {% for t in meal_types %}<a class="chip {{ 'ok' if meal_type == t }}" href="{{ url_for('recipes.index', type=t, pref=pref_filter or None) }}">{{ t|capitalize }}</a>{% endfor %}
+</div>
+
+<div class="day-list">
   {% for r in recipes %}
-    {% set s = r.per_serving %}
-    <li>
-      <div class="line"><a href="{{ url_for('recipes.view', recipe_id=r.id) }}"><b>{{ r.name }}</b></a><span>¥{{ s.cost|round|int }}</span></div>
-      <div>
-        <span class="chip">{{ s.kcal|round|int }} kcal</span>
-        <span class="chip ok">{{ s.protein|round|int }} g protein</span>
-        <span class="chip">{{ r.active_min }} min</span>
-        {% if r.spice_level %}<span class="chip hot">spice {{ r.spice_level }}</span>{% endif %}
-        {% if r.thaw_hours %}<span class="chip soon">thaw {{ r.thaw_hours }} h</span>{% endif %}
-      </div>
-    </li>
+  {% set s = r.per_serving %}
+  <a class="lp" href="{{ url_for('recipes.view', recipe_id=r.id) }}" {% if not r.fits %}style="opacity:.5"{% endif %}>
+    <span class="t">{{ s.kcal|round|int }}</span>
+    <div><b>{% if r.pref == 'favorite' %}♥ {% elif r.pref == 'try' %}☆ {% endif %}{{ r.name }}</b>
+      <small>{{ s.protein|round|int }} g protein · {{ r.active_min }} min · ¥{{ s.cost|round|int }}{% if not r.fits %} · not in your diet{% endif %}</small></div>
+    <span class="dot">{% if r.spice_level >= 2 %}🌶{% endif %}</span>
+  </a>
   {% else %}
-    <li class="muted">No recipes yet.</li>
+  <div class="card empty"><p>Nothing here yet.</p></div>
   {% endfor %}
-  </ul>
 </div>
 {% endblock %}

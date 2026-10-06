@@ -22,7 +22,13 @@ CREATE TABLE IF NOT EXISTS settings (
     cuisines_liked     TEXT    NOT NULL DEFAULT '',
     cuisines_tired     TEXT    NOT NULL DEFAULT '',
     theme              TEXT    NOT NULL DEFAULT 'apothecary',
-    mode               TEXT    NOT NULL DEFAULT 'dark'
+    mode               TEXT    NOT NULL DEFAULT 'dark',
+    job                TEXT    NOT NULL DEFAULT 'desk',
+    training_days      INTEGER NOT NULL DEFAULT 3,
+    training_intensity TEXT    NOT NULL DEFAULT 'moderate',
+    diet               TEXT    NOT NULL DEFAULT 'any',
+    avoid              TEXT    NOT NULL DEFAULT '',
+    setup_done         INTEGER NOT NULL DEFAULT 0
 );
 
 -- One row per weekday (0 = Monday).
@@ -51,7 +57,8 @@ CREATE TABLE IF NOT EXISTS foods (
     fat            REAL    NOT NULL DEFAULT 0,
     price_per_100g REAL,
     piece_g        REAL,
-    allergens      TEXT    NOT NULL DEFAULT ''
+    allergens      TEXT    NOT NULL DEFAULT '',
+    category       TEXT    NOT NULL DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS pantry_items (
@@ -87,7 +94,8 @@ CREATE TABLE IF NOT EXISTS recipes (
     cuisine      TEXT    NOT NULL DEFAULT '',
     batch_ok     INTEGER NOT NULL DEFAULT 0,
     portable     INTEGER NOT NULL DEFAULT 0,
-    fridge_days  INTEGER NOT NULL DEFAULT 3
+    fridge_days  INTEGER NOT NULL DEFAULT 3,
+    builtin      INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS recipe_ingredients (
@@ -229,4 +237,10 @@ CREATE TABLE IF NOT EXISTS workouts (
     kcal          INTEGER NOT NULL,
     kcal_estimated INTEGER NOT NULL DEFAULT 1,
     note          TEXT    NOT NULL DEFAULT ''
+);
+
+-- favorite: plan more often. never: tried it, didn't like it. try: want to try soon.
+CREATE TABLE IF NOT EXISTS recipe_prefs (
+    recipe_id INTEGER PRIMARY KEY REFERENCES recipes(id) ON DELETE CASCADE,
+    status    TEXT    NOT NULL CHECK (status IN ('favorite', 'never', 'try'))
 );

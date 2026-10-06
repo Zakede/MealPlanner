@@ -160,6 +160,9 @@ def load_context(first, last, exclude=None, skip=None):
         "dislikes": store.split_list(s["dislikes"]),
         "spice_tolerance": s["spice_tolerance"],
         "flavor_likes": store.split_list(s["flavor_likes"]),
+        "diet": s.get("diet") or "any",
+        "avoid": store.split_list(s.get("avoid")),
+        "prefs": {r["recipe_id"]: r["status"] for r in query("SELECT * FROM recipe_prefs")},
         "budget_cap": cap,
         "eat_out_slots_left": max(0, s["eat_out_slots"] - used - planned_eat_out),
         "existing": existing,
@@ -425,3 +428,50 @@ def day_summaries(first):
             "protein": round(sum(m["protein"] for m in ms if m["status"] != "skipped")),
         })
     return days
+
+
+def never_again(recipe_id):
+    """Block a recipe and swap it out of every upcoming meal."""
+    store.set_recipe_pref(recipe_id, "never")
+    today = get_today()
+    rows = query("SELECT id, date FROM plan_meals WHERE recipe_id = ? AND date >= ? AND status IN ('draft', 'approved')"
+                 " AND kind != 'leftover'", (recipe_id, today.isoformat()))
+    for r in rows:
+        set_replace(r["id"], True)
+    weeks = {budget.week_bounds(_d(r["date"]))[0] for r in rows}
+    for first in sorted(weeks):
+        replace_flagged(first)
+    return len(rows)
+
+
+def add_meal(on, slot, recipe_id):
+    """Put a chosen recipe into a slot, sized to that slot's share of the day."""
+    recipe = store.recipe(recipe_id)
+    if not recipe:
+        raise ValueError("recipe not found")
+    s = store.settings()
+    targets = store.targets(s)
+    if targets is None:
+        raise ValueError("Set your age and sex first.")
+    row = query("SELECT * FROM plan_days WHERE date = ?", (on.isoformat(),), one=True)
+    if not row:
+        save_plan_days([on])
+        row = query("SELECT * FROM plan_days WHERE date = ?", (on.isoformat(),), one=True)
+    if slot == "snack":
+        target = s["snack_kcal"]
+    else:
+        target = (row["kcal_target"] - s["snack_kcal"]) * planner.SLOT_SHARE[slot]
+    portion = planner.best_portion(recipe["per_serving"]["kcal"], target)
+    sched = {r["weekday"]: dict(r) for r in query("SELECT * FROM schedule_days")}
+    meal = {"date": on, "slot": slot, "kind": "snack" if slot == "snack" else ("cook" if recipe["active_min"] else "nocook"),
+            "recipe_id": recipe_id, "portion": portion, "cook_portions": portion, "title": recipe["name"],
+            "cost": recipe["per_serving"]["cost"] * portion, "buy_cost": 0, "note": "Added by you",
+            "eat_time": planner.eat_time(sched[on.weekday()], slot),
+            **planner.macros_for(recipe, portion)}
+    save_meals([meal])
+    first = budget.week_bounds(on)[0]
+    if query("SELECT 1 FROM shopping_list WHERE week_start = ? LIMIT 1", (first.isoformat(),)):
+        get_db().execute("UPDATE plan_meals SET status = 'approved' WHERE date = ? AND slot = ? AND recipe_id = ?"
+                         " AND status = 'draft'", (on.isoformat(), slot, recipe_id))
+        get_db().commit()
+        build_shopping_list(first)

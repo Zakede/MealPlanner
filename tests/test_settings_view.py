@@ -4,7 +4,8 @@ from mealplanner import store
 def form(**overrides):
     data = {
         "units": "metric", "height_cm": "190", "weight_kg": "85", "goal_weight_kg": "78",
-        "age": "25", "sex": "male", "activity": "light", "pace_kg_week": "0.5",
+        "age": "25", "sex": "male", "job": "desk", "training_days": "3", "training_intensity": "moderate",
+        "pace_kg_week": "0.5", "diet": "any",
         "weekly_budget_yen": "10000", "eat_out_slots": "1", "eat_out_budget_yen": "1200",
         "eat_out_kcal": "800", "snack_kcal": "200", "spice_tolerance": "3",
         "allergies": "", "dislikes": "", "flavor_likes": "", "cuisines_liked": "", "cuisines_tired": "",
@@ -18,15 +19,17 @@ def test_defaults_need_age_and_sex(app, client):
         s = store.settings()
         assert s["height_cm"] == 190 and s["weight_kg"] == 85 and s["goal_weight_kg"] == 78
         assert store.targets(s) is None
-    assert b"Set up profile" in client.get("/").data
+    resp = client.get("/")
+    assert resp.status_code == 302 and "/setup/" in resp.headers["Location"]
 
 
 def test_save_settings_computes_targets(app, client):
     resp = client.post("/settings/", data=form(), follow_redirects=True)
     assert resp.status_code == 200
-    assert b"2090" in resp.data
+    # BMR 1917.5 x (1.2 desk + 3 x 0.035 training) - 550 deficit
+    assert b"1950" in resp.data
     with app.app_context():
-        assert store.targets().kcal == 2090
+        assert store.targets().kcal == 1950
 
 
 def test_invalid_values_rejected(app, client):

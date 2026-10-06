@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Add a meal · Meal Planner{% endblock %}
+{% block content %}
+<h1>Add a meal</h1>
+<form method="get" class="actions">
+  <input type="hidden" name="date" value="{{ on }}">
+  {% for s in ['breakfast', 'lunch', 'dinner', 'snack'] %}
+  <button class="chip {{ 'ok' if s == slot }}" name="slot" value="{{ s }}">{{ s|capitalize }}</button>
+  {% endfor %}
+</form>
+<p class="muted small">For {{ on }}. Portions are sized to your targets automatically.</p>
+<div class="day-list">
+  {% for r in options %}
+  <form method="post" class="lp pick-row">
+    <input type="hidden" name="date" value="{{ on }}"><input type="hidden" name="slot" value="{{ slot }}">
+    <input type="hidden" name="recipe_id" value="{{ r.id }}">
+    <span class="t">{{ r.per_serving.kcal|round|int }}</span>
+    <div><b>{% if prefs.get(r.id) == 'favorite' %}♥ {% endif %}{{ r.name }}</b><small>{{ r.per_serving.protein|round|int }} g protein · {{ r.active_min }} min · ¥{{ r.per_serving.cost|round|int }}</small></div>
+    <button class="icon-btn" aria-label="Add {{ r.name }}">+</button>
+  </form>
+  {% else %}
+  <div class="card empty"><p>No recipes fit this meal with your diet settings.</p><a class="btn" href="{{ url_for('recipes.ai') }}">Get a recipe idea</a></div>
+  {% endfor %}
+</div>
+{% endblock %}
