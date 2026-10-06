@@ -2,7 +2,8 @@
 {% block title %}{{ on.strftime('%A') }} · Meal Planner{% endblock %}
 {% block content %}
 <h1>{{ on.strftime('%A') }}<span class="jp">{{ on.month }}月{{ on.day }}日</span></h1>
-<p class="muted">Tell the app what this day looks like. Its meals re-plan around it.</p>
+<p class="muted">Tell the app what this day looks like. This day and the rest of the week re-plan around it.</p>
+{% if target %}<div class="plate"><div><span class="lbl">Target for this day</span><span class="num-big" style="font-size:2.2rem">{{ target.kcal_target }}<small style="font: 700 .9rem var(--text)"> kcal · {{ target.protein_target }} g protein</small></span></div></div>{% endif %}
 
 <form method="post" class="form" id="day-form">
   <div class="card">
@@ -12,6 +13,15 @@
       <label class="opt"><input type="radio" name="work_mode" value="usual" {{ 'checked' if mode == 'usual' }}><span><b>Usual</b><small>{% if info.work_start and mode == 'usual' %}{{ info.work_start }}–{{ info.work_end }}{% else %}Follow my schedule{% endif %}</small></span></label>
       <label class="opt"><input type="radio" name="work_mode" value="work" {{ 'checked' if mode == 'work' }}><span><b>Working</b><small>Set the hours</small></span></label>
       <label class="opt"><input type="radio" name="work_mode" value="off" {{ 'checked' if mode == 'off' }}><span><b>Day off</b><small>Home all day</small></span></label>
+    </div>
+    <div class="work-only" style="margin-top:12px">
+      <span class="muted small" style="font-weight:700">How hard is this shift?</span>
+      {% set kind = o.get('work_kind') or job or 'desk' %}
+      <div class="opts" style="margin-top:6px">
+        {% for v, label, sub in [('desk', 'Desk / class', 'Mostly sitting'), ('standing', 'On my feet', 'Shop, kitchen, teaching'), ('physical', 'Physical', 'Lifting, moving, warehouse')] %}
+        <label class="opt"><input type="radio" name="work_kind" value="{{ v }}" {{ 'checked' if kind == v }}><span><b>{{ label }}</b><small>{{ sub }}</small></span></label>
+        {% endfor %}
+      </div>
     </div>
     <div class="row3 work-only" style="margin-top:12px">
       <label>From<input type="time" name="work_start" value="{{ o.get('work_start') or info.work_start or '09:00' }}"></label>

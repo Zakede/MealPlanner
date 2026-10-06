@@ -43,6 +43,7 @@ def week():
         flagged=sum(1 for m in meals if m["replace_flag"] and m["status"] in plans.EDITABLE),
         budget=plans.week_budget(first),
         needs_profile=store.targets() is None,
+        job=store.settings().get("job") or "desk",
         can_undo=bool(plans.query("SELECT 1 FROM plan_actions WHERE undone = 0 LIMIT 1")),
     )
 
@@ -153,15 +154,51 @@ def day(day):
             away={"yes": 1, "no": 0}.get(f.get("away")),
             effort=effort,
             note=(f.get("note") or "").strip()[:140] or None,
+            work_kind=f.get("work_kind") if mode == "work" and f.get("work_kind") in ("desk", "standing", "physical") else None,
         )
         if store.targets() is not None:
-            plans.replan_rest_of_day(on)
-        flash(f"{on.strftime('%A')} updated and re-planned.", "ok")
+            plans.replan_from(on)
+            row = plans.query("SELECT kcal_target, protein_target FROM plan_days WHERE date = ?", (on.isoformat(),), one=True)
+            target = f" Target {row['kcal_target']} kcal, {row['protein_target']} g protein." if row else ""
+            flash(f"{on.strftime('%A')} updated; the rest of the week re-planned around it.{target}", "ok")
+        else:
+            flash(f"{on.strftime('%A')} saved.", "ok")
         current, _ = plans.current_week()
         return redirect(url_for("plan.week", week="next" if on >= current + timedelta(days=7) else None))
     info = plans.build_days([on])[on]
     o = plans.override(on)
-    return render_template("plan/day.html", on=on, info=info, o=o)
+    target = plans.query("SELECT kcal_target, protein_target FROM plan_days WHERE date = ?", (on.isoformat(),), one=True)
+    return render_template("plan/day.html", on=on, info=info, o=o, target=target, job=store.settings().get("job"))
+
+
+@bp.route("/day/<day>/work", methods=["POST"])
+def work(day):
+    """The 'Got work' tick on the week page: tick it and give the hours, untick for a day off."""
+    try:
+        on = date_cls.fromisoformat(day)
+    except ValueError:
+        return redirect(url_for("plan.week"))
+    f = request.form
+    hhmm = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
+    if f.get("work"):
+        start, end = f.get("work_start", ""), f.get("work_end", "")
+        if not (hhmm.match(start) and hhmm.match(end)):
+            flash("Give work a start and end time, like 09:00 and 18:00.", "error")
+            return redirect(url_for("plan.day", day=day))
+        kind = f.get("work_kind") if f.get("work_kind") in ("desk", "standing", "physical") else None
+        plans.set_override(on, work_mode="work", work_start=start, work_end=end, work_kind=kind)
+        what = f"work {start}–{end}"
+    else:
+        plans.set_override(on, work_mode="off", work_start=None, work_end=None, commute_min=None, work_kind=None)
+        what = "a day off"
+    if store.targets() is not None and plans.query("SELECT 1 FROM plan_meals WHERE date >= ? LIMIT 1",
+                                                   (on.isoformat(),), one=True):
+        plans.replan_from(on)
+        flash(f"{on.strftime('%A')} is now {what}; the rest of the week re-planned.", "ok")
+    else:
+        flash(f"{on.strftime('%A')} is now {what}.", "ok")
+    current, _ = plans.current_week()
+    return redirect(url_for("plan.week", week="next" if on >= current + timedelta(days=7) else None))
 
 
 SECTIONS = [

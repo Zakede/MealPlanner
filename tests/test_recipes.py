@@ -81,3 +81,24 @@ def test_scaled_view(client):
 def test_pages_render(client):
     for url in ("/recipes/", "/recipes/?type=snack", "/recipes/new", "/recipes/1/edit", "/recipes/boosters", "/recipes/api"):
         assert client.get(url).status_code == 200
+
+
+def test_taste_booster_guide_adds_to_shopping_list(profile, client):
+    page = client.get("/recipes/boosters").get_data(as_text=True)
+    for section in ("Make it yourself", "Sauces to buy", "Spices &amp; blends", "Curry, the lighter way", "Fancy upgrades"):
+        assert section in page
+    client.post("/recipes/boosters/add", data={"name": "Shio koji"})
+    client.post("/recipes/boosters/add", data={"name": "Shio koji"})
+    assert client.post("/recipes/boosters/add", data={"name": "Not a thing"}).status_code == 404
+    with profile.app_context():
+        from mealplanner.db import query
+        rows = query("SELECT * FROM shopping_extra WHERE name = 'Shio koji'")
+        assert len(rows) == 1 and rows[0]["est_cost"] > 0
+
+
+def test_taste_booster_guide_hides_allergens(profile, client):
+    with profile.app_context():
+        from mealplanner.db import execute
+        execute("UPDATE settings SET allergies = 'fish' WHERE id = 1")
+    page = client.get("/recipes/boosters").get_data(as_text=True)
+    assert "Shirodashi" not in page and "Ponzu" in page and "hidden because of your allergies" in page

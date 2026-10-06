@@ -134,19 +134,44 @@ def compute_targets(weight_kg, height_cm, age, sex, activity, pace_kg_week, goal
     )
 
 
-def day_targets(targets, gym, gym_days_per_week, sex):
-    """Shift calories toward gym days while keeping the weekly total the same.
+HARD_DAY_HOURS = 10
+HARD_DAY_SNACK = 150
+HARD_DAY_PROTEIN = 10
 
-    Returns (kcal, protein_g) for one day.
+
+def work_extra(bmr, base_job, day_job, hours):
+    """Extra kcal for a workday that's more active than your usual job (or less, for a lighter day)."""
+    if not day_job or day_job not in JOB_LEVELS or hours <= 0:
+        return 0
+    base = JOB_LEVELS.get(base_job, JOB_LEVELS["desk"])[0]
+    return round(bmr * (JOB_LEVELS[day_job][0] - base) * min(hours, 12) / 8)
+
+
+def is_hard_day(day_job, hours):
+    return day_job == "physical" or hours >= HARD_DAY_HOURS
+
+
+def day_targets(targets, gym, gym_days_per_week, sex, work=None):
+    """Calories and protein for one day.
+
+    Gym days get more and rest days less, keeping the weekly total. `work` (optional) is
+    {"job": desk/standing/physical, "hours": float, "base_job": the profile's usual job}: a more active
+    shift adds energy, and on hard days (physical or 10+ hours) half the deficit is given back so
+    you don't run on empty. Returns (kcal, protein_g).
     """
     kcal, protein = targets.kcal, targets.protein_g
-    if gym_days_per_week in (0, 7):
-        return kcal, protein
-    if gym:
-        return kcal + GYM_DAY_EXTRA_KCAL, protein + GYM_DAY_EXTRA_PROTEIN
-    rest_days = 7 - gym_days_per_week
-    cut = GYM_DAY_EXTRA_KCAL * gym_days_per_week / rest_days
-    return max(CALORIE_FLOOR[sex], round(kcal - cut)), protein
+    if gym_days_per_week not in (0, 7):
+        if gym:
+            kcal, protein = kcal + GYM_DAY_EXTRA_KCAL, protein + GYM_DAY_EXTRA_PROTEIN
+        else:
+            rest_days = 7 - gym_days_per_week
+            kcal = round(kcal - GYM_DAY_EXTRA_KCAL * gym_days_per_week / rest_days)
+    if work:
+        kcal += work_extra(targets.bmr, work.get("base_job"), work.get("job"), work.get("hours", 0))
+        if is_hard_day(work.get("job"), work.get("hours", 0)):
+            kcal += max(0, targets.tdee - targets.kcal) // 2
+            protein += HARD_DAY_PROTEIN
+    return max(CALORIE_FLOOR[sex], round(kcal)), protein
 
 
 def kg_to_lb(kg):

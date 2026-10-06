@@ -163,9 +163,49 @@ def pref(recipe_id):
 @bp.route("/boosters")
 def boosters():
     from ..db import query
+    from ..library import TASTE_GUIDE
+    from ..plans import current_week
+    from ..pricing import factor
     rows = query("""SELECT b.*, f.name, f.kcal * b.grams / 100 AS kcal FROM flavor_boosters b
                     JOIN foods f ON f.id = b.food_id ORDER BY f.name""")
-    return render_template("recipes/boosters.html", boosters=rows)
+    s = store.settings()
+    allergies = set(store.split_list(s.get("allergies")))
+    first, _ = current_week()
+    on_list = {r["name"].lower() for r in query("SELECT name FROM shopping_extra WHERE week_start = ?",
+                                                 (first.isoformat(),))}
+    guide = []
+    for key, title, jp, blurb, items in TASTE_GUIDE:
+        shown = []
+        for name, jp_name, kcal, serving, use, where, allergens, yen in items:
+            if allergies & set(store.split_list(allergens)):
+                continue
+            shown.append({"name": name, "jp": jp_name, "kcal": kcal, "serving": serving, "use": use,
+                          "where": where, "cost": round(yen * factor(s)), "on_list": name.lower() in on_list})
+        guide.append({"key": key, "title": title, "jp": jp, "blurb": blurb, "items": shown})
+    return render_template("recipes/boosters.html", boosters=rows, guide=guide,
+                           hidden=sum(len(sec[4]) for sec in TASTE_GUIDE) - sum(len(g["items"]) for g in guide))
+
+
+@bp.route("/boosters/add", methods=["POST"])
+def add_booster():
+    """Put a taste booster from the guide on this week's shopping list."""
+    from ..db import execute, query
+    from ..library import TASTE_GUIDE
+    from ..plans import current_week
+    from ..pricing import factor
+    name = request.form.get("name", "")
+    item = next((i for sec in TASTE_GUIDE for i in sec[4] if i[0] == name), None)
+    if item is None:
+        abort(404)
+    first, _ = current_week()
+    if query("SELECT 1 FROM shopping_extra WHERE week_start = ? AND lower(name) = lower(?)",
+             (first.isoformat(), name), one=True):
+        flash(f"{name} is already on this week's list.", "ok")
+    else:
+        execute("INSERT INTO shopping_extra (week_start, name, amount, est_cost) VALUES (?, ?, ?, ?)",
+                (first.isoformat(), name, "", round(item[7] * factor(store.settings()))))
+        flash(f"{name} added to this week's shopping list.", "ok")
+    return redirect(url_for("recipes.boosters", _anchor=request.form.get("section") or None))
 
 
 @bp.route("/api")

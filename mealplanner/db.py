@@ -57,6 +57,7 @@ MIGRATIONS = [
     ("day_overrides", "work_end", "TEXT"),
     ("day_overrides", "commute_min", "INTEGER"),
     ("day_overrides", "note", "TEXT"),
+    ("day_overrides", "work_kind", "TEXT"),
 ]
 
 

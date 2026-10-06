@@ -14,7 +14,7 @@ from datetime import timedelta
 from . import diet
 from .costing import MACROS
 from .equipment import can_make
-from .nutrition import day_targets
+from .nutrition import HARD_DAY_SNACK, day_targets, is_hard_day
 from .schedule import busy, hhmm, minutes, slot_limits
 
 MEAL_SLOTS = ("breakfast", "lunch", "dinner")
@@ -282,8 +282,12 @@ def plan(ctx, dates):
     for d in dates:
         day = day_info(ctx, d)
         limits = slot_limits(day)
-        kcal_target, protein_target = day_targets(ctx["targets"], day["gym"], gym_days, s["sex"])
-        snack_kcal = min(s["snack_kcal"], kcal_target // 5)
+        work = None
+        if day.get("work_job"):
+            work = {"job": day["work_job"], "hours": day.get("work_hours", 0), "base_job": s.get("job") or "desk"}
+        kcal_target, protein_target = day_targets(ctx["targets"], day["gym"], gym_days, s["sex"], work=work)
+        hard = bool(work) and is_hard_day(work["job"], work["hours"])
+        snack_kcal = min(s["snack_kcal"] + (HARD_DAY_SNACK if hard else 0), kcal_target // 5)
         day_meals = [m for (md, _), ms in taken.items() if md == d for m in ms]
         day_kcal = sum(m["kcal"] for m in day_meals)
         day_protein = sum(m["protein"] for m in day_meals)

@@ -377,3 +377,62 @@ CRAVING_SWAPS = [
     ("Soda", "Zero cola or sparkling water", 140, 0, ""),
     ("Pizza", "Egg & cheese toast", 700, 380, ""),
 ]
+
+# Taste booster guide: ways to add flavour without many calories.
+# Each item: name, Japanese name, kcal per serving, serving, how to use, where to get it, allergens, rough JPY.
+TASTE_GUIDE = [
+    ("make", "Make it yourself", "手作り", "Low-calorie sauces from things you already have.", [
+        ("Yogurt mayo", "ヨーグルトマヨ", 15, "1 tbsp", "Greek yogurt + mustard + lemon + salt. For egg salad, tuna, wraps.", "Make it", "dairy", 0),
+        ("Tzatziki", "ザジキ", 12, "1 tbsp", "Yogurt + grated cucumber + garlic + dill. For chicken and rice bowls.", "Make it", "dairy", 0),
+        ("Ginger ponzu", "生姜ポン酢", 10, "1 tbsp", "Ponzu + grated ginger + green onion. For tofu, gyoza, pork shabu.", "Make it", "soy, wheat", 0),
+        ("Negi shio", "ねぎ塩だれ", 15, "1 tbsp", "Chopped green onion + salt + lemon + 3 drops sesame oil. For grilled chicken.", "Make it", "sesame", 0),
+        ("Gochujang yogurt", "コチュジャンヨーグルト", 40, "3 tbsp", "1 tsp gochujang into 3 tbsp yogurt. Sweet heat dip.", "Make it", "soy, wheat, dairy", 0),
+        ("Light teriyaki", "低カロリー照り焼き", 12, "1 tbsp", "Soy + monk fruit sweetener + ginger + pinch of starch, simmer until glossy.", "Make it", "soy, wheat", 0),
+        ("Miso yuzu dressing", "柚子味噌", 20, "1 tbsp", "Miso + rice vinegar + yuzu or lemon juice. For salads and steamed veg.", "Make it", "soy", 0),
+        ("Salsa fresca", "サルサ", 5, "1 tbsp", "Diced tomato + onion + lemon + chili + salt. For eggs, chicken, tacos.", "Make it", "", 0),
+    ]),
+    ("buy", "Sauces to buy", "市販ソース", "Ready-made and light. Check the label for kcal per 15 ml.", [
+        ("Ponzu", "ポン酢", 8, "1 tbsp", "Citrus soy for almost anything: tofu, fish, salads.", "Supermarket", "soy, wheat", 250),
+        ("Non-oil dressing", "ノンオイルドレッシング", 12, "1 tbsp", "Sesame-free 'aojiso' or onion flavours are the lightest.", "Supermarket", "soy, wheat", 250),
+        ("Half-calorie mayo", "カロリーハーフマヨ", 45, "1 tbsp", "Half the fat of regular mayo. Thin it with lemon.", "Supermarket", "egg", 300),
+        ("Low-sugar ketchup", "糖質オフケチャップ", 10, "1 tbsp", "For omurice and eggs without the sugar.", "Supermarket", "", 300),
+        ("Shirodashi", "白だし", 10, "1 tbsp", "Clear dashi seasoning: soups, tamagoyaki, udon, quick pickles.", "Supermarket", "soy, wheat, fish", 350),
+        ("Mentsuyu", "めんつゆ", 15, "1 tbsp", "Noodle base, also a 1-bottle sauce for oyakodon and nimono.", "Supermarket", "soy, wheat, fish", 300),
+        ("Sriracha", "シラチャー", 5, "1 tsp", "Garlic chili heat for eggs, rice, noodles.", "Kaldi", "", 400),
+        ("Tabasco", "タバスコ", 1, "1 tsp", "Sharp vinegar heat for basically zero.", "Supermarket", "", 300),
+        ("Fish sauce", "ナンプラー", 5, "1 tsp", "Salty umami for stir-fries and Thai-style salads.", "Supermarket", "fish", 300),
+    ]),
+    ("spice", "Spices & blends", "スパイス", "Almost no calories. The cheapest way to not get bored.", [
+        ("Shichimi togarashi", "七味唐辛子", 2, "1 tsp", "On udon, miso soup, grilled chicken.", "Supermarket", "sesame", 150),
+        ("Sansho pepper", "山椒", 2, "pinch", "Lemony tingle for eel-style chicken and mapo tofu.", "Supermarket", "", 200),
+        ("Smoked paprika", "スモークパプリカ", 6, "1 tsp", "Smoky flavour for chicken breast and eggs.", "Kaldi", "", 400),
+        ("Garlic powder", "ガーリックパウダー", 10, "1 tsp", "Easy garlic for marinades and popcorn.", "Supermarket", "", 250),
+        ("Cumin", "クミン", 8, "1 tsp", "Warm and earthy: beef, beans, curry.", "Supermarket", "", 300),
+        ("Garam masala", "ガラムマサラ", 6, "1 tsp", "Stir in at the end of a curry for a 'restaurant' smell.", "Supermarket", "", 350),
+        ("Gochugaru", "韓国唐辛子", 6, "1 tsp", "Fruity Korean chili flakes for kimchi-style anything.", "Gyomu Super", "", 400),
+        ("Magic salt", "マジックソルト", 0, "pinch", "Garlic-herb salt for steak, chicken, veg.", "Supermarket", "", 250),
+        ("Dashi powder", "顆粒だし", 2, "1 tsp", "Instant umami for soups, eggs, veg.", "Supermarket", "fish", 250),
+        ("Za'atar", "ザアタル", 10, "1 tsp", "Thyme + sumac + sesame. On yogurt, eggs, toast.", "Kaldi", "sesame", 500),
+        ("Cajun seasoning", "ケイジャンスパイス", 5, "1 tsp", "Bold rub for chicken breast and potatoes.", "Kaldi", "", 400),
+        ("Nori furikake", "のりふりかけ", 10, "1 tsp", "Pick a nori/salmon one, skip the sugary kids' kind.", "Supermarket", "sesame, fish", 150),
+    ]),
+    ("curry", "Curry, the lighter way", "カレー", "One block of normal roux is about 100 kcal, mostly fat. Ways around it:", [
+        ("Curry flakes", "カレーフレーク", 60, "15 g", "Flakes portion more easily than blocks: use a measured spoon.", "Supermarket", "wheat", 400),
+        ("Fat-reduced roux", "カロリー控えめルウ", 60, "1 block", "Boxes marked カロリーハーフ or 脂質オフ. Check the label.", "Supermarket", "wheat, soy", 300),
+        ("Half-roux trick", "ルウ半分", 50, "1 serving", "Half the blocks + 1 tsp curry powder + grated onion or apple.", "Make it", "wheat", 0),
+        ("Powder-only curry", "カレー粉カレー", 40, "1 serving", "Curry powder + canned tomato + onion + stock, thicken with starch.", "Make it", "", 0),
+        ("Light retort curry", "低カロリーレトルトカレー", 100, "1 pack", "Calorie-controlled packs, around 100 kcal. Add your own chicken.", "Supermarket", "wheat", 200),
+        ("Thai curry paste", "タイカレーペースト", 15, "1 tbsp", "Paste + milk or light coconut milk instead of a full can.", "Kaldi", "fish, shellfish", 350),
+    ]),
+    ("fancy", "Fancy upgrades", "ちょっと贅沢", "A bit special, still light.", [
+        ("Shio koji", "塩麹", 10, "1 tsp", "Marinate chicken breast overnight: juicy and tender.", "Supermarket", "", 300),
+        ("Yuzu kosho", "柚子胡椒", 3, "1/2 tsp", "Citrus chili paste for steak, hot pot, sashimi.", "Supermarket", "", 400),
+        ("Black vinegar", "黒酢", 5, "1 tbsp", "Rich and mellow: dumplings, stir-fries, sweet-sour pork.", "Supermarket", "", 400),
+        ("Bonito flakes", "かつお節", 10, "1 pack", "Umami and a bit of protein on tofu, rice, okonomiyaki.", "Supermarket", "fish", 250),
+        ("Nutritional yeast", "ニュートリショナルイースト", 20, "1 tbsp", "Cheesy taste with protein. On popcorn, eggs, pasta.", "Online", "", 1200),
+        ("Harissa", "ハリッサ", 15, "1 tsp", "North African chili paste for eggs, yogurt, roast veg.", "Kaldi", "", 500),
+        ("Shiso leaves", "大葉", 0, "5 leaves", "Fresh mint-basil taste. Wrap pork or chicken, top pasta.", "Supermarket", "", 100),
+        ("Cilantro", "パクチー", 2, "a handful", "For Thai, Mexican and Vietnamese bowls.", "Supermarket", "", 150),
+        ("Truffle salt", "トリュフ塩", 0, "pinch", "Restaurant smell on eggs, fries, mushrooms.", "Kaldi", "", 800),
+    ]),
+]

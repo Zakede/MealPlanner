@@ -1,14 +1,50 @@
 {% extends "base.html" %}
-{% block title %}Flavour boosters · Meal Planner{% endblock %}
+{% block title %}Taste boosters · Meal Planner{% endblock %}
 {% block content %}
-<h1>Flavour boosters</h1>
-<p class="muted">Low-calorie extras the planner can add to plain or cheap meals.</p>
-<div class="card">
+<h1>Taste boosters<span class="jp">味変</span></h1>
+<p class="muted">Big flavour, few calories. Tap + to put one on this week's shopping list.</p>
+
+<div class="actions boost-jump">
+  {% for sec in guide if sec['items'] %}<a class="chip" href="#{{ sec.key }}">{{ sec.title }}</a>{% endfor %}
+  <a class="chip" href="#planner">Auto-added</a>
+</div>
+
+{% for sec in guide if sec['items'] %}
+<section class="card boost-sec" id="{{ sec.key }}">
+  <h2>{{ sec.title }}<span class="jp">{{ sec.jp }}</span></h2>
+  <p class="muted small">{{ sec.blurb }}</p>
+  <ul class="boost-list">
+    {% for b in sec['items'] %}
+    <li class="boost">
+      <div class="boost-main">
+        <b>{{ b.name }}</b> <span class="jp-name">{{ b.jp }}</span>
+        <span class="boost-use">{{ b.use }}</span>
+        <span class="boost-meta"><span class="tag">{{ b.kcal }} kcal / {{ b.serving }}</span><span class="tag soft">{{ b.where }}</span></span>
+      </div>
+      {% if b.where != 'Make it' %}
+        {% if b.on_list %}<span class="boost-add done" aria-label="On the list">✓</span>
+        {% else %}
+        <form method="post" action="{{ url_for('recipes.add_booster') }}">
+          <input type="hidden" name="name" value="{{ b.name }}"><input type="hidden" name="section" value="{{ sec.key }}">
+          <button class="boost-add" aria-label="Add {{ b.name }} to shopping list" title="{% if b.cost %}about {{ cur }}{{ '{:,}'.format(b.cost) }}{% endif %}">+</button>
+        </form>
+        {% endif %}
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endfor %}
+{% if hidden %}<p class="muted small">{{ hidden }} hidden because of your allergies.</p>{% endif %}
+
+<section class="card" id="planner">
+  <h2>Added by the planner<span class="jp">自動</span></h2>
+  <p class="muted small">Put on plain or bland-rated meals automatically.</p>
   <ul class="list">
     {% for b in boosters %}
     <li><div class="line"><b>{{ b.name }}</b><span>{{ b.grams|round|int }} g · {{ b.kcal|round|int }} kcal</span></div>
       <span class="muted small">{{ b.note }}</span></li>
     {% endfor %}
   </ul>
-</div>
+</section>
 {% endblock %}

@@ -48,7 +48,21 @@
     </div>
     <div class="day-info">
       {% set i = d.info %}
-      {% if i.work_start %}<span class="tag">work {{ i.work_start }}–{{ i.work_end }}</span>{% else %}<span class="tag soft">day off</span>{% endif %}
+      <form method="post" action="{{ url_for('plan.work', day=d.date.isoformat()) }}" class="work-tick">
+        <label class="tick"><input type="checkbox" name="work" value="1" {{ 'checked' if i.work_start }} data-work-tick><span>Got work</span></label>
+        {% if i.work_start %}<button type="button" class="work-summary" data-work-open>{{ i.work_start }}–{{ i.work_end }}{% if i.work_job and i.work_job != 'desk' %} · {{ {'standing': 'on feet', 'physical': 'physical'}[i.work_job] }}{% endif %}</button>{% endif %}
+        <span class="work-times">
+          <input type="time" name="work_start" value="{{ i.work_start or '09:00' }}" aria-label="Work starts">
+          <span>–</span>
+          <input type="time" name="work_end" value="{{ i.work_end or '18:00' }}" aria-label="Work ends">
+          <select name="work_kind" aria-label="How hard is the shift">
+            {% for v, label in [('desk', 'Desk'), ('standing', 'On feet'), ('physical', 'Physical')] %}
+            <option value="{{ v }}" {{ 'selected' if (i.work_job or job) == v }}>{{ label }}</option>
+            {% endfor %}
+          </select>
+          <button class="chip ok">Save</button>
+        </span>
+      </form>
       {% if i.gym %}<span class="tag">gym</span>{% endif %}
       {% if i.away %}<span class="tag out">out</span>{% endif %}
       {% if i.effort == 'full' %}<span class="tag">big cook</span>{% elif i.effort == 'none' %}<span class="tag soft">no cooking</span>{% endif %}

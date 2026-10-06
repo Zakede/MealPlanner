@@ -92,3 +92,17 @@ def test_gym_days_keep_weekly_total():
 
 def test_unit_conversion_round_trip():
     assert lb_to_kg(kg_to_lb(85)) == pytest.approx(85)
+
+
+def test_hard_workdays_get_more_food():
+    t = compute_targets(85, 190, 25, "male", 1.305, 0.5, 78)
+    rest, _ = day_targets(t, False, 0, "male")
+    desk, _ = day_targets(t, False, 0, "male", work={"job": "desk", "hours": 8, "base_job": "desk"})
+    feet, _ = day_targets(t, False, 0, "male", work={"job": "standing", "hours": 8, "base_job": "desk"})
+    phys, p_phys = day_targets(t, False, 0, "male", work={"job": "physical", "hours": 8, "base_job": "desk"})
+    long_desk, _ = day_targets(t, False, 0, "male", work={"job": "desk", "hours": 11, "base_job": "desk"})
+    assert desk == rest < feet < phys
+    # physical: 1917.5 x 0.3 extra plus half the deficit given back
+    assert phys - rest == pytest.approx(round(1917.5 * 0.3) + (t.tdee - t.kcal) // 2, abs=2)
+    assert p_phys == t.protein_g + 10
+    assert long_desk > rest      # a 11-hour day is a hard day even at a desk

@@ -102,3 +102,17 @@ document.querySelectorAll("input[data-chips]").forEach((input) => {
   input.after(box);
   render();
 });
+
+// "Got work" tick on the week plan: ticking opens the hours, unticking makes it a day off right away.
+document.querySelectorAll(".work-tick").forEach((form) => {
+  const tick = form.querySelector("[data-work-tick]");
+  tick.addEventListener("change", () => {
+    if (tick.checked) {
+      form.classList.add("open");
+      form.querySelector("input[type=time]").focus();
+    } else {
+      form.submit();
+    }
+  });
+  form.querySelector("[data-work-open]")?.addEventListener("click", () => form.classList.toggle("open"));
+});

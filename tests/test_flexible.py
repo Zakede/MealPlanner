@@ -162,3 +162,37 @@ def test_day_off_clears_usual_work(profile, client):
     client.post(f"/plan/day/{WED.isoformat()}", data={"work_mode": "off", "gym": "usual", "away": "usual", "effort": "usual"})
     with profile.app_context():
         assert plans.build_days([WED])[WED]["work_start"] is None
+
+
+def test_editing_a_day_replans_the_rest_of_the_week(profile, client):
+    client.post("/plan/generate")
+    thu, sat = WED + timedelta(days=1), WED + timedelta(days=3)
+    with profile.app_context():
+        execute("UPDATE plan_meals SET replace_flag = 1 WHERE date = ?", (sat.isoformat(),))
+        before_kcal = query("SELECT kcal_target FROM plan_days WHERE date = ?", (thu.isoformat(),), one=True)["kcal_target"]
+    client.post(f"/plan/day/{thu.isoformat()}", data={
+        "work_mode": "work", "work_kind": "physical", "work_start": "07:00", "work_end": "18:00", "commute_min": "20",
+        "gym": "usual", "away": "usual", "effort": "usual"})
+    with profile.app_context():
+        after_kcal = query("SELECT kcal_target FROM plan_days WHERE date = ?", (thu.isoformat(),), one=True)["kcal_target"]
+        assert after_kcal > before_kcal + 300                  # physical 11-hour shift: real food
+        assert not any(m["replace_flag"] for m in plans.meals_between(sat, sat))   # later days re-planned too
+        thursday_food = sum(m["kcal"] for m in plans.meals_between(thu, thu))
+        assert thursday_food >= after_kcal * 0.85
+
+
+def test_got_work_tick_on_the_week_page(profile, client):
+    client.post("/plan/generate")
+    fri = WED + timedelta(days=2)
+    page = client.get("/plan/").get_data(as_text=True)
+    assert "Got work" in page
+    client.post(f"/plan/day/{fri.isoformat()}/work", data={})          # unticked: day off
+    with profile.app_context():
+        assert plans.build_days([fri])[fri]["work_start"] is None
+    client.post(f"/plan/day/{fri.isoformat()}/work",
+                data={"work": "1", "work_start": "13:00", "work_end": "22:00", "work_kind": "standing"})
+    with profile.app_context():
+        day = plans.build_days([fri])[fri]
+        assert (day["work_start"], day["work_end"], day["work_job"]) == ("13:00", "22:00", "standing")
+    bad = client.post(f"/plan/day/{fri.isoformat()}/work", data={"work": "1", "work_start": "", "work_end": ""})
+    assert bad.status_code == 302 and f"/plan/day/{fri.isoformat()}" in bad.headers["Location"]

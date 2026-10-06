@@ -269,7 +269,8 @@ CREATE TABLE IF NOT EXISTS day_overrides (
     work_start  TEXT,
     work_end    TEXT,
     commute_min INTEGER,
-    note        TEXT
+    note        TEXT,
+    work_kind   TEXT       -- desk / standing / physical for this day's work
 );
 
 CREATE TABLE IF NOT EXISTS water_log (

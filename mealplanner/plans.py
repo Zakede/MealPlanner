@@ -155,12 +155,25 @@ def build_days(dates, s=None):
             day["note"] = o.get("note") or ""
         else:
             day["note"] = ""
+        # how hard today's work is, for calorie targets
+        if day.get("work_start") and day.get("work_end"):
+            day["work_hours"] = max(0, (minutes(day["work_end"]) - minutes(day["work_start"])) / 60)
+            day["work_job"] = (o or {}).get("work_kind") or s.get("job") or "desk"
+        else:
+            day["work_hours"], day["work_job"] = 0, None
         day["prep"] = d in prep or (o is not None and o["effort"] == "full")
         days[d] = day
     return days
 
 
-OVERRIDE_KEYS = ("effort", "gym", "away", "work_mode", "work_start", "work_end", "commute_min", "note")
+OVERRIDE_KEYS = ("effort", "gym", "away", "work_mode", "work_start", "work_end", "commute_min", "note", "work_kind")
+
+
+def work_of(day, s):
+    """The work part of a day, in the shape nutrition.day_targets wants, or None on a day off."""
+    if not day.get("work_job"):
+        return None
+    return {"job": day["work_job"], "hours": day.get("work_hours", 0), "base_job": s.get("job") or "desk"}
 
 
 def set_override(on, **values):
@@ -303,7 +316,7 @@ def save_plan_days(dates):
     db = get_db()
     for d in dates:
         day = days[d]
-        kcal, protein = day_targets(targets, day["gym"], gym_days, s["sex"])
+        kcal, protein = day_targets(targets, day["gym"], gym_days, s["sex"], work=work_of(day, s))
         db.execute("""INSERT INTO plan_days (date, kcal_target, protein_target, gym, effort, away)
                       VALUES (?, ?, ?, ?, ?, ?)
                       ON CONFLICT(date) DO UPDATE SET kcal_target = excluded.kcal_target,
@@ -331,6 +344,34 @@ def generate_week(first):
     meals = planner.plan(ctx, dates)
     save_meals(meals)
     save_plan_days(dates)
+    return meals
+
+
+def replan_from(on):
+    """A day changed: plan it and the rest of its week again. Cooked and eaten meals stay put."""
+    if store.targets() is None:
+        raise ValueError("Set your age and sex in settings before planning.")
+    first, last = budget.week_bounds(on)
+    start = max(on, get_today())
+    dates = [d for d in budget.week_dates(first) if d >= start]
+    if not dates:
+        return []
+    db = get_db()
+    had_list = bool(query("SELECT 1 FROM shopping_list WHERE week_start = ? LIMIT 1", (first.isoformat(),)))
+    was_approved = bool(query("SELECT 1 FROM plan_meals WHERE status = 'approved' AND date BETWEEN ? AND ? LIMIT 1",
+                              (first.isoformat(), last.isoformat())))
+    db.execute("DELETE FROM plan_meals WHERE date BETWEEN ? AND ? AND status IN ('draft', 'approved')",
+               (dates[0].isoformat(), last.isoformat()))
+    db.commit()
+    ctx = load_context(first, last, skip=past_slots(dates))
+    meals = planner.plan(ctx, dates)
+    if was_approved:
+        for m in meals:
+            m["status"] = "approved"   # an approved week stays approved; the list just updates
+    save_meals(meals)
+    save_plan_days(dates)
+    if had_list or was_approved:
+        build_shopping_list(first)
     return meals
 
 
