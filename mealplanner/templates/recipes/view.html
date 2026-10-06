@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}{{ r.name }} · Meal Planner{% endblock %}
+{% block content %}
+{% set s = r.per_serving %}
+<h1>{{ r.name }}</h1>
+<div class="card">
+  <div class="stats">
+    <div><b>{{ (s.kcal * portions)|round|int }}</b><span>kcal</span></div>
+    <div><b>{{ (s.protein * portions)|round|int }} g</b><span>protein</span></div>
+    <div><b>{{ (s.carbs * portions)|round|int }} g</b><span>carbs</span></div>
+    <div><b>{{ (s.fat * portions)|round|int }} g</b><span>fat</span></div>
+  </div>
+  <p class="muted">For {{ '%g'|format(portions) }} portion{{ 's' if portions != 1 }} · ¥{{ (s.cost * portions)|round|int }} ·
+    {{ r.active_min }} min active, {{ r.total_min }} min total{% if r.thaw_hours %} · thaw {{ r.thaw_hours }} h ahead{% endif %}</p>
+  {% if s.unpriced %}<p class="warn small">No price yet for: {{ s.unpriced|join(', ') }}</p>{% endif %}
+  {% if r.allergens %}<p class="small">Contains: <b>{{ r.allergens|join(', ') }}</b></p>{% endif %}
+  <form class="actions" method="get">
+    {% for p in [0.5, 0.75, 1, 1.25, 1.5, 2] %}
+      <button class="btn small {{ '' if p == portions else 'secondary' }}" name="portions" value="{{ p }}">{{ '%g'|format(p) }}×</button>
+    {% endfor %}
+  </form>
+</div>
+
+<div class="card">
+  <h2>Ingredients</h2>
+  <table>
+    {% for i in r.ingredients %}
+    <tr><td>{{ i.name }}</td><td class="num"><b>{{ (i.grams * factor)|round|int }} g</b></td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+<div class="card">
+  <h2>Steps</h2>
+  <ol>{% for step in r.steps.splitlines() if step.strip() %}<li>{{ step }}</li>{% endfor %}</ol>
+</div>
+
+<div class="actions">
+  <a class="btn secondary" href="{{ url_for('recipes.edit', recipe_id=r.id) }}">Edit</a>
+  <form class="inline" method="post" action="{{ url_for('recipes.delete', recipe_id=r.id) }}">
+    <button class="btn danger" data-confirm="Delete this recipe?">Delete</button>
+  </form>
+</div>
+{% endblock %}

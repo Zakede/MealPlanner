@@ -75,3 +75,43 @@ def pantry_items(today):
         item["days_left"] = (date.fromisoformat(item["expiry"]) - today).days if item["expiry"] else None
         items.append(item)
     return items
+
+
+def recipe_ingredients(recipe_id=None):
+    """Ingredient rows joined with food macros and current price, grouped by recipe id."""
+    sql = f"""
+        SELECT ri.recipe_id, ri.grams, f.* FROM recipe_ingredients ri
+        JOIN ({FOOD_SELECT}) f ON f.id = ri.food_id
+        {"WHERE ri.recipe_id = ?" if recipe_id else ""}
+        ORDER BY ri.id
+    """
+    grouped = {}
+    for r in query(sql, (recipe_id,) if recipe_id else ()):
+        row = dict(r)
+        row["price_per_100g"] = row["current_price"]
+        grouped.setdefault(row["recipe_id"], []).append(row)
+    return grouped
+
+
+def _with_numbers(recipe, ingredients):
+    from .costing import per_serving, recipe_totals
+
+    recipe = dict(recipe)
+    recipe["ingredients"] = ingredients
+    recipe["per_serving"] = per_serving(recipe_totals(ingredients), recipe["servings"])
+    recipe["tag_list"] = split_list(recipe["tags"])
+    recipe["type_list"] = split_list(recipe["meal_types"])
+    recipe["allergens"] = sorted({a for i in ingredients for a in split_list(i["allergens"])})
+    return recipe
+
+
+def recipes():
+    ings = recipe_ingredients()
+    return [_with_numbers(r, ings.get(r["id"], [])) for r in query("SELECT * FROM recipes ORDER BY name")]
+
+
+def recipe(recipe_id):
+    row = query("SELECT * FROM recipes WHERE id = ?", (recipe_id,), one=True)
+    if not row:
+        return None
+    return _with_numbers(row, recipe_ingredients(recipe_id).get(recipe_id, []))

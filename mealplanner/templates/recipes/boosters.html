@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Flavour boosters · Meal Planner{% endblock %}
+{% block content %}
+<h1>Flavour boosters</h1>
+<p class="muted">Low-calorie extras the planner can add to plain or cheap meals.</p>
+<div class="card">
+  <ul class="list">
+    {% for b in boosters %}
+    <li><div class="line"><b>{{ b.name }}</b><span>{{ b.grams|round|int }} g · {{ b.kcal|round|int }} kcal</span></div>
+      <span class="muted small">{{ b.note }}</span></li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}

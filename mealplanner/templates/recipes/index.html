@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Recipes · Meal Planner{% endblock %}
+{% block content %}
+<h1>Recipes</h1>
+<div class="actions">
+  <a class="btn" href="{{ url_for('recipes.edit') }}">+ New recipe</a>
+  <a class="btn secondary" href="{{ url_for('recipes.boosters') }}">Flavour boosters</a>
+</div>
+<div class="actions">
+  <a class="chip {{ 'ok' if not meal_type }}" href="{{ url_for('recipes.index') }}">All</a>
+  {% for t in meal_types %}<a class="chip {{ 'ok' if meal_type == t }}" href="{{ url_for('recipes.index', type=t) }}">{{ t }}</a>{% endfor %}
+</div>
+<div class="card">
+  <ul class="list">
+  {% for r in recipes %}
+    {% set s = r.per_serving %}
+    <li>
+      <div class="line"><a href="{{ url_for('recipes.view', recipe_id=r.id) }}"><b>{{ r.name }}</b></a><span>¥{{ s.cost|round|int }}</span></div>
+      <div>
+        <span class="chip">{{ s.kcal|round|int }} kcal</span>
+        <span class="chip ok">{{ s.protein|round|int }} g protein</span>
+        <span class="chip">{{ r.active_min }} min</span>
+        {% if r.spice_level %}<span class="chip hot">spice {{ r.spice_level }}</span>{% endif %}
+        {% if r.thaw_hours %}<span class="chip soon">thaw {{ r.thaw_hours }} h</span>{% endif %}
+      </div>
+    </li>
+  {% else %}
+    <li class="muted">No recipes yet.</li>
+  {% endfor %}
+  </ul>
+</div>
+{% endblock %}

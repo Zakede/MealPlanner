@@ -61,6 +61,120 @@ FOODS = [
 ]
 
 
+# name, active_min, total_min, servings, tags, spice, thaw_hours, meal_types, cuisine, batch_ok, portable,
+# ingredients [(food, grams for the whole recipe)], steps
+RECIPES = [
+    ("Buldak noodles with onion, green pepper & lettuce", 10, 12, 1, "spicy,flavor-first,crunchy", 4, 0,
+     "lunch,dinner", "korean", 0, 0,
+     [("Buldak ramen", 140), ("Onion", 60), ("Green pepper", 35), ("Lettuce", 40)],
+     "Slice the onion and green pepper thinly. Shred the lettuce.\n"
+     "Boil the noodles for 5 minutes, adding the onion and pepper for the last minute.\n"
+     "Drain, leaving about 8 tablespoons of water in the pot.\n"
+     "Stir in the sauce over low heat for 30 seconds.\n"
+     "Top with the lettuce for crunch."),
+    ("Buldak chicken & cabbage bowl", 15, 18, 1, "spicy,flavor-first", 4, 0,
+     "lunch,dinner", "korean", 0, 0,
+     [("Buldak ramen", 70), ("Chicken breast", 150), ("Cabbage", 120), ("Onion", 40)],
+     "Slice the chicken thinly and fry until cooked through, about 5 minutes.\n"
+     "Boil half a pack of noodles with the cabbage and onion for 4 minutes.\n"
+     "Drain, toss everything with half the sauce packet."),
+    ("Chicken teriyaki rice bowl", 15, 20, 1, "sweet-savory", 0, 0,
+     "lunch,dinner", "japanese", 0, 1,
+     [("Chicken breast", 150), ("Cooked rice", 180), ("Soy sauce", 15), ("Mirin", 15), ("Frozen broccoli", 80)],
+     "Cut the chicken into bite-size pieces.\n"
+     "Fry on medium-high until browned and cooked through, about 6 minutes.\n"
+     "Add soy sauce and mirin, reduce until glossy.\n"
+     "Microwave the broccoli for 2 minutes. Serve over rice."),
+    ("Natto egg rice with kimchi", 3, 3, 1, "savory,quick", 1, 0,
+     "breakfast,lunch", "japanese", 0, 0,
+     [("Cooked rice", 150), ("Natto", 45), ("Egg", 60), ("Kimchi", 40), ("Soy sauce", 5)],
+     "Warm the rice.\n"
+     "Stir the natto with its sauce, then top the rice with natto, a raw or soft-boiled egg and kimchi."),
+    ("Pork & tofu kimchi stir-fry", 15, 15, 1, "spicy,garlicky", 2, 0,
+     "lunch,dinner", "korean", 0, 0,
+     [("Pork komagire", 100), ("Firm tofu", 150), ("Kimchi", 80), ("Onion", 50), ("Bean sprouts", 100),
+      ("Sesame oil", 5), ("Gochujang", 10)],
+     "Cube the tofu and slice the onion.\n"
+     "Fry the pork in sesame oil on high heat until no pink is left, about 3 minutes.\n"
+     "Add onion and kimchi, fry 2 minutes.\n"
+     "Add bean sprouts, tofu and gochujang, toss gently for 2 minutes."),
+    ("Saba rice bowl with cabbage", 5, 5, 1, "savory,quick", 0, 0,
+     "lunch,dinner", "japanese", 0, 1,
+     [("Canned mackerel", 100), ("Cooked rice", 150), ("Cabbage", 80), ("Soy sauce", 5)],
+     "Shred the cabbage.\n"
+     "Flake the mackerel over warm rice with the cabbage and a splash of soy sauce."),
+    ("Greek yogurt oat bowl", 2, 2, 1, "sweet", 0, 0,
+     "breakfast", "", 0, 1,
+     [("Greek yogurt", 200), ("Oats", 40), ("Banana", 100)],
+     "Spoon yogurt into a bowl, top with oats and sliced banana."),
+    ("Protein overnight oats", 3, 3, 1, "sweet", 0, 0,
+     "breakfast", "", 0, 1,
+     [("Oats", 50), ("Low-fat milk", 200), ("Protein powder", 30)],
+     "Mix everything in a jar the night before and keep it in the fridge."),
+    ("Egg & cheese toast", 8, 8, 1, "cheesy", 0, 0,
+     "breakfast", "", 0, 0,
+     [("Bread (shokupan)", 60), ("Egg", 120), ("Sliced cheese", 18), ("Lettuce", 20)],
+     "Scramble the eggs.\n"
+     "Toast the bread with the cheese on top, then add lettuce and eggs."),
+    ("Oyakodon", 15, 20, 1, "sweet-savory", 0, 0,
+     "lunch,dinner", "japanese", 0, 0,
+     [("Chicken thigh", 120), ("Egg", 120), ("Onion", 60), ("Cooked rice", 180), ("Soy sauce", 15), ("Mirin", 15)],
+     "Simmer sliced onion in soy sauce, mirin and 60 ml water for 3 minutes.\n"
+     "Add the chicken and simmer until cooked through, about 6 minutes.\n"
+     "Pour in beaten eggs, cover for 1 minute, and slide over rice."),
+    ("Chicken & egg udon", 10, 12, 1, "savory", 0, 0,
+     "lunch,dinner", "japanese", 0, 0,
+     [("Frozen udon", 200), ("Chicken breast", 100), ("Egg", 60), ("Soy sauce", 15), ("Mirin", 10),
+      ("Frozen spinach", 50)],
+     "Bring 350 ml water with soy sauce and mirin to a simmer.\n"
+     "Add sliced chicken, cook 5 minutes.\n"
+     "Add udon and spinach, crack in the egg, cook 2 minutes."),
+    ("Chicken & vegetable curry (batch)", 25, 50, 4, "spicy,garlicky", 2, 0,
+     "lunch,dinner", "japanese", 1, 1,
+     [("Chicken breast", 600), ("Onion", 200), ("Carrot", 150), ("Frozen broccoli", 200),
+      ("Canned tomatoes", 400), ("Curry powder", 15), ("Garlic", 12), ("Cooked rice", 720)],
+     "Dice the onion, carrot and chicken. Crush the garlic.\n"
+     "Soften the onion and garlic in a dry non-stick pot, about 5 minutes.\n"
+     "Add chicken and curry powder, cook 3 minutes.\n"
+     "Add tomatoes, carrot and 200 ml water, simmer 25 minutes.\n"
+     "Add broccoli for the last 5 minutes. Cool quickly and refrigerate portions within an hour."),
+    ("Garlic shrimp fried rice", 15, 20, 2, "garlicky", 0, 12,
+     "lunch,dinner", "chinese", 1, 1,
+     [("Frozen shrimp", 200), ("Cooked rice", 300), ("Egg", 120), ("Frozen mixed vegetables", 150),
+      ("Soy sauce", 15), ("Sesame oil", 5), ("Garlic", 6)],
+     "Thaw the shrimp in the fridge overnight.\n"
+     "Scramble the eggs in sesame oil and set aside.\n"
+     "Fry garlic and shrimp until pink, about 3 minutes.\n"
+     "Add vegetables and rice, fry 4 minutes, then the eggs and soy sauce."),
+    ("Salmon, tofu & miso soup set", 15, 20, 1, "savory", 0, 0,
+     "dinner", "japanese", 0, 0,
+     [("Salmon fillet", 120), ("Miso", 15), ("Firm tofu", 100), ("Frozen spinach", 50), ("Cooked rice", 150)],
+     "Grill the salmon 8-10 minutes until it flakes.\n"
+     "Simmer tofu and spinach in 300 ml water, then dissolve the miso off the heat.\n"
+     "Serve with rice."),
+    ("Salad chicken", 0, 0, 1, "quick", 0, 0, "snack", "", 0, 1,
+     [("Salad chicken", 110)], "Open and eat."),
+    ("Boiled eggs", 2, 12, 1, "quick", 0, 0, "snack,breakfast", "", 1, 1,
+     [("Egg", 120)], "Boil for 8 minutes, cool in cold water, peel."),
+    ("Greek yogurt cup", 0, 0, 1, "sweet", 0, 0, "snack", "", 0, 1,
+     [("Greek yogurt", 150)], "Eat as is, or add cinnamon."),
+    ("Rice crackers", 0, 0, 1, "crunchy", 0, 0, "snack", "japanese", 0, 1,
+     [("Rice crackers", 30)], "Portion 30 g into a bowl rather than eating from the bag."),
+    ("Light popcorn", 0, 0, 1, "crunchy", 0, 0, "snack", "", 0, 1,
+     [("Light popcorn", 25)], "Portion 25 g. Season with chili powder or nori if you like."),
+]
+
+# food, grams, tags, note
+BOOSTERS = [
+    ("Kimchi", 50, "spicy,sour", "Adds crunch and heat for about 20 kcal"),
+    ("Soy sauce", 10, "savory", "Salty depth for under 10 kcal"),
+    ("Sesame oil", 3, "nutty", "A few drops go a long way (27 kcal)"),
+    ("Chili crisp", 8, "spicy,crunchy", "Big flavour, about 50 kcal"),
+    ("Gochujang", 10, "spicy,sweet-savory", "Sweet heat for 25 kcal"),
+    ("Garlic", 6, "garlicky", "One clove, almost no calories"),
+]
+
+
 def _empty(conn, table):
     return conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] == 0
 
@@ -79,4 +193,23 @@ def seed(conn):
             "INSERT INTO foods (name, kcal, protein, carbs, fat, price_per_100g, piece_g, allergens)"
             " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             FOODS,
+        )
+    if _empty(conn, "recipes"):
+        food_ids = {r[1].lower(): r[0] for r in conn.execute("SELECT id, name FROM foods")}
+        for (name, active, total, servings, tags, spice, thaw, types, cuisine, batch, portable,
+             ingredients, steps) in RECIPES:
+            cur = conn.execute(
+                "INSERT INTO recipes (name, steps, active_min, total_min, servings, tags, spice_level, thaw_hours,"
+                " meal_types, cuisine, batch_ok, portable) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (name, steps, active, total, servings, tags, spice, thaw, types, cuisine, batch, portable),
+            )
+            conn.executemany(
+                "INSERT INTO recipe_ingredients (recipe_id, food_id, grams) VALUES (?, ?, ?)",
+                [(cur.lastrowid, food_ids[f.lower()], g) for f, g in ingredients],
+            )
+    if _empty(conn, "flavor_boosters"):
+        food_ids = {r[1].lower(): r[0] for r in conn.execute("SELECT id, name FROM foods")}
+        conn.executemany(
+            "INSERT INTO flavor_boosters (food_id, grams, tags, note) VALUES (?, ?, ?, ?)",
+            [(food_ids[f.lower()], g, t, n) for f, g, t, n in BOOSTERS],
         )

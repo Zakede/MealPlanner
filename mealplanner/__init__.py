@@ -30,8 +30,8 @@ def create_app(config=None):
         conn.close()
     app.teardown_appcontext(db.close_db)
 
-    from .views import main, pantry, settings
-    for module in (main, settings, pantry):
+    from .views import main, pantry, recipes, settings
+    for module in (main, settings, pantry, recipes):
         app.register_blueprint(module.bp)
 
     @app.context_processor

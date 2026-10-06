@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Edit recipe · Meal Planner{% endblock %}
+{% block content %}
+{% set f = request.form if request.method == 'POST' else (r or {}) %}
+<h1>{{ r.name if r else 'New recipe' }}</h1>
+<form method="post" class="card form" id="recipe-form">
+  <label>Name<input name="name" value="{{ f.name or '' }}" required></label>
+  <div class="row3">
+    <label>Active min<input name="active_min" type="number" value="{{ f.active_min or 10 }}"></label>
+    <label>Total min<input name="total_min" type="number" value="{{ f.total_min or 15 }}"></label>
+    <label>Servings<input name="servings" type="number" value="{{ f.servings or 1 }}"></label>
+  </div>
+  <div class="row3">
+    <label>Spice 0-5<input name="spice_level" type="number" min="0" max="5" value="{{ f.spice_level or 0 }}"></label>
+    <label>Thaw hours<input name="thaw_hours" type="number" value="{{ f.thaw_hours or 0 }}"></label>
+    <label>Fridge days<input name="fridge_days" type="number" value="{{ f.fridge_days or 3 }}"></label>
+  </div>
+  <div class="row">
+    <label>Tags<input name="tags" value="{{ f.tags or '' }}" placeholder="spicy, crunchy"></label>
+    <label>Cuisine<input name="cuisine" value="{{ f.cuisine or '' }}" placeholder="japanese"></label>
+  </div>
+  <p class="small">
+    {% set types = (r.type_list if r else ['lunch', 'dinner']) %}
+    {% for t in meal_types %}<label style="display:inline"><input type="checkbox" name="type_{{ t }}" {{ 'checked' if t in types }}>{{ t }}</label> {% endfor %}
+  </p>
+  <p class="small">
+    <label style="display:inline"><input type="checkbox" name="batch_ok" {{ 'checked' if r and r.batch_ok }}>Good for batch cooking</label>
+    <label style="display:inline"><input type="checkbox" name="portable" {{ 'checked' if r and r.portable }}>Portable lunch</label>
+  </p>
+
+  <h2>Ingredients (grams for the whole recipe)</h2>
+  <datalist id="food-names">{% for food in foods %}<option value="{{ food.name }}">{% endfor %}</datalist>
+  <div id="ing-rows">
+    {% for i in (r.ingredients if r else []) + [{}] * 2 %}
+    <div class="row ing-row">
+      <input name="ing_name" list="food-names" value="{{ i.name or '' }}" placeholder="Food">
+      <input name="ing_grams" type="number" step="any" value="{{ i.grams or '' }}" placeholder="grams">
+    </div>
+    {% endfor %}
+  </div>
+  <button type="button" class="btn secondary small" id="add-ing">+ Ingredient</button>
+
+  <h2>Steps (one per line)</h2>
+  <textarea name="steps">{{ f.steps or '' }}</textarea>
+  <button class="btn wide">Save recipe</button>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById("add-ing").addEventListener("click", () => {
+  const rows = document.getElementById("ing-rows");
+  const row = rows.querySelector(".ing-row").cloneNode(true);
+  row.querySelectorAll("input").forEach(i => i.value = "");
+  rows.appendChild(row);
+});
+</script>
+{% endblock %}
