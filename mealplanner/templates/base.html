@@ -49,7 +49,6 @@
       <button type="button" class="top-link theme-btn" data-theme-toggle data-url="{{ url_for('settings.mode') }}" aria-label="Switch light or dark">{{ icon('moon', 'i-moon') }}{{ icon('sun', 'i-sun') }}</button>
       {% if request.endpoint not in ('auth.login', 'auth.gate', 'people.pick') %}
       <a class="top-link avatar-link" href="{{ url_for('people.pick') }}" aria-label="Profile: {{ me.name }}">{{ me.name[:1]|upper }}</a>
-      <a class="top-link" href="{{ url_for('settings.edit') }}" aria-label="Settings">{{ icon('settings') }}</a>
       {% endif %}
     </span>
   </header>

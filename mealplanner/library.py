@@ -1,7 +1,7 @@
 """Built-in food and recipe library. Values are approximate Japanese food-table and supermarket
 figures; users edit them to match their labels and receipts."""
 
-LIBRARY_VERSION = 7
+LIBRARY_VERSION = 8
 
 # Category drives diet filters: poultry, meat, fish, seafood, egg, dairy, soy, legume, grain,
 # veg, fruit, sauce, fat, snack.
@@ -497,3 +497,13 @@ TASTE_GUIDE = [
         ("Truffle salt", "トリュフ塩", 0, "pinch", "Restaurant smell on eggs, fries, mushrooms.", "Kaldi", "", 800),
     ]),
 ]
+
+
+# the much longer list of sauces, spices, world flavours, rubs, toppings and dips
+from .condiments import merged as _merged  # noqa: E402
+TASTE_GUIDE = _merged(TASTE_GUIDE)
+
+# "try something new" foods (beans, lentils, oily fish, whole grains...) and one easy recipe each
+from . import discoveries as _disc  # noqa: E402
+FOODS = FOODS + [f for f in _disc.FOODS if f[0].lower() not in {x[0].lower() for x in FOODS}]
+RECIPES = RECIPES + [r for r in _disc.RECIPES if r[0].lower() not in {x[0].lower() for x in RECIPES}]

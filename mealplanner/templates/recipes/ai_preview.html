@@ -24,11 +24,11 @@
 {% endif %}
 <div class="card">
   <h2>Ingredients</h2>
-  <table>{% for i in r.ingredients %}<tr><td>{{ i.name }}</td><td class="num"><b>{{ i.grams }} g</b></td></tr>{% endfor %}</table>
+  <table>{% for i in r.ingredients %}<tr><td>{{ i.name }}</td><td class="num"><b>{{ i.grams|amount }}</b></td></tr>{% endfor %}</table>
 </div>
 <div class="card">
   <h2>Steps</h2>
-  <ol>{% for step in r.steps.splitlines() %}<li>{{ step }}</li>{% endfor %}</ol>
+  <ol>{% for step in r.steps.splitlines() %}<li>{{ step|temps }}</li>{% endfor %}</ol>
 </div>
 {% endif %}
 <div class="actions">

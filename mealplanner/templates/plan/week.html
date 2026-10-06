@@ -34,11 +34,14 @@
     <form method="post" action="{{ url_for('plan.generate', week=wk) }}"><button class="btn secondary" data-confirm="Re-plan the rest of the week?">Re-plan</button></form>
   </div>
   {% if not is_next %}
-  <div class="actions">
-    <form method="post" action="{{ url_for('plan.push_back') }}"><input type="hidden" name="days" value="1"><button class="chip">Push back 1 day</button></form>
-    <form method="post" action="{{ url_for('plan.push_back') }}"><input type="hidden" name="days" value="2"><button class="chip">2 days</button></form>
-    {% if can_undo %}<form method="post" action="{{ url_for('plan.undo') }}"><button class="chip hot">Undo</button></form>{% endif %}
-  </div>
+  {% if can_undo %}<div class="actions"><form method="post" action="{{ url_for('plan.undo') }}"><button class="chip hot">Undo push back</button></form></div>{% endif %}
+  <details class="today-more">
+    <summary>Running late on the plan?</summary>
+    <div class="actions" style="margin-top:10px">
+      <form method="post" action="{{ url_for('plan.push_back') }}"><input type="hidden" name="days" value="1"><button class="chip">Push everything back 1 day</button></form>
+      <form method="post" action="{{ url_for('plan.push_back') }}"><input type="hidden" name="days" value="2"><button class="chip">2 days</button></form>
+    </div>
+  </details>
   {% endif %}
 
   {% for d in days if d.meals or d.date >= today %}

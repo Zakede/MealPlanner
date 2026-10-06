@@ -1,58 +1,85 @@
 {% extends "base.html" %}
 {% block title %}Progress · Zettai{% endblock %}
 {% block content %}
+{% set u = body_unit() %}
 <h1 class="rise">Progress</h1>
+<div class="actions">
+  <a class="chip {{ 'ok' if span == 7 }}" href="{{ url_for('track.progress') }}">7 days</a>
+  <a class="chip {{ 'ok' if span == 30 }}" href="{{ url_for('track.progress', span=30) }}">30 days</a>
+</div>
 
-<div class="plate rise" style="--i:1">
+<div class="plate">
   <div>
-    <span class="lbl">Now · goal {{ goal }} kg</span>
-    <span class="num-big">{{ latest }}<small style="font: 700 1rem var(--text)"> kg</small></span>
+    <span class="lbl">Weight now · goal {{ goal|body }} {{ u }}</span>
+    <span class="num-big">{{ latest|body }}<small style="font: 700 1rem var(--text)"> {{ u }}</small></span>
   </div>
-  {% if change is not none %}
-  <div class="stamp" style="border-color: var(--jade); color: var(--jade)">7 days<b>{{ '%+.1f'|format(change) }} kg</b></div>
+  {% if lost %}
+  <div class="stamp">{{ 'Down' if lost > 0 else 'Up' }}<b>{{ (lost|abs)|body }} {{ u }}</b></div>
+  {% elif change is not none %}
+  <div class="stamp">7 days<b>{{ '%+.1f'|format(change|body) }} {{ u }}</b></div>
   {% endif %}
-  <form method="post" class="bars" style="grid-template-columns: minmax(0, 1fr) auto; align-items: end">
-    <label class="lbl" for="kg">Today's weight</label><span></span>
-    <input id="kg" name="kg" type="number" step="0.1" inputmode="decimal" placeholder="{{ latest }}" required style="margin:0; background:#fff; color:var(--paper-ink); border-color:rgba(0,0,0,.12)">
-    <button class="btn jade">Log</button>
+  <form method="post" class="bars weigh-form">
+    <input id="kg" name="kg" type="number" step="0.1" inputmode="decimal" placeholder="Today's weight ({{ u }})" required aria-label="Today's weight in {{ u }}">
+    <button class="btn">Log</button>
   </form>
 </div>
 
+<div class="stat-grid">
+  <div class="stat"><small>Spent on food</small><b>{{ cur }}{{ '{:,}'.format(sum.spent) }}</b><span>{% if span == 7 %}budget {{ cur }}{{ '{:,}'.format(budget_week) }}{% else %}last 30 days{% endif %}</span></div>
+  <div class="stat"><small>Average a day</small><b>{{ sum.avg_kcal or '—' }}<i> kcal</i></b><span>{% if targets %}target {{ targets.kcal }}{% endif %}</span></div>
+  <div class="stat"><small>Protein a day</small><b>{{ sum.avg_protein or '—' }}<i> g</i></b><span>{% if targets %}target {{ targets.protein_g }} g{% endif %}</span></div>
+  <div class="stat"><small>Meals cooked</small><b>{{ sum.cooked }}</b><span>in {{ span }} days</span></div>
+</div>
+
+<div class="card">
+  <h2>Habits</h2>
+  <div class="habit-row"><span>Protein goal</span><span class="hdots">{% for d in days[-7:] %}<i class="{{ 'on' if d.protein_hit else ('miss' if d.tracked else '') }}" title="{{ d.date.strftime('%a') }}"></i>{% endfor %}</span><b>{{ streaks.protein }}🔥</b></div>
+  <div class="habit-row"><span>Water</span><span class="hdots">{% for d in days[-7:] %}<i class="{{ 'on' if d.water_hit else ('miss' if d.water else '') }}" title="{{ d.date.strftime('%a') }}"></i>{% endfor %}</span><b>{{ streaks.water }}🔥</b></div>
+  <div class="habit-row"><span>Logged food</span><span class="hdots">{% for d in days[-7:] %}<i class="{{ 'on' if d.tracked }}" title="{{ d.date.strftime('%a') }}"></i>{% endfor %}</span><b>{{ streaks.tracked }}🔥</b></div>
+  <p class="muted small" style="margin:10px 0 0">Mark meals as eaten (or log food) and these fill in by themselves.</p>
+</div>
+
 {% if raw %}
-<div class="card rise" style="--i:2">
-  <div class="line"><h2 style="margin:0">Last 90 days</h2><span class="muted small"><span style="color:var(--peony)">●</span> weigh-ins <span style="color:var(--jade)">━</span> 7-day average</span></div>
-  <svg viewBox="0 0 320 120" style="width:100%;height:auto;margin-top:8px" role="img" aria-label="Weight from {{ hi }} to {{ lo }} kg">
+<div class="card">
+  <div class="line"><h2 style="margin:0">Weight, last 90 days</h2><span class="muted small"><span style="color:var(--fuji-deep)">●</span> weigh-ins <span style="color:var(--fuji)">━</span> average</span></div>
+  <svg viewBox="0 0 320 120" style="width:100%;height:auto;margin-top:8px" role="img" aria-label="Weight chart">
     <line x1="10" y1="10" x2="310" y2="10" stroke="var(--line)" stroke-width="1"></line>
     <line x1="10" y1="110" x2="310" y2="110" stroke="var(--line)" stroke-width="1"></line>
-    <text x="12" y="22" fill="var(--muted)" font-size="9">{{ hi }}</text>
-    <text x="12" y="106" fill="var(--muted)" font-size="9">{{ lo }}</text>
-    <polyline points="{{ raw }}" fill="none" stroke="var(--peony)" stroke-width="1.5" stroke-dasharray="2 3" opacity=".8"></polyline>
-    <polyline points="{{ trend }}" fill="none" stroke="var(--jade)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></polyline>
+    <text x="12" y="22" fill="var(--muted)" font-size="9">{{ hi|body }}</text>
+    <text x="12" y="106" fill="var(--muted)" font-size="9">{{ lo|body }}</text>
+    <polyline points="{{ raw }}" fill="none" stroke="var(--fuji-deep)" stroke-width="1.5" stroke-dasharray="2 3" opacity=".8"></polyline>
+    <polyline points="{{ trend }}" fill="none" stroke="var(--fuji)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></polyline>
   </svg>
-  <p class="muted small" style="margin:6px 0 0">Daily weight jumps with water and salt. Watch the green line.</p>
+  <p class="muted small" style="margin:6px 0 0">Daily weight jumps with water and salt. Watch the smooth line.</p>
 </div>
 {% else %}
-<div class="card empty"><p>Log your weight a few mornings a week and a trend line shows up here.</p></div>
+<div class="card empty"><p>Weigh yourself a few mornings a week and a trend line shows up here.</p></div>
 {% endif %}
 
-<div class="card rise" style="--i:3">
-  <h2>Water this week</h2>
-  <div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;align-items:end;height:90px">
-    {% for d, ml in water_week %}
-    {% set h = [100, (ml * 100 // water_target)]|min %}
-    <div style="display:grid;gap:4px;justify-items:center;height:100%;align-content:end">
-      <div style="width:100%;height:{{ [h, 4]|max }}%;border-radius:6px;background:{{ 'var(--jade)' if ml >= water_target else 'var(--key)' }}" title="{{ ml }} ml"></div>
-      <span class="muted" style="font-size:.7rem">{{ d.strftime('%a')[:2] }}</span>
+<div class="card">
+  <h2>Day by day</h2>
+  <div class="bar-chart" role="img" aria-label="Calories per day">
+    {% set top = [targets.kcal if targets else 2000] + days|map(attribute='kcal')|list %}{% set top = top|max %}
+    {% for d in days[-14:] %}
+    <div class="bc-col" title="{{ d.date.strftime('%a %d') }}: {{ d.kcal }} kcal, {{ d.protein }} g protein, {{ cur }}{{ d.spent }}">
+      <i style="height: {{ [3, d.kcal * 100 // top]|max if d.kcal else 0 }}%" class="{{ 'over' if targets and d.kcal > targets.kcal * 1.05 }}"></i>
+      <small>{{ d.date.strftime('%a')[:2] }}</small>
     </div>
     {% endfor %}
   </div>
-  <p class="muted small" style="margin:8px 0 0">Target {{ '%.1f'|format(water_target / 1000) }} L a day.</p>
+  <table class="day-table">
+    <tr><th></th><th>kcal</th><th>protein</th><th>water</th><th>spent</th></tr>
+    {% for d in days|reverse %}{% if d.tracked or d.water or d.spent %}
+    <tr><td>{{ d.date.strftime('%a %d') }}</td><td class="num">{{ d.kcal or '—' }}</td><td class="num">{{ d.protein ~ ' g' if d.protein else '—' }}</td>
+      <td class="num">{{ '%.1f L'|format(d.water / 1000) if d.water else '—' }}</td><td class="num">{{ cur ~ '{:,}'.format(d.spent) if d.spent else '—' }}</td></tr>
+    {% endif %}{% endfor %}
+  </table>
 </div>
 
 {% if entries %}
-<div class="card">
-  <h2>Recent weigh-ins</h2>
-  <table>{% for d, kg in entries %}<tr><td>{{ d.strftime('%a %d %b') }}</td><td class="num">{{ kg }} kg</td></tr>{% endfor %}</table>
-</div>
+<details class="card">
+  <summary><b>Recent weigh-ins</b></summary>
+  <table>{% for d, kg in entries %}<tr><td>{{ d.strftime('%a %d %b') }}</td><td class="num">{{ kg|body }} {{ u }}</td></tr>{% endfor %}</table>
+</details>
 {% endif %}
 {% endblock %}

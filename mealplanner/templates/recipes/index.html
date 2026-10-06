@@ -3,17 +3,20 @@
 {% block content %}
 <h1>Recipes</h1>
 <div class="actions">
-  <a class="btn" href="{{ url_for('recipes.ai') }}">Get an idea</a>
-  <a class="btn secondary" href="{{ url_for('recipes.ai_import') }}">Import</a>
-  <a class="btn secondary" href="{{ url_for('recipes.edit') }}">+ Write one</a>
+  <a class="btn" href="{{ url_for('recipes.ai_import') }}">+ Add a recipe</a>
+  <a class="btn secondary" href="{{ url_for('recipes.ai') }}">Give me an idea</a>
 </div>
-<div class="actions">
-  {% for key, label in filters.items() %}<a class="chip {{ 'ok' if pref_filter == key }}" href="{{ url_for('recipes.index', pref=key or None, type=meal_type or None) }}">{{ label }}</a>{% endfor %}
-</div>
-<div class="actions">
-  <a class="chip {{ 'ok' if not meal_type }}" href="{{ url_for('recipes.index', pref=pref_filter or None) }}">Any meal</a>
-  {% for t in meal_types %}<a class="chip {{ 'ok' if meal_type == t }}" href="{{ url_for('recipes.index', type=t, pref=pref_filter or None) }}">{{ t|capitalize }}</a>{% endfor %}
-</div>
+<details class="today-more" {{ 'open' if pref_filter or meal_type }}>
+  <summary>Filter</summary>
+  <div class="actions" style="margin-top:10px">
+    {% for key, label in filters.items() %}<a class="chip {{ 'ok' if pref_filter == key }}" href="{{ url_for('recipes.index', pref=key or None, type=meal_type or None) }}">{{ label }}</a>{% endfor %}
+  </div>
+  <div class="actions">
+    <a class="chip {{ 'ok' if not meal_type }}" href="{{ url_for('recipes.index', pref=pref_filter or None) }}">Any meal</a>
+    {% for t in meal_types %}<a class="chip {{ 'ok' if meal_type == t }}" href="{{ url_for('recipes.index', type=t, pref=pref_filter or None) }}">{{ t|capitalize }}</a>{% endfor %}
+  </div>
+  <a class="small muted" href="{{ url_for('recipes.edit') }}">Write one by hand instead</a>
+</details>
 
 <div class="day-list">
   {% for r in recipes %}

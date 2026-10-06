@@ -330,3 +330,12 @@ CREATE TABLE IF NOT EXISTS activity_skips (
     date        TEXT    NOT NULL,
     PRIMARY KEY (activity_id, date)
 );
+
+CREATE TABLE IF NOT EXISTS my_condiments (
+    id      INTEGER PRIMARY KEY,
+    name    TEXT    NOT NULL,
+    kcal    INTEGER NOT NULL DEFAULT 0,
+    serving TEXT    NOT NULL DEFAULT '1 tbsp',
+    use     TEXT    NOT NULL DEFAULT '',
+    yen     INTEGER NOT NULL DEFAULT 0
+);

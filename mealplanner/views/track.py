@@ -30,30 +30,40 @@ def water():
 @bp.route("/progress", methods=["GET", "POST"])
 def progress():
     if request.method == "POST":
+        from .. import units
         try:
-            kg = round(float(request.form.get("kg", "")), 1)
+            kg = round(units.body_in(float(request.form.get("kg", ""))), 1)
             if not 35 <= kg <= 300:
                 raise ValueError
         except ValueError:
-            flash("Enter your weight in kg, like 84.6.", "error")
+            flash(f"Enter your weight in {units.body_unit()}, like {units.body(84.6)}.", "error")
             return redirect(url_for("track.progress"))
         execute("INSERT INTO weight_log (date, kg) VALUES (?, ?) ON CONFLICT(date) DO UPDATE SET kg = excluded.kg",
                 (today().isoformat(), kg))
         # targets follow the latest weigh-in
         execute("UPDATE settings SET weight_kg = ? WHERE id = 1", (kg,))
-        flash(f"Logged {kg} kg. Targets updated.", "ok")
+        flash(f"Logged {units.body(kg)} {units.body_unit()}. Targets updated.", "ok")
         return redirect(url_for("track.progress"))
 
+    from .. import progress as prog
+    from datetime import timedelta
     entries = weights()
     shown = tracking.recent(entries, today(), 90)
     raw, trend, lo, hi = tracking.chart_points(shown)
     s = store.settings()
-    water_week = {r["date"]: r["ml"] for r in query("SELECT * FROM water_log")}
-    week = [(d, water_week.get(d.isoformat(), 0)) for d in tracking.week_dates(today())]
+    targets = store.targets(s)
+    water_target = tracking.water_target_ml(s["weight_kg"])
+    span = 30 if request.args.get("span") == "30" else 7
+    days = prog.daily(today() - timedelta(days=span - 1), today(), s, targets, water_target)
+    first_weight = entries[0][1] if entries else None
+    latest = entries[-1][1] if entries else s["weight_kg"]
     return render_template("progress.html", entries=list(reversed(shown[-10:])), raw=raw, trend=trend, lo=lo, hi=hi,
-                           change=tracking.weekly_change(entries), goal=s["goal_weight_kg"],
-                           latest=entries[-1][1] if entries else s["weight_kg"],
-                           water_week=week, water_target=tracking.water_target_ml(s["weight_kg"]))
+                           change=tracking.weekly_change(entries), goal=s["goal_weight_kg"], latest=latest,
+                           lost=round(first_weight - latest, 1) if first_weight else None,
+                           water_target=water_target, days=days, span=span, sum=prog.summary(days),
+                           targets=targets, budget_week=s["weekly_budget_yen"],
+                           streaks={"protein": prog.streak(days, "protein_hit"), "water": prog.streak(days, "water_hit"),
+                                    "tracked": prog.streak(days, "tracked")})
 
 
 @bp.route("/cook-now")

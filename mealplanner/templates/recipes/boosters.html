@@ -1,15 +1,16 @@
 {% extends "base.html" %}
-{% block title %}Taste boosters · Zettai{% endblock %}
+{% block title %}Sauces & spices · Zettai{% endblock %}
 {% block content %}
-<h1>Taste boosters</h1>
+<h1>Sauces &amp; spices</h1>
 <p class="muted">Big flavour, few calories. Tap + to put one on this week's shopping list.</p>
+<input type="search" id="boost-search" placeholder="Search: garlic, korean, dip, spicy…" aria-label="Search sauces and spices" style="margin-bottom:10px">
 
 <div class="actions boost-jump">
   {% for sec in guide if sec['items'] %}<a class="chip" href="#{{ sec.key }}">{{ sec.title }}</a>{% endfor %}
   <a class="chip" href="#planner">Auto-added</a>
 </div>
 
-{% for sec in guide if sec['items'] %}
+{% for sec in guide if sec['items'] or sec.mine %}
 <section class="card boost-sec" id="{{ sec.key }}">
   <h2>{{ sec.title }}</h2>
   <p class="muted small">{{ sec.blurb }}</p>
@@ -21,6 +22,9 @@
         <span class="boost-use">{{ b.use }}</span>
         <span class="boost-meta"><span class="tag">{{ b.kcal }} kcal / {{ b.serving }}</span><span class="tag soft">{{ b.where }}</span></span>
       </div>
+      {% if sec.mine %}
+        <form method="post" action="{{ url_for('recipes.delete_my_condiment', item_id=b.id) }}"><button class="icon-btn" aria-label="Remove {{ b.name }}" title="Remove">✕</button></form>
+      {% endif %}
       {% if b.where != 'Make it' %}
         {% if b.on_list %}<span class="boost-add done" aria-label="On the list">✓</span>
         {% else %}
@@ -33,6 +37,21 @@
     </li>
     {% endfor %}
   </ul>
+  {% if sec.mine %}
+  <details{{ ' open' if not sec['items'] }}>
+    <summary class="small"><b>+ Add your own</b></summary>
+    <form method="post" action="{{ url_for('recipes.add_my_condiment') }}" class="form" style="margin-top:10px">
+      <label>Name<input name="name" required maxlength="60" placeholder="Mum's chili oil"></label>
+      <div class="row3">
+        <label>kcal<input name="kcal" type="number" inputmode="numeric" min="0" placeholder="20"></label>
+        <label>Per<input name="serving" placeholder="1 tbsp"></label>
+        <label>{{ cur }}<input name="yen" type="number" inputmode="numeric" min="0" placeholder="300"></label>
+      </div>
+      <label>What it's good on<input name="use" maxlength="160" placeholder="Eggs, noodles, rice"></label>
+      <button class="btn secondary wide">Save</button>
+    </form>
+  </details>
+  {% endif %}
 </section>
 {% endfor %}
 {% if hidden %}<p class="muted small">{{ hidden }} hidden because of your allergies.</p>{% endif %}
@@ -47,4 +66,24 @@
     {% endfor %}
   </ul>
 </section>
+{% endblock %}
+{% block scripts %}
+<script>
+// filter every section as you type; sections with nothing left hide
+(() => {
+  const box = document.getElementById("boost-search");
+  if (!box) return;
+  box.addEventListener("input", () => {
+    const q = box.value.trim().toLowerCase();
+    document.querySelectorAll(".boost-sec").forEach((sec) => {
+      let shown = 0;
+      sec.querySelectorAll(".boost").forEach((li) => {
+        const hit = !q || li.textContent.toLowerCase().includes(q) || sec.querySelector("h2").textContent.toLowerCase().includes(q);
+        li.hidden = !hit; if (hit) shown++;
+      });
+      sec.hidden = q && !shown && sec.id !== "mine";
+    });
+  });
+})();
+</script>
 {% endblock %}

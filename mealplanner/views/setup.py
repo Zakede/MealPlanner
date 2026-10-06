@@ -16,8 +16,25 @@ bp = Blueprint("setup", __name__, url_prefix="/setup")
 
 FLAVORS = ["spicy", "garlicky", "cheesy", "sweet-savory", "crunchy", "fresh", "creamy", "comfort", "sour"]
 CUISINES = ["japanese", "korean", "chinese", "western", "italian", "mexican", "indian"]
-PACES = [(0.25, "Gentle", "about 1 kg a month"), (0.5, "Steady", "about 2 kg a month"),
-         (0.75, "Fast", "about 3 kg a month, the safe max")]
+PACES = [(0.25, "Gentle", "about 1 kg (2 lb) a month"), (0.5, "Steady", "about 2 kg (4 lb) a month"),
+         (0.75, "Fast", "about 3 kg (7 lb) a month, the safe max")]
+
+
+def imperial_to_metric(form):
+    """Setup in feet/inches and pounds: fill the metric fields the rest of parse() reads."""
+    from werkzeug.datastructures import MultiDict
+    from ..nutrition import in_to_cm, lb_to_kg
+    f = MultiDict(form)
+    try:
+        inches = float(form.get("height_ft") or 0) * 12 + float(form.get("height_in") or 0)
+        if inches:
+            f["height_cm"] = str(round(in_to_cm(inches), 1))
+        for kg, lb in (("weight_kg", "weight_lb"), ("goal_weight_kg", "goal_lb")):
+            if form.get(lb):
+                f[kg] = str(round(lb_to_kg(float(form[lb])), 1))
+    except ValueError:
+        raise ValueError("height and weight must be numbers")
+    return f
 EFFORTS = [("none", "No cooking"), ("low", "Quick (15 min)"), ("full", "Happy to cook")]
 
 
@@ -38,6 +55,9 @@ def prep_from_form(form):
 
 
 def parse(form):
+    units = "imperial" if form.get("units") == "imperial" else "metric"
+    if units == "imperial":
+        form = imperial_to_metric(form)
     v = {
         "age": _num(form, "age", 16, 100, int),
         "height_cm": _num(form, "height_cm", 120, 230),
@@ -50,6 +70,7 @@ def parse(form):
         "eat_out_budget_yen": _num(form, "eat_out_budget_yen", 0, 20000, int),
         "spice_tolerance": _num(form, "spice_tolerance", 0, 5, int),
     }
+    v["units"] = units
     sex = form.get("sex")
     if sex not in ("male", "female"):
         raise ValueError("pick male or female (used for the calorie formula)")

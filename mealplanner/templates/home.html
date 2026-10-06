@@ -9,15 +9,6 @@
   <a class="btn" href="{{ url_for('foodlog.page') }}">+ Log food</a>
 </div>
 
-<div class="quick rise" style="--i:1">
-  <a href="{{ url_for('plan.shopping') }}" class="quick-key">
-    {{ icon('cart') }}<b>Shop</b><small>{% if shop.count %}{{ shop.count }} items · {{ cur }}{{ '{:,}'.format(shop.cost|int) }}{% else %}Nothing to buy{% endif %}</small>
-  </a>
-  <a href="{{ url_for('receipts.upload') }}" class="quick-key">{{ icon('receipt') }}<b>Receipt</b><small>Scan to pantry</small></a>
-  <a href="{{ url_for('track.cook_now') }}" class="quick-key">{{ icon('bowl') }}<b>Cook now</b><small>From the fridge</small></a>
-  <a href="{{ url_for('plan.week') }}" class="quick-key">{{ icon('plan') }}<b>Week</b><small>{{ 'Draft' if has_plan else 'Not planned' }}</small></a>
-</div>
-
 <div class="plate rise" style="--i:2">
   <div>
     <span class="lbl">kcal left</span>
@@ -29,16 +20,12 @@
       <div class="line"><span>Protein</span><span>{{ protein_eaten }} / {{ protein_target }} g{% if p_left > 0 %} · {{ p_left }} to go{% endif %}</span></div>
       <div class="meter"><i style="width: {{ [100, protein_eaten * 100 // protein_target]|min }}%"></i></div>
     </div>
-    <div class="bar-row">
-      <div class="line"><span>Calories</span><span>{{ kcal_eaten }} / {{ kcal_target }}</span></div>
-      <div class="meter jade {{ 'over' if k_left < 0 }}"><i style="width: {{ [100, kcal_eaten * 100 // kcal_target]|min }}%"></i></div>
-    </div>
   </div>
 </div>
 
 {% if next_meal %}
 <div class="ticket">
-  <div class="top-row"><span>Next · {{ next_meal.slot|capitalize }}</span><span>{{ next_meal.eat_time or '' }}{% if start_at %} · start {{ start_at }}{% endif %}</span></div>
+  <div class="top-row"><span>Next · {{ next_meal.slot|capitalize }}</span><span>{{ next_meal.eat_time or '' }}</span></div>
   <span class="meal-name">{{ next_meal.title }}</span>
   <div class="row-end">
     <span>{{ next_meal.kcal|round|int }} kcal · {{ next_meal.protein|round|int }} g</span>
@@ -56,14 +43,17 @@
 <div class="ticket"><div class="top-row"><span>All done</span></div><span class="meal-name">Nothing left today</span></div>
 {% endif %}
 
-<div class="actions today-switch rise" style="--i:3">
+<details class="today-more rise" style="--i:3">
+  <summary>Today's different?</summary>
+  <div class="actions today-switch">
   {% for key, label, active in [('free', 'Free to cook', today_override.get('effort') == 'full'),
                                 ('gym', 'Gym today', day.gym),
                                 ('away', 'Out all day', day.away)] %}
   <form method="post" action="{{ url_for('main.today_toggle', what=key) }}"><button class="chip" aria-pressed="{{ 'true' if active else 'false' }}">{{ label }}</button></form>
   {% endfor %}
-  <a class="chip" href="{{ url_for('plan.day', day=on.isoformat()) }}">Edit today</a>
-</div>
+  <a class="chip" href="{{ url_for('plan.day', day=on.isoformat()) }}">More…</a>
+  </div>
+</details>
 
 {% if meals or extras %}
 <h2 class="section-title">Today's food</h2>
@@ -90,6 +80,22 @@
 </div>
 {% endif %}
 
+{% if idea %}
+<div class="card idea rise" style="--i:4" id="idea">
+  <div class="line"><span class="lbl">Try something new</span>{% if idea.count > 1 %}<a class="small muted" href="{{ url_for('main.home', idea=idea.next, _anchor='idea') }}">Another idea →</a>{% endif %}</div>
+  <h2 style="margin:6px 0 4px">What about {{ idea.food|lower|replace(' (dry)', '')|replace('canned ', '')|replace(' (rehydrated)', '') }}?</h2>
+  <p class="muted small" style="margin:0 0 10px">{{ idea.why }}</p>
+  <a class="lp" href="{{ url_for('recipes.view', recipe_id=idea.recipe.id) }}">
+    <span class="t">{{ idea.recipe.per_serving.kcal|round|int }}</span>
+    <div><b>{{ idea.recipe.name|replace(' (batch)', '') }}</b><small>{{ idea.recipe.per_serving.protein|round|int }} g protein · {{ idea.recipe.active_min }} min · {{ cur }}{{ idea.recipe.per_serving.cost|round|int }}</small></div>
+  </a>
+  <div class="actions" style="margin-top:10px">
+    <form method="post" action="{{ url_for('recipes.pref', recipe_id=idea.recipe.id) }}"><input type="hidden" name="status" value="try"><button class="btn small">Put it in my plans</button></form>
+    <form method="post" action="{{ url_for('recipes.pref', recipe_id=idea.recipe.id) }}"><input type="hidden" name="status" value="never"><button class="btn small secondary">Not for me</button></form>
+  </div>
+</div>
+{% endif %}
+
 <h2 class="section-title">This week</h2>
 <a class="week-strip rise" style="--i:5" href="{{ url_for('plan.week') }}" aria-label="Open the week plan">
   {% for d in week %}
@@ -112,7 +118,7 @@
   </div>
   <a class="tile" href="{{ url_for('track.progress') }}">
     <small>Weight</small>
-    <span class="num-big">{{ last_weigh.kg if last_weigh else '—' }}<small> kg</small></span>
+    <span class="num-big">{{ last_weigh.kg|body if last_weigh else '—' }}<small> {{ body_unit() }}</small></span>
     <small>{% if last_weigh %}{{ 'Weigh in today' if last_weigh.date != on.isoformat() else 'Logged today' }}{% else %}Tap to log{% endif %}</small>
   </a>
 </div>

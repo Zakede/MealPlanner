@@ -40,6 +40,31 @@ def reminders(on, recipes_by_id):
     return out
 
 
+def try_something_new(s, on):
+    """One food worth trying today (rotates daily; ?idea=n shows the next one)."""
+    from .. import diet, discoveries
+    prefs = store.recipe_prefs()
+    avoid = store.split_list(s.get("avoid"))
+    allergies = set(store.split_list(s.get("allergies")))
+    recipes = []
+    for r in store.recipes():
+        r = dict(r, pref=prefs.get(r["id"]))
+        tags = {a for i in r["ingredients"] for a in store.split_list(i.get("allergens"))}
+        r["fits"] = diet.allowed(r, s.get("diet") or "any", avoid) and not (allergies & tags)
+        recipes.append(r)
+    options = discoveries.candidates(recipes, discoveries.recent_foods(query, on), on)
+    if not options:
+        return None
+    try:
+        n = int(request.args.get("idea", 0))
+    except ValueError:
+        n = 0
+    pick = options[n % len(options)]
+    pick["next"] = (n + 1) % len(options)
+    pick["count"] = len(options)
+    return pick
+
+
 @bp.route("/")
 def home():
     s = store.settings()
@@ -67,6 +92,7 @@ def home():
     first, _ = plans.current_week(on)
     return render_template(
         "home.html",
+        idea=try_something_new(s, on),
         needs_profile=False,
         on=on,
         meals=meals,

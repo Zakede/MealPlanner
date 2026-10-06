@@ -3,25 +3,22 @@
 {% block title %}More · Zettai{% endblock %}
 {% block content %}
 <h1>More</h1>
+{% for group, items in [
+    ('Cook & eat', [('recipes.index', 'Recipes', 'recipes'), ('track.cook_now', 'Cook now', 'bowl'),
+                    ('cook.leftovers', 'Leftovers', 'bowl'), ('extras.snacks', 'Snacks & cravings', 'bowl'),
+                    ('extras.eat_out', 'Eating out', 'star')]),
+    ('Flavour', [('recipes.boosters', 'Sauces & spices', 'spark'), ('taste.index', 'Your taste', 'star')]),
+    ('Track', [('track.progress', 'Progress', 'star'), ('extras.spending', 'Spending', 'cart'),
+               ('extras.workouts', 'Workouts', 'spark')]),
+    ('Kitchen', [('receipts.upload', 'Add a receipt', 'receipt'), ('pantry.staples', 'Kitchen staples', 'pantry'),
+                 ('pantry.foods', 'Foods', 'leaf')]),
+    ('You', [('schedule.edit', 'Schedule', 'clock'), ('settings.edit', 'Settings', 'settings')]),
+] %}
+<h2 class="section-title">{{ group }}</h2>
 <div class="menu">
-  {% for endpoint, label, ico in [
-      ('recipes.index', 'Recipes', 'recipes'),
-      ('receipts.upload', 'Add a receipt', 'receipt'),
-      ('track.cook_now', 'Cook now', 'bowl'),
-      ('track.progress', 'Progress', 'star'),
-      ('cook.leftovers', 'Leftovers', 'bowl'),
-      ('taste.index', 'Taste', 'star'),
-      ('schedule.edit', 'Schedule', 'clock'),
-      ('pantry.foods', 'Foods', 'leaf'),
-      ('pantry.staples', 'Kitchen staples', 'pantry'),
-      ('recipes.boosters', 'Taste boosters', 'spark'),
-      ('extras.snacks', 'Snacks & cravings', 'bowl'),
-      ('extras.eat_out', 'Eating out', 'star'),
-      ('extras.spending', 'Spending', 'cart'),
-      ('extras.workouts', 'Workouts', 'spark'),
-      ('settings.edit', 'Settings', 'settings'),
-  ] if has_endpoint(endpoint) %}
+  {% for endpoint, label, ico in items if has_endpoint(endpoint) %}
   <a href="{{ url_for(endpoint) }}">{{ icon(ico) }}<span>{{ label }}</span></a>
   {% endfor %}
 </div>
+{% endfor %}
 {% endblock %}

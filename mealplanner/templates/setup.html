@@ -33,13 +33,24 @@
       <label class="opt iconed"><input type="radio" name="sex" value="{{ v }}" {{ 'checked' if s.sex == v }} required><span><i class="opt-ico">{{ icon(v) }}</i><b>{{ label }}</b></span></label>
       {% endfor %}
     </div>
-    <div class="row form">
-      <label>Age<input name="age" type="number" inputmode="numeric" value="{{ s.age or '' }}" required></label>
-      <label>Height (cm)<input name="height_cm" type="number" step="0.1" value="{{ s.height_cm }}" required></label>
+    {% set imp = s.units == 'imperial' %}
+    <div class="opts two units-pick">
+      <label class="opt"><input type="radio" name="units" value="metric" {{ 'checked' if not imp }}><span><b>Metric</b><small>cm · kg · °C</small></span></label>
+      <label class="opt"><input type="radio" name="units" value="imperial" {{ 'checked' if imp }}><span><b>Imperial</b><small>ft · lb · °F</small></span></label>
     </div>
     <div class="row form">
-      <label>Weight now (kg)<input name="weight_kg" type="number" step="0.1" value="{{ s.weight_kg }}" required></label>
-      <label>Goal (kg)<input name="goal_weight_kg" type="number" step="0.1" value="{{ s.goal_weight_kg }}" required></label>
+      <label>Age<input name="age" type="number" inputmode="numeric" value="{{ s.age or '' }}" required></label>
+      <label class="u-metric">Height (cm)<input name="height_cm" type="number" step="0.1" value="{{ s.height_cm }}" required></label>
+      <span class="u-imperial row" style="gap:8px">
+        <label>Height (ft)<input name="height_ft" type="number" inputmode="numeric" min="3" max="8" value="{{ ((s.height_cm or 0) / 30.48)|int if s.height_cm else '' }}" required></label>
+        <label>(in)<input name="height_in" type="number" inputmode="numeric" min="0" max="11" value="{{ (((s.height_cm or 0) / 2.54) % 12)|round|int if s.height_cm else '' }}"></label>
+      </span>
+    </div>
+    <div class="row form">
+      <label class="u-metric">Weight now (kg)<input name="weight_kg" type="number" step="0.1" value="{{ s.weight_kg }}" required></label>
+      <label class="u-metric">Goal (kg)<input name="goal_weight_kg" type="number" step="0.1" value="{{ s.goal_weight_kg }}" required></label>
+      <label class="u-imperial">Weight now (lb)<input name="weight_lb" type="number" step="0.1" value="{{ (s.weight_kg * 2.20462)|round(1) if s.weight_kg }}" required></label>
+      <label class="u-imperial">Goal (lb)<input name="goal_lb" type="number" step="0.1" value="{{ (s.goal_weight_kg * 2.20462)|round(1) if s.goal_weight_kg }}" required></label>
     </div>
     <h2>How fast?</h2>
     <div class="opts">
@@ -213,6 +224,14 @@
   };
   form.querySelectorAll('input[name="schedule_mode"]').forEach(r => r.addEventListener("change", modeBoxes));
   modeBoxes();
+  // metric or imperial: show one set of fields; the hidden set is disabled so it's neither checked nor sent
+  const unitBoxes = () => {
+    const imp = form.querySelector('input[name="units"]:checked')?.value === "imperial";
+    form.querySelectorAll(".u-imperial").forEach(el => { el.hidden = !imp; el.querySelectorAll("input").forEach(i => i.disabled = !imp); });
+    form.querySelectorAll(".u-metric").forEach(el => { el.hidden = imp; el.querySelectorAll("input").forEach(i => i.disabled = imp); });
+  };
+  form.querySelectorAll('input[name="units"]').forEach(r => r.addEventListener("change", unitBoxes));
+  unitBoxes();
   // no training: hide how hard and which gym days
   const trains = () => {
     const none = form.querySelector('input[name="training_days"]:checked')?.value === "0";

@@ -61,6 +61,8 @@ def create_app(config=None):
         app.register_blueprint(module.bp)
 
     app.before_request(auth.require_login)
+    from . import units
+    units.register(app)
 
     @app.context_processor
     def nav():

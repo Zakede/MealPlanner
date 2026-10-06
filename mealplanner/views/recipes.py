@@ -156,7 +156,8 @@ def pref(recipe_id):
                                           if swapped else ""), "ok")
     else:
         store.set_recipe_pref(recipe_id, status)
-        flash({"favorite": "Added to favourites.", "try": "Added to want to try."}.get(status, "Cleared."), "ok")
+        flash({"favorite": "Added to favourites.",
+               "try": "Added to want to try: it'll turn up in your next plans."}.get(status, "Cleared."), "ok")
     return redirect(request.referrer or url_for("recipes.view", recipe_id=recipe_id))
 
 
@@ -173,7 +174,11 @@ def boosters():
     first, _ = current_week()
     on_list = {r["name"].lower() for r in query("SELECT name FROM shopping_extra WHERE week_start = ?",
                                                  (first.isoformat(),))}
-    guide = []
+    guide = [{"key": "mine", "title": "Your own", "jp": "", "mine": True,
+              "blurb": "Sauces and spices you like that aren't in the list.",
+              "items": [{"id": r["id"], "name": r["name"], "kcal": r["kcal"], "serving": r["serving"], "use": r["use"],
+                         "where": "Yours", "cost": r["yen"], "on_list": r["name"].lower() in on_list}
+                        for r in query("SELECT * FROM my_condiments ORDER BY name")]}]
     for key, title, jp, blurb, items in TASTE_GUIDE:
         shown = []
         for name, jp_name, kcal, serving, use, where, allergens, yen in items:
@@ -196,7 +201,10 @@ def add_booster():
     name = request.form.get("name", "")
     item = next((i for sec in TASTE_GUIDE for i in sec[4] if i[0] == name), None)
     if item is None:
-        abort(404)
+        mine = query("SELECT * FROM my_condiments WHERE name = ?", (name,), one=True)
+        if mine is None:
+            abort(404)
+        item = (mine["name"], "", mine["kcal"], mine["serving"], mine["use"], "Yours", "", mine["yen"])
     first, _ = current_week()
     if query("SELECT 1 FROM shopping_extra WHERE week_start = ? AND lower(name) = lower(?)",
              (first.isoformat(), name), one=True):
@@ -206,6 +214,32 @@ def add_booster():
                 (first.isoformat(), name, "", round(item[7] * factor(store.settings()))))
         flash(f"{name} added to this week's shopping list.", "ok")
     return redirect(url_for("recipes.boosters", _anchor=request.form.get("section") or None))
+
+
+@bp.route("/boosters/mine", methods=["POST"])
+def add_my_condiment():
+    from ..db import execute
+    name = (request.form.get("name") or "").strip()[:60]
+    if not name:
+        flash("Give it a name.", "error")
+        return redirect(url_for("recipes.boosters", _anchor="mine"))
+    try:
+        kcal = max(0, min(500, int(float(request.form.get("kcal") or 0))))
+        yen = max(0, int(float(request.form.get("yen") or 0)))
+    except ValueError:
+        kcal, yen = 0, 0
+    execute("INSERT INTO my_condiments (name, kcal, serving, use, yen) VALUES (?, ?, ?, ?, ?)",
+            (name, kcal, (request.form.get("serving") or "1 tbsp").strip()[:20],
+             (request.form.get("use") or "").strip()[:160], yen))
+    flash(f"{name} added to your sauces.", "ok")
+    return redirect(url_for("recipes.boosters", _anchor="mine"))
+
+
+@bp.route("/boosters/mine/<int:item_id>/delete", methods=["POST"])
+def delete_my_condiment(item_id):
+    from ..db import execute
+    execute("DELETE FROM my_condiments WHERE id = ?", (item_id,))
+    return redirect(url_for("recipes.boosters", _anchor="mine"))
 
 
 @bp.route("/api")
