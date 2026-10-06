@@ -15,7 +15,16 @@ document.getElementById("share").addEventListener("click", async (e) => {
 {% endblock %}
 {% block content %}
 {% set wk = 'next' if is_next else None %}
-<h1>Shopping list</h1>
+<h1>Shopping list<span class="jp">買い物</span></h1>
+{% if preview %}
+<div class="card callout">
+  <b>From your draft plan.</b> <span class="muted small">Approve the week to lock it in and tick things off as you buy them.</span>
+  <form method="post" action="{{ url_for('plan.approve', week=wk) }}" style="margin-top:10px"><button class="btn wide">承認 Approve week</button></form>
+</div>
+{% elif not has_plan %}
+<div class="card empty"><p>Plan your week first, then this shows exactly what to buy.</p>
+  <form method="post" action="{{ url_for('plan.generate') }}"><button class="btn">献立 Plan my week</button></form></div>
+{% endif %}
 {% include "_budget.html" %}
 <div class="card">
   <div class="line"><b>Estimated {{ cur }}{{ '{:,}'.format(total|int) }}</b>
@@ -29,7 +38,8 @@ document.getElementById("share").addEventListener("click", async (e) => {
       <div class="line">
         <span>{% if i.checked %}<s class="muted">{{ i.name }}</s>{% else %}<b>{{ i.name }}</b>{% endif %}<br>
           <span class="muted small">{{ i.grams|int }} g{% if i.piece_g %} (about {{ ((i.grams / i.piece_g) + 0.49)|round|int }} pcs){% endif %} · est. {{ cur }}{{ i.est_cost|int }}</span></span>
-        {% if not i.checked %}
+        {% if preview %}<span class="chip">{{ cur }}{{ i.est_cost|int }}</span>
+        {% elif not i.checked %}
         <form class="inline" method="post" action="{{ url_for('plan.bought', item_id=i.id, week=wk) }}" style="display:flex;gap:6px;align-items:center">
           <input name="price" inputmode="numeric" placeholder="{{ cur }}{{ i.est_cost|int }}" style="width:80px;margin:0">
           <button class="btn small">Bought</button>

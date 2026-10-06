@@ -36,7 +36,12 @@ CREATE TABLE IF NOT EXISTS settings (
     gemini_key         TEXT    NOT NULL DEFAULT '',
     country            TEXT    NOT NULL DEFAULT 'JP',
     area               TEXT    NOT NULL DEFAULT 'city',
-    shop               TEXT    NOT NULL DEFAULT 'supermarket'
+    shop               TEXT    NOT NULL DEFAULT 'supermarket',
+    goal_mode          TEXT    NOT NULL DEFAULT 'pace',
+    deficit_kcal       INTEGER NOT NULL DEFAULT 500,
+    protein_per_kg     REAL    NOT NULL DEFAULT 1.8,
+    fat_share          REAL    NOT NULL DEFAULT 0.25,
+    password_hash      TEXT    NOT NULL DEFAULT ''
 );
 
 -- One row per weekday (0 = Monday).

@@ -25,6 +25,9 @@ def targets(s=None):
                                      s.get("training_intensity", "moderate")),
         pace_kg_week=s["pace_kg_week"],
         goal_weight_kg=s["goal_weight_kg"],
+        deficit_kcal=s.get("deficit_kcal") if s.get("goal_mode") == "deficit" else None,
+        protein_per_kg=s.get("protein_per_kg") or 1.8,
+        fat_share=s.get("fat_share") or 0.25,
     )
 
 

@@ -363,20 +363,27 @@ def approve_week(first):
     return replaced
 
 
-def build_shopping_list(first):
-    """Everything approved meals still need, minus what the pantry already has."""
+def shopping_needs(first, statuses=("approved",)):
+    """What planned meals still need beyond the pantry: food_id -> {grams, price}."""
     last = first + timedelta(days=6)
     today = get_today()
     sim = planner.PantrySim(pantry_lots())
     need = {}
     for m in meals_between(max(first, today), last):
-        if m["status"] != "approved" or m["kind"] not in ("cook", "nocook", "snack") or not m["recipe"]:
+        if m["status"] not in statuses or m["kind"] not in ("cook", "nocook", "snack") or not m["recipe"]:
             continue
         for ing, grams in planner.scaled_ingredients(m["recipe"], m["cook_portions"]):
             missing = sim.take(ing["id"], grams, m["date"])
             if missing > 0.5:
-                entry = need.setdefault(ing["id"], {"grams": 0.0, "price": ing.get("price_per_100g") or 0})
+                entry = need.setdefault(ing["id"], {"grams": 0.0, "price": ing.get("price_per_100g") or 0,
+                                                    "name": ing["name"], "piece_g": ing.get("piece_g")})
                 entry["grams"] += missing
+    return need
+
+
+def build_shopping_list(first):
+    """Everything approved meals still need, minus what the pantry already has."""
+    need = shopping_needs(first)
     db = get_db()
     checked = {r["food_id"] for r in query("SELECT food_id FROM shopping_list WHERE week_start = ? AND checked = 1",
                                            (first.isoformat(),))}
@@ -386,6 +393,14 @@ def build_shopping_list(first):
                    (first.isoformat(), food_id, round(e["grams"]), round(e["grams"] / 100 * e["price"]),
                     1 if food_id in checked else 0))
     db.commit()
+
+
+def shopping_preview(first):
+    """The list a draft plan would need, without saving anything."""
+    need = shopping_needs(first, statuses=("draft", "approved"))
+    rows = [{"id": None, "food_id": fid, "name": e["name"], "piece_g": e["piece_g"], "grams": round(e["grams"]),
+             "est_cost": round(e["grams"] / 100 * e["price"]), "checked": 0} for fid, e in need.items()]
+    return sorted(rows, key=lambda r: r["name"])
 
 
 def shopping_list(first):

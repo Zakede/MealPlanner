@@ -1,5 +1,6 @@
 import os
-from datetime import date
+import secrets
+from datetime import date, timedelta
 from pathlib import Path
 
 from flask import Flask, current_app
@@ -13,11 +14,25 @@ def today():
     return date.fromisoformat(override) if override else date.today()
 
 
+def secret_key(instance_path):
+    """A random key kept in the instance folder, so logins survive restarts."""
+    env = os.environ.get("MEALPLANNER_SECRET")
+    if env:
+        return env
+    path = Path(instance_path) / "secret.key"
+    if not path.exists():
+        path.write_text(secrets.token_hex(32), encoding="utf-8")
+    return path.read_text(encoding="utf-8").strip()
+
+
 def create_app(config=None):
     app = Flask(__name__, instance_relative_config=True)
     Path(app.instance_path).mkdir(parents=True, exist_ok=True)
     app.config.update(
-        SECRET_KEY=os.environ.get("MEALPLANNER_SECRET", "dev-only-change-me"),
+        SECRET_KEY=secret_key(app.instance_path),
+        PERMANENT_SESSION_LIFETIME=timedelta(days=30),
+        SESSION_COOKIE_SAMESITE="Lax",
+        SESSION_COOKIE_HTTPONLY=True,
         DATABASE=os.environ.get("MEALPLANNER_DB", str(Path(app.instance_path) / "mealplanner.db")),
         TODAY=os.environ.get("MEALPLANNER_TODAY"),
         NOW=os.environ.get("MEALPLANNER_NOW"),
@@ -32,9 +47,11 @@ def create_app(config=None):
         conn.close()
     app.teardown_appcontext(db.close_db)
 
-    from .views import cook, extras, main, pantry, plan, receipts, recipes, schedule, settings, setup, taste, track
-    for module in (main, settings, pantry, recipes, schedule, plan, cook, taste, extras, setup, receipts, track):
+    from .views import auth, cook, extras, main, pantry, plan, receipts, recipes, schedule, settings, setup, taste, track
+    for module in (main, settings, pantry, recipes, schedule, plan, cook, taste, extras, setup, receipts, track, auth):
         app.register_blueprint(module.bp)
+
+    app.before_request(auth.require_login)
 
     @app.context_processor
     def nav():

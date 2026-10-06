@@ -124,7 +124,13 @@ def add():
 def shopping():
     first = selected_week()
     items = plans.shopping_list(first)
-    return render_template("plan/shopping.html", items=items, first=first,
+    last = first + timedelta(days=6)
+    drafts = [m for m in plans.meals_between(first, last) if m["status"] == "draft"]
+    preview = not items and bool(drafts)
+    if preview:
+        items = plans.shopping_preview(first)
+    return render_template("plan/shopping.html", items=items, first=first, preview=preview,
+                           has_plan=bool(plans.meals_between(first, last)),
                            is_next=request.args.get("week") == "next",
                            total=sum(i["est_cost"] for i in items if not i["checked"]),
                            budget=plans.week_budget(first))

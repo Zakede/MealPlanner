@@ -15,16 +15,26 @@ EXCLUDED_CATEGORIES = {
 }
 KETO_MAX_CARBS = 20
 
-# Quick "I don't eat this" toggles. Each matches categories or words in food names.
+# Quick "I don't eat this" toggles: (label, categories, words in food names, allergen tags).
 AVOID_OPTIONS = {
-    "fish": ("Fish", {"fish"}, ()),
-    "seafood": ("Shellfish & shrimp", {"seafood"}, ()),
-    "pork": ("Pork", set(), ("pork",)),
-    "beef": ("Beef", set(), ("beef",)),
-    "dairy": ("Dairy", {"dairy"}, ()),
-    "egg": ("Eggs", {"egg"}, ()),
-    "soy": ("Soy & tofu", {"soy"}, ("tofu", "natto", "atsuage")),
-    "spicy": ("Spicy food", set(), ()),
+    "chicken": ("Chicken", {"poultry"}, (), ()),
+    "pork": ("Pork", set(), ("pork",), ()),
+    "beef": ("Beef", set(), ("beef",), ()),
+    "fish": ("Fish", {"fish"}, (), ()),
+    "seafood": ("Shellfish & shrimp", {"seafood"}, (), ("shellfish", "shrimp")),
+    "dairy": ("Dairy", {"dairy"}, (), ("milk",)),
+    "egg": ("Eggs", {"egg"}, (), ("egg",)),
+    "soy": ("Soy & tofu", {"soy"}, ("tofu", "natto", "atsuage"), ("soy",)),
+    "gluten": ("Wheat / gluten", set(), ("bread", "pasta", "udon", "panko"), ("wheat",)),
+    "nuts": ("Peanuts & nuts", set(), ("peanut",), ("peanut",)),
+    "sesame": ("Sesame", set(), ("sesame",), ("sesame",)),
+    "mushroom": ("Mushrooms", set(), ("mushroom", "shimeji"), ()),
+    "allium": ("Onion & garlic", set(), ("onion", "garlic"), ()),
+    "tomato": ("Tomato", set(), ("tomato",), ()),
+    "natto": ("Natto", set(), ("natto",), ()),
+    "kimchi": ("Kimchi", set(), ("kimchi",), ()),
+    "rice": ("Rice", set(), ("rice",), ()),
+    "spicy": ("Spicy food", set(), (), ()),
 }
 
 
@@ -45,8 +55,10 @@ def allowed(recipe, diet, avoid):
             if recipe["spice_level"] >= 2:
                 return False
             continue
-        _, cats_out, words = AVOID_OPTIONS.get(key, ("", set(), ()))
+        _, cats_out, words, tags = AVOID_OPTIONS.get(key, ("", set(), (), ()))
         if cats & cats_out or any(w in n for w in words for n in names):
+            return False
+        if tags and any(t in recipe.get("allergens", []) for t in tags):
             return False
     return True
 

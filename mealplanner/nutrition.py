@@ -81,16 +81,26 @@ class Targets:
     weeks_to_goal: float | None
 
 
-def macro_split(kcal, protein_g, weight_kg):
-    fat_g = max(kcal * FAT_SHARE / 9, MIN_FAT_G_PER_KG * weight_kg)
+MAX_DEFICIT = round(MAX_PACE_KG_WEEK * KCAL_PER_KG / 7)   # 825 kcal/day
+
+
+def macro_split(kcal, protein_g, weight_kg, fat_share=FAT_SHARE):
+    fat_g = max(kcal * fat_share / 9, MIN_FAT_G_PER_KG * weight_kg)
     carbs_g = max(0.0, (kcal - protein_g * 4 - fat_g * 9) / 4)
     return round(fat_g), round(carbs_g)
 
 
-def compute_targets(weight_kg, height_cm, age, sex, activity, pace_kg_week, goal_weight_kg):
+def compute_targets(weight_kg, height_cm, age, sex, activity, pace_kg_week, goal_weight_kg,
+                    deficit_kcal=None, protein_per_kg=PROTEIN_G_PER_KG, fat_share=FAT_SHARE):
+    """deficit_kcal, when given, is used instead of the pace (still capped at the safe maximum)."""
     bmr = bmr_mifflin(weight_kg, height_cm, age, sex)
     maintenance = tdee(bmr, activity)
-    pace = clamp_pace(pace_kg_week, weight_kg, goal_weight_kg)
+    if deficit_kcal is not None:
+        requested = deficit_kcal * 7 / KCAL_PER_KG
+        pace = clamp_pace(requested, weight_kg, goal_weight_kg)
+        pace_kg_week = requested
+    else:
+        pace = clamp_pace(pace_kg_week, weight_kg, goal_weight_kg)
     daily_deficit = pace * KCAL_PER_KG / 7
 
     floor = CALORIE_FLOOR[sex]
@@ -101,8 +111,10 @@ def compute_targets(weight_kg, height_cm, age, sex, activity, pace_kg_week, goal
 
     # the floor can make the real pace slower than the requested one
     effective = max(0.0, (maintenance - kcal) * 7 / KCAL_PER_KG)
-    protein = round(PROTEIN_G_PER_KG * weight_kg)
-    fat, carbs = macro_split(kcal, protein, weight_kg)
+    protein_per_kg = max(1.2, min(2.6, protein_per_kg))
+    fat_share = max(0.2, min(0.4, fat_share))
+    protein = round(protein_per_kg * weight_kg)
+    fat, carbs = macro_split(kcal, protein, weight_kg, fat_share)
 
     to_lose = weight_kg - goal_weight_kg
     weeks = round(to_lose / effective, 1) if effective > 0 and to_lose > 0 else None
@@ -116,7 +128,7 @@ def compute_targets(weight_kg, height_cm, age, sex, activity, pace_kg_week, goal
         carbs_g=carbs,
         pace_requested=pace_kg_week,
         pace_effective=round(effective, 2),
-        pace_capped=pace_kg_week > MAX_PACE_KG_WEEK,
+        pace_capped=pace_kg_week > MAX_PACE_KG_WEEK + 1e-9,
         floor_applied=floor_applied,
         weeks_to_goal=weeks,
     )

@@ -24,15 +24,17 @@
     <p class="safety-note">Plans are suggestions. Check allergens and food safety yourself.</p>
   </main>
 
+  {% if request.endpoint != 'auth.login' %}
   <nav class="bottom" aria-label="Main">
     {% for endpoint, jp, label in [('main.home', '今日', 'Today'), ('plan.week', '献立', 'Plan'),
-                                   ('pantry.index', '冷蔵庫', 'Pantry'), ('recipes.index', 'レシピ', 'Recipes'),
+                                   ('plan.shopping', '買物', 'Shop'), ('pantry.index', '冷蔵庫', 'Pantry'),
                                    ('main.more', '他', 'More')] if has_endpoint(endpoint) %}
       {% set bp = endpoint.split('.')[0] %}
-      {% set on = request.endpoint == endpoint or (bp not in ('main',) and request.blueprint == bp) %}
+      {% set on = request.endpoint == endpoint or (bp not in ('main', 'plan') and request.blueprint == bp) or (endpoint == 'plan.week' and request.endpoint in ('plan.week', 'plan.add')) %}
       <a href="{{ url_for(endpoint) }}" class="{{ 'active' if on }}" {% if on %}aria-current="page"{% endif %}><b>{{ jp }}</b><span>{{ label }}</span></a>
     {% endfor %}
   </nav>
+  {% endif %}
   <script src="{{ url_for('static', filename='app.js') }}"></script>
   {% block scripts %}{% endblock %}
 </body>

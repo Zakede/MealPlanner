@@ -3,8 +3,8 @@ from flask import Blueprint, flash, redirect, render_template, request, url_for
 from .. import store
 from ..db import execute
 from ..diet import AVOID_OPTIONS, DIETS
-from ..pricing import AREAS, COUNTRIES, SHOPS
-from ..nutrition import (JOB_LEVELS, MAX_PACE_KG_WEEK, TRAINING_LEVELS, activity_multiplier, cm_to_in, in_to_cm,
+from ..pricing import COUNTRIES, areas, options_json, shops
+from ..nutrition import (JOB_LEVELS, MAX_DEFICIT, MAX_PACE_KG_WEEK, TRAINING_LEVELS, activity_multiplier, cm_to_in, in_to_cm,
                          kg_to_lb, lb_to_kg)
 
 bp = Blueprint("settings", __name__, url_prefix="/settings")
@@ -75,9 +75,17 @@ def parse_form(form):
     values["avoid"] = ",".join(k for k in AVOID_OPTIONS if form.get(f"avoid_{k}"))
     for field in TEXT_FIELDS:
         values[field] = form.get(field, "").strip()
+    values["goal_mode"] = "deficit" if form.get("goal_mode") == "deficit" else "pace"
+    for key, lo, hi, cast in (("deficit_kcal", 0, 1000, int), ("protein_per_kg", 1.2, 2.6, float), ("fat_share", 0.2, 0.4, float)):
+        raw = form.get(key)
+        if raw not in (None, ""):
+            try:
+                values[key] = max(lo, min(hi, cast(float(raw))))
+            except ValueError:
+                errors.append(f"{key.replace('_', ' ')} must be a number")
     values["country"] = form.get("country") if form.get("country") in COUNTRIES else "JP"
-    values["area"] = form.get("area") if form.get("area") in AREAS else "city"
-    values["shop"] = form.get("shop") if form.get("shop") in SHOPS else "supermarket"
+    values["area"] = form.get("area") if form.get("area") in areas(values["country"]) else "city"
+    values["shop"] = form.get("shop") if form.get("shop") in shops(values["country"]) else "supermarket"
     key = (form.get("gemini_key") or "").strip()
     if key == "-":
         values["gemini_key"] = ""          # "-" clears the saved key
@@ -118,6 +126,8 @@ def edit():
             before = store.settings()
             cols = ", ".join(f"{k} = ?" for k in values)
             execute(f"UPDATE settings SET {cols} WHERE id = 1", list(values.values()))
+            if values.get("goal_mode") == "deficit" and values.get("deficit_kcal", 0) > MAX_DEFICIT:
+                flash(f"A deficit over {MAX_DEFICIT} kcal is capped for safety.", "warn")
             if values["pace_kg_week"] > MAX_PACE_KG_WEEK:
                 flash(f"Pace is capped at {MAX_PACE_KG_WEEK} kg/week for safety.", "warn")
             if any(before[k] != v for k, v in values.items() if k not in LOOK_FIELDS):
@@ -139,8 +149,12 @@ def edit():
         themes=THEMES,
         modes=MODES,
         countries=COUNTRIES,
-        areas=AREAS,
-        shops=SHOPS,
+        areas=areas(s.get("country") or "JP"),
+        shops=shops(s.get("country") or "JP"),
+        country_options=options_json(),
+        max_deficit=MAX_DEFICIT,
+        lock_on=bool(s.get("password_hash")),
+        food_names=[f["name"] for f in store.foods()],
         has_key=bool(s.get("gemini_key")),
         max_pace=MAX_PACE_KG_WEEK,
     )

@@ -1,5 +1,23 @@
 {% extends "base.html" %}
-{% block title %}Settings · Meal Planner<div class="card" id="reset">
+{% block title %}Settings · Meal Planner<div class="card" id="lock">
+  <h2>App lock</h2>
+  <p class="muted small">{{ 'On: the app asks for the password. ' if lock_on else 'Off: anyone who can reach the app can open it. ' }}Needed if you put it online.</p>
+  <form method="post" action="{{ url_for('auth.lock') }}" class="form">
+    <div class="row">
+      <label>{{ 'New password' if lock_on else 'Password' }}<input name="password" type="password" autocomplete="new-password" minlength="6"></label>
+      <label>Again<input name="again" type="password" autocomplete="new-password" minlength="6"></label>
+    </div>
+    <button class="btn wide">{{ 'Change password' if lock_on else 'Turn on lock' }}</button>
+  </form>
+  {% if lock_on %}
+  <div class="actions" style="margin-top:10px">
+    <form method="post" action="{{ url_for('auth.lock') }}"><input type="hidden" name="off" value="1"><button class="btn secondary small" data-confirm="Turn the app lock off?">Turn off lock</button></form>
+    <form method="post" action="{{ url_for('auth.logout') }}"><button class="btn secondary small">Log out</button></form>
+  </div>
+  {% endif %}
+</div>
+
+<div class="card" id="reset">
   <h2>Backup &amp; reset</h2>
   <p class="muted small">Download everything first if you might want it back. The backup leaves out your AI key.</p>
   <a class="btn secondary wide" href="{{ url_for('track.backup') }}">Download backup</a>
@@ -10,6 +28,7 @@
     <button class="btn danger wide">Reset everything</button>
   </form>
 </div>
+<datalist id="food-suggest">{% for f in food_names %}<option value="{{ f }}">{% endfor %}</datalist>
 {% endblock %}
 {% block content %}
 {% set imp = s.units == 'imperial' %}
@@ -65,6 +84,21 @@
     </label>
     <label>Loss pace ({{ 'lb' if imp else 'kg' }}/week)<input name="pace_kg_week" type="number" step="0.05" value="{{ s.pace_kg_week }}" required></label>
   </div>
+  <h2>Calories &amp; macros</h2>
+  <div class="opts two">
+    <label class="opt"><input type="radio" name="goal_mode" value="pace" {{ 'checked' if s.goal_mode != 'deficit' }}><span><b>Set a pace</b><small>kg per week, above</small></span></label>
+    <label class="opt"><input type="radio" name="goal_mode" value="deficit" {{ 'checked' if s.goal_mode == 'deficit' }}><span><b>Set a deficit</b><small>kcal per day</small></span></label>
+  </div>
+  <label>Daily deficit: <output id="def-out">{{ s.deficit_kcal }}</output> kcal
+    <input type="range" name="deficit_kcal" min="0" max="1000" step="25" value="{{ s.deficit_kcal }}" oninput="document.getElementById('def-out').value=this.value"></label>
+  <p class="muted small">Capped at {{ max_deficit }} kcal and your calorie floor, whatever you pick.</p>
+  <div class="row">
+    <label>Protein: <output id="pro-out">{{ s.protein_per_kg }}</output> g per kg
+      <input type="range" name="protein_per_kg" min="1.2" max="2.6" step="0.1" value="{{ s.protein_per_kg }}" oninput="document.getElementById('pro-out').value=this.value"></label>
+    <label>Fat: <output id="fat-out">{{ (s.fat_share * 100)|round|int }}</output>% of calories
+      <input type="range" name="fat_share" min="0.2" max="0.4" step="0.05" value="{{ s.fat_share }}" oninput="document.getElementById('fat-out').value=Math.round(this.value*100)"></label>
+  </div>
+
   <h2>Lifestyle</h2>
   <label>Work or study
     <select name="job">{% for k, (m, label, sub) in jobs.items() %}<option value="{{ k }}" {{ 'selected' if s.job == k }}>{{ label }} ({{ sub|lower }})</option>{% endfor %}</select>
@@ -77,11 +111,11 @@
   </div>
   <p class="muted small">Activity multiplier ×{{ multiplier }}</p>
 
-  <h2>Money ({{ cur }})</h2>
-  <label>Weekly food budget, including eating out<input name="weekly_budget_yen" type="number" value="{{ s.weekly_budget_yen }}" required></label>
+  <h2>Money (<span class="cur-label">{{ cur }}</span>)</h2>
+  <label>Weekly food budget, including eating out<input name="weekly_budget_yen" data-money type="number" value="{{ s.weekly_budget_yen }}" required></label>
   <div class="row">
     <label>Eat-out slots / week<input name="eat_out_slots" type="number" value="{{ s.eat_out_slots }}" required></label>
-    <label>{{ cur }} per slot<input name="eat_out_budget_yen" type="number" value="{{ s.eat_out_budget_yen }}" required></label>
+    <label><span class="cur-label">{{ cur }}</span> per slot<input name="eat_out_budget_yen" data-money type="number" value="{{ s.eat_out_budget_yen }}" required></label>
   </div>
   <div class="row">
     <label>kcal per eat-out slot<input name="eat_out_kcal" type="number" value="{{ s.eat_out_kcal }}" required></label>
@@ -91,28 +125,27 @@
   <h2>Where you shop</h2>
   <div class="row">
     <label>Country
-      <select name="country">{% for k, c in countries.items() %}<option value="{{ k }}" {{ 'selected' if s.country == k }}>{{ c[0] }} ({{ c[1] }})</option>{% endfor %}</select>
+      <select name="country" data-country-switch>{% for k, c in countries.items() %}<option value="{{ k }}" {{ 'selected' if s.country == k }}>{{ c[0] }} ({{ c[1] }})</option>{% endfor %}</select>
     </label>
     <label>Usual shop
-      <select name="shop">{% for k, (label, f) in shops.items() %}<option value="{{ k }}" {{ 'selected' if s.shop == k }}>{{ label }}</option>{% endfor %}</select>
+      <select name="shop" data-shop-list>{% for k, (label, f) in shops.items() %}<option value="{{ k }}" {{ 'selected' if s.shop == k }}>{{ label }}</option>{% endfor %}</select>
     </label>
   </div>
-  {% if s.country == 'JP' %}
   <label>Area
-    <select name="area">{% for k, (label, f) in areas.items() %}<option value="{{ k }}" {{ 'selected' if s.area == k }}>{{ label }}</option>{% endfor %}</select>
+    <select name="area" data-area-list>{% for k, (label, f) in areas.items() %}<option value="{{ k }}" {{ 'selected' if s.area == k }}>{{ label }}</option>{% endfor %}</select>
   </label>
-  {% else %}<input type="hidden" name="area" value="{{ s.area }}">{% endif %}
-  <p class="muted small">Used to estimate prices until you scan receipts. Real prices you paid always win. Outside Japan the estimates are rough.</p>
+  <p class="muted small">Used to estimate prices until you scan receipts. Real prices you paid always win. Changing country converts your budget too.</p>
+  <script type="application/json" id="country-options">{{ country_options|tojson }}</script>
 
   <h2>Food</h2>
   <label>Diet style
     <select name="diet">{% for k, (label, sub) in diets.items() %}<option value="{{ k }}" {{ 'selected' if s.diet == k }}>{{ label }}: {{ sub|lower }}</option>{% endfor %}</select>
   </label>
   <div class="tag-picks left" style="margin-bottom:12px">
-    {% for k, (label, c, w) in avoid_options.items() %}<input type="checkbox" name="avoid_{{ k }}" id="av{{ k }}" {{ 'checked' if k in avoid_on }}><label for="av{{ k }}">No {{ label|lower }}</label>{% endfor %}
+    {% for k, (label, c, w, t) in avoid_options.items() %}<input type="checkbox" name="avoid_{{ k }}" id="av{{ k }}" {{ 'checked' if k in avoid_on }}><label for="av{{ k }}">No {{ label|lower }}</label>{% endfor %}
   </div>
-  <label>Allergies (comma separated)<input name="allergies" value="{{ s.allergies }}" placeholder="e.g. shrimp, peanut"></label>
-  <label>Hard dislikes<input name="dislikes" value="{{ s.dislikes }}" placeholder="e.g. celery, natto"></label>
+  <label>Allergies (comma separated)<input name="allergies" data-chips list="food-suggest" value="{{ s.allergies }}" placeholder="e.g. shrimp, peanut"></label>
+  <label>Hard dislikes<input name="dislikes" data-chips list="food-suggest" value="{{ s.dislikes }}" placeholder="e.g. celery, natto"></label>
   <label>Spice tolerance: <output id="spice-out">{{ s.spice_tolerance }}</output>/5
     <input name="spice_tolerance" type="range" min="0" max="5" value="{{ s.spice_tolerance }}" oninput="document.getElementById('spice-out').value=this.value">
   </label>
@@ -130,6 +163,24 @@
 
   <button class="btn wide" type="submit">Save</button>
 </form>
+<div class="card" id="lock">
+  <h2>App lock</h2>
+  <p class="muted small">{{ 'On: the app asks for the password. ' if lock_on else 'Off: anyone who can reach the app can open it. ' }}Needed if you put it online.</p>
+  <form method="post" action="{{ url_for('auth.lock') }}" class="form">
+    <div class="row">
+      <label>{{ 'New password' if lock_on else 'Password' }}<input name="password" type="password" autocomplete="new-password" minlength="6"></label>
+      <label>Again<input name="again" type="password" autocomplete="new-password" minlength="6"></label>
+    </div>
+    <button class="btn wide">{{ 'Change password' if lock_on else 'Turn on lock' }}</button>
+  </form>
+  {% if lock_on %}
+  <div class="actions" style="margin-top:10px">
+    <form method="post" action="{{ url_for('auth.lock') }}"><input type="hidden" name="off" value="1"><button class="btn secondary small" data-confirm="Turn the app lock off?">Turn off lock</button></form>
+    <form method="post" action="{{ url_for('auth.logout') }}"><button class="btn secondary small">Log out</button></form>
+  </div>
+  {% endif %}
+</div>
+
 <div class="card" id="reset">
   <h2>Backup &amp; reset</h2>
   <p class="muted small">Download everything first if you might want it back. The backup leaves out your AI key.</p>

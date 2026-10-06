@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Log in · Meal Planner{% endblock %}
+{% block content %}
+<div class="plate" style="margin-top:12vh">
+  <form method="post" class="form" style="grid-column: 1 / -1">
+    <h1 style="margin:0 0 12px">食券<span class="jp">Meal Planner</span></h1>
+    <label for="password">Password</label>
+    <input id="password" name="password" type="password" autocomplete="current-password" autofocus required>
+    <button class="btn wide">Open</button>
+  </form>
+</div>
+{% endblock %}

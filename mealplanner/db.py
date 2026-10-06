@@ -46,6 +46,11 @@ MIGRATIONS = [
     ("settings", "country", "TEXT NOT NULL DEFAULT 'JP'"),
     ("settings", "area", "TEXT NOT NULL DEFAULT 'city'"),
     ("settings", "shop", "TEXT NOT NULL DEFAULT 'supermarket'"),
+    ("settings", "goal_mode", "TEXT NOT NULL DEFAULT 'pace'"),
+    ("settings", "deficit_kcal", "INTEGER NOT NULL DEFAULT 500"),
+    ("settings", "protein_per_kg", "REAL NOT NULL DEFAULT 1.8"),
+    ("settings", "fat_share", "REAL NOT NULL DEFAULT 0.25"),
+    ("settings", "password_hash", "TEXT NOT NULL DEFAULT ''"),
 ]
 
 

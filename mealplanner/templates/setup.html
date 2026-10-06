@@ -1,5 +1,6 @@
 {% extends "base.html" %}
-{% block title %}Setup · Meal Planner{% endblock %}
+{% block title %}Setup · Meal Planner<datalist id="food-suggest">{% for f in food_names %}<option value="{{ f }}">{% endfor %}</datalist>
+{% endblock %}
 {% block content %}
 <div class="wizard-progress" aria-hidden="true"><i id="prog"></i></div>
 <form method="post" id="wizard" class="wizard">
@@ -97,11 +98,11 @@
     </div>
     <h2>Skip these</h2>
     <div class="tag-picks left">
-      {% for k, (label, cats, words) in avoid.items() %}<input type="checkbox" name="avoid_{{ k }}" id="a{{ k }}" {{ 'checked' if k in avoid_on }}><label for="a{{ k }}">{{ label }}</label>{% endfor %}
+      {% for k, (label, cats, words, tags) in avoid.items() %}<input type="checkbox" name="avoid_{{ k }}" id="a{{ k }}" {{ 'checked' if k in avoid_on }}><label for="a{{ k }}">{{ label }}</label>{% endfor %}
     </div>
     <div class="form">
-      <label>Allergies<input name="allergies" value="{{ s.allergies }}" placeholder="peanut, shrimp"></label>
-      <label>Anything else you won't eat<input name="dislikes" value="{{ s.dislikes }}" placeholder="natto, celery"></label>
+      <label>Allergies<input name="allergies" data-chips list="food-suggest" value="{{ s.allergies }}" placeholder="peanut, shrimp"></label>
+      <label>Anything else you won't eat<input name="dislikes" data-chips list="food-suggest" value="{{ s.dislikes }}" placeholder="natto, celery"></label>
       <label>Spice: <output id="sp">{{ s.spice_tolerance }}</output>/5
         <input type="range" name="spice_tolerance" min="0" max="5" value="{{ s.spice_tolerance }}" oninput="document.getElementById('sp').value=this.value"></label>
     </div>
@@ -132,14 +133,15 @@
     <h1>Money</h1>
     <div class="form">
       <div class="row">
-        <label>Country<select name="country">{% for k, c in countries.items() %}<option value="{{ k }}" {{ 'selected' if s.country == k }}>{{ c[0] }}</option>{% endfor %}</select></label>
-        <label>Area (Japan)<select name="area">{% for k, (label, f) in areas.items() %}<option value="{{ k }}" {{ 'selected' if s.area == k }}>{{ label }}</option>{% endfor %}</select></label>
+        <label>Country<select name="country" data-country-switch>{% for k, c in countries.items() %}<option value="{{ k }}" {{ 'selected' if s.country == k }}>{{ c[0] }}</option>{% endfor %}</select></label>
+        <label>Area<select name="area" data-area-list>{% for k, (label, f) in areas.items() %}<option value="{{ k }}" {{ 'selected' if s.area == k }}>{{ label }}</option>{% endfor %}</select></label>
       </div>
-      <label>Where you usually shop<select name="shop">{% for k, (label, f) in shops.items() %}<option value="{{ k }}" {{ 'selected' if s.shop == k }}>{{ label }}</option>{% endfor %}</select></label>
-      <label>Food budget per week ({{ cur }}), eating out included<input name="weekly_budget_yen" type="number" value="{{ s.weekly_budget_yen }}" required></label>
+      <label>Where you usually shop<select name="shop" data-shop-list>{% for k, (label, f) in shops.items() %}<option value="{{ k }}" {{ 'selected' if s.shop == k }}>{{ label }}</option>{% endfor %}</select></label>
+      <script type="application/json" id="country-options">{{ country_options|tojson }}</script>
+      <label>Food budget per week (<span class="cur-label">{{ cur }}</span>), eating out included<input name="weekly_budget_yen" data-money type="number" value="{{ s.weekly_budget_yen }}" required></label>
       <div class="row">
         <label>Meals out a week<input name="eat_out_slots" type="number" value="{{ s.eat_out_slots }}"></label>
-        <label>{{ cur }} per meal out<input name="eat_out_budget_yen" type="number" value="{{ s.eat_out_budget_yen }}"></label>
+        <label><span class="cur-label">{{ cur }}</span> per meal out<input name="eat_out_budget_yen" data-money type="number" value="{{ s.eat_out_budget_yen }}"></label>
       </div>
     </div>
     <button class="btn wide" type="submit">Plan my week</button>
