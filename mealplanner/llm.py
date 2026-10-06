@@ -54,7 +54,7 @@ class OpencodeProvider:
                 raise LLMError(f"the model took longer than {self.timeout} seconds")
         text = parse_events(proc.stdout)
         if not text:
-            raise LLMError("no reply from the model" + (f": {proc.stderr.strip()[:200]}" if proc.stderr else ""))
+            raise LLMError(event_error(proc.stdout) or "no reply from the model")
         return text
 
 
@@ -72,6 +72,22 @@ def parse_events(stdout):
         if event.get("type") == "text":
             parts.append(event.get("part", {}).get("text", ""))
     return "".join(parts).strip()
+
+
+def event_error(stdout):
+    """The error message from opencode's event stream, if it reported one."""
+    for line in stdout.splitlines():
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if event.get("type") == "error":
+            err = event.get("error") or {}
+            msg = (err.get("data") or {}).get("message") or err.get("name") or "unknown error"
+            if "subscription" in msg.lower():
+                return "your OpenCode Go subscription isn't active, so the model refused"
+            return msg[:200]
+    return None
 
 
 def extract_json(text):

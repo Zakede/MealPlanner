@@ -98,3 +98,11 @@ def test_model_error_is_shown(app, client):
 
 def test_ai_page_without_model(client):
     assert b"No recipe model" in client.get("/recipes/ai").data
+
+
+def test_event_error_explains_subscription_problem():
+    from mealplanner.llm import event_error
+    out = json.dumps({"type": "error", "error": {"name": "APIError", "data": {
+        "message": "Upstream request failed: An active OpenCode Go subscription is required to use Go models."}}})
+    assert "subscription" in event_error(out)
+    assert event_error('{"type": "text"}') is None
