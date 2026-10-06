@@ -105,7 +105,7 @@
     {% include "_food_rules.html" %}
     <h2>Skip these</h2>
     <div class="tag-picks left">
-      {% for k, (label, cats, words, tags) in avoid.items() %}<input type="checkbox" name="avoid_{{ k }}" id="a{{ k }}" {{ 'checked' if k in avoid_on }}><label for="a{{ k }}">{{ label }}</label>{% endfor %}
+      {% for k, (label, cats, words, tags) in avoid.items() %}<span class="pick" data-diet-hide="{{ diet_hides(k) }}"><input type="checkbox" name="avoid_{{ k }}" id="a{{ k }}" {{ 'checked' if k in avoid_on }}><label for="a{{ k }}">{{ label }}</label></span>{% endfor %}
     </div>
     <div class="form">
       <label>Allergies<input name="allergies" data-chips list="food-suggest" value="{{ s.allergies }}" placeholder="peanut, shrimp"></label>

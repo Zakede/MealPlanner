@@ -2,7 +2,7 @@
 <div class="rules">
   {% for g, label in rule_groups.items() %}
   {% set cur = rules.get(g, 'any') %}
-  <div class="rule-row">
+  <div class="rule-row" data-diet-hide="{{ diet_hides(g) }}" {{ 'hidden' if (diet_now is defined and diet_now and diet_now in diet_hides(g).split()) }}>
     <span class="rule-name">{{ icon({'chicken': 'drumstick', 'pork': 'bowl', 'beef': 'flame', 'fish': 'fish', 'seafood': 'fish', 'eggs': 'egg', 'tofu': 'leaf'}[g]) }}{{ label }}</span>
     <span class="rule-pick" role="radiogroup" aria-label="{{ label }}">
       {% for v, (name, sub) in rule_options.items() %}

@@ -57,7 +57,7 @@ html.theming::view-transition-old(root), html.theming::view-transition-new(root)
 .fsel-panel.sheet { position: fixed; left: 8px; right: 8px; top: auto; bottom: calc(8px + env(safe-area-inset-bottom, 0px));
   max-height: 70vh; border-radius: 22px; padding: 8px 8px 10px; transform-origin: bottom center; }
 .fsel-panel.sheet::before { content: ""; width: 42px; height: 5px; border-radius: 9px; background: var(--line); margin: 2px auto 6px; flex: none; }
-.fsel-title { padding: 4px 12px 10px; font: 400 1.05rem var(--head); }
+.fsel-title { padding: 4px 12px 10px; font: 800 1.05rem var(--head); }
 .fsel-panel.sheet .fsel-opt { min-height: 52px; font-size: 1rem; }
 body.fsel-lock { overflow: hidden; }
 
@@ -132,7 +132,7 @@ body.fsel-lock { overflow: hidden; }
 .add-choices > * { display: grid; align-content: center; gap: 0; padding: 4px 10px; border: 0; border-radius: 9px; cursor: pointer;
   background: var(--fuji); color: var(--on-fuji); text-align: left; font: inherit; }
 .add-choices > :last-child { background: var(--fuji-light); color: var(--on-fuji-light); }
-.add-choices b { font: 400 .9rem var(--head); }
+.add-choices b { font: 800 .9rem var(--head); }
 .add-choices small { font-size: .68rem; font-weight: 700; opacity: .75; }
 
 /* ---- protein rules ---- */
@@ -159,7 +159,7 @@ body.fsel-lock { overflow: hidden; }
 /* ---- brand: logo tile + two-tone wordmark ---- */
 .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
 .logo { width: 38px; height: 38px; flex: none; filter: drop-shadow(0 6px 14px rgba(127, 92, 204, .45)); }
-.brand .word { font: 400 1.15rem/1 var(--head); color: var(--ink); letter-spacing: .01em; }
+.brand .word { font: 800 1.15rem/1 var(--head); color: var(--ink); letter-spacing: .01em; }
 .brand .word em { font-style: normal; margin-left: 4px;
   background: linear-gradient(100deg, var(--fuji-light), var(--fuji) 45%, var(--seal)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 @media (max-width: 360px) { .brand .word em { display: none; } }

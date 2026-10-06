@@ -15,6 +15,18 @@ EXCLUDED_CATEGORIES = {
 }
 KETO_MAX_CARBS = 20
 
+# Options that make no sense once a diet already rules them out (protein-rule groups and avoid keys).
+NOT_EATEN = {
+    "pescatarian": {"chicken", "pork", "beef"},
+    "vegetarian": {"chicken", "pork", "beef", "fish", "seafood"},
+    "vegan": {"chicken", "pork", "beef", "fish", "seafood", "eggs", "egg", "dairy"},
+}
+
+
+def hidden_by(key):
+    """Diets under which an option is pointless, space-separated, for data-diet-hide."""
+    return " ".join(d for d, keys in NOT_EATEN.items() if key in keys)
+
 # Quick "I don't eat this" toggles: (label, categories, words in food names, allergen tags).
 AVOID_OPTIONS = {
     "chicken": ("Chicken", {"poultry"}, (), ()),

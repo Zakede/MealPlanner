@@ -263,3 +263,21 @@ if (!calm && matchMedia("(hover: hover) and (pointer: fine)").matches) {
     el.addEventListener("pointerleave", () => { el.style.transform = ""; });
   });
 }
+
+// Picking a diet hides options it already rules out (no "fish" choices for a vegetarian).
+(() => {
+  const pickers = document.querySelectorAll('input[name="diet"], select[name="diet"]');
+  if (!pickers.length) return;
+  const current = () => {
+    const r = document.querySelector('input[name="diet"]:checked');
+    return r ? r.value : (document.querySelector('select[name="diet"]')?.value || "any");
+  };
+  const apply = () => {
+    const diet = current();
+    document.querySelectorAll("[data-diet-hide]").forEach((el) => {
+      el.hidden = el.dataset.dietHide.split(" ").includes(diet);
+    });
+  };
+  pickers.forEach((p) => p.addEventListener("change", apply));
+  apply();
+})();

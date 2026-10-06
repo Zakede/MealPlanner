@@ -59,6 +59,7 @@ def create_app(config=None):
     def nav():
         from .pricing import currency, in_japan
         from .profiles import all_profiles, current
+        from .diet import hidden_by
         from .store import settings
         s = settings()
         return {
@@ -67,6 +68,7 @@ def create_app(config=None):
             "cur": currency(s),
             "in_japan": in_japan(s),
             "has_endpoint": lambda name: name in app.view_functions,
+            "diet_hides": hidden_by,
             "ui": {"theme": "shokken", "mode": s.get("mode") or "dark"},
         }
 

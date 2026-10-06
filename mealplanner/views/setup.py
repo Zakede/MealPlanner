@@ -134,6 +134,7 @@ def render_wizard(s, sched):
         work=work, avoid_on=store.split_list(s.get("avoid")), flavor_on=store.split_list(s["flavor_likes"]),
         cuisine_on=store.split_list(s["cuisines_liked"]),
         rules=food_rules.load(s), rule_groups=food_rules.GROUPS, rule_options=food_rules.RULES,
+        diet_now=s.get("diet") or "any",
     )
 
 

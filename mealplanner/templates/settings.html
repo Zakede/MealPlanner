@@ -163,7 +163,7 @@
     <select name="diet">{% for k, (label, sub) in diets.items() %}<option value="{{ k }}" {{ 'selected' if s.diet == k }}>{{ label }}: {{ sub|lower }}</option>{% endfor %}</select>
   </label>
   <div class="tag-picks left" style="margin-bottom:12px">
-    {% for k, (label, c, w, t) in avoid_options.items() %}<input type="checkbox" name="avoid_{{ k }}" id="av{{ k }}" {{ 'checked' if k in avoid_on }}><label for="av{{ k }}">No {{ label|lower }}</label>{% endfor %}
+    {% for k, (label, c, w, t) in avoid_options.items() %}<span class="pick" data-diet-hide="{{ diet_hides(k) }}"><input type="checkbox" name="avoid_{{ k }}" id="av{{ k }}" {{ 'checked' if k in avoid_on }}><label for="av{{ k }}">No {{ label|lower }}</label></span>{% endfor %}
   </div>
   <label>Allergies (comma separated)<input name="allergies" data-chips list="food-suggest" value="{{ s.allergies }}" placeholder="e.g. shrimp, peanut"></label>
   <label>Hard dislikes<input name="dislikes" data-chips list="food-suggest" value="{{ s.dislikes }}" placeholder="e.g. celery, natto"></label>

@@ -35,6 +35,7 @@ def index():
     s = store.settings()
     return render_template("taste.html", foods=store.foods(), scores=scores, ranked=ranked,
                            rules=food_rules.load(s), rule_groups=food_rules.GROUPS, rule_options=food_rules.RULES,
+                           diet_now=s.get("diet") or "any",
                            hints=insights(ratings, recipes, s["spice_tolerance"]))
 
 
