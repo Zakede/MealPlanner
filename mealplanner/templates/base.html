@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <link rel="icon" href="{{ url_for('static', filename='logo.svg') }}" type="image/svg+xml">
   <meta name="theme-color" content="{{ '#f8f5fd' if ui.mode == 'light' else '#000000' }}">
-  <title>{% block title %}Meal Planner{% endblock %}</title>
+  <title>{% block title %}Zettai{% endblock %}</title>
   <link rel="preload" href="{{ url_for('static', filename='fonts/archivo-latin-wdth.woff2') }}" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='motion.css') }}">
@@ -19,7 +19,7 @@
   <div class="loadbar" aria-hidden="true"></div>
 
   <header class="top">
-    <a class="brand" href="{{ url_for('main.home') }}" aria-label="Meal Planner home">{% include "_logo.html" %}<span class="word">Meal<em>Planner</em></span></a>
+    <a class="brand" href="{{ url_for('main.home') }}" aria-label="Zettai home">{% include "_logo.html" %}<span class="word">Zettai</span></a>
     <span style="display:flex;gap:8px">
       {% if request.endpoint not in ('auth.login', 'auth.gate', 'people.pick') and request.blueprint != 'setup' %}
       <button type="button" class="top-link bell" data-bell data-url="{{ url_for('main.api_nudges') }}" aria-label="Notifications" aria-expanded="false">{{ icon('bell') }}<span class="bell-count" hidden></span></button>

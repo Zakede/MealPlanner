@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Check receipt · Meal Planner{% endblock %}
+{% block title %}Check receipt · Zettai{% endblock %}
 {% block content %}
 <h1>Check the receipt</h1>
 <p class="muted">{{ header.store or 'Receipt' }} · {{ header.date }}{% if header.total %} · total {{ cur }}{{ '{:,}'.format(header.total) }}{% endif %}</p>

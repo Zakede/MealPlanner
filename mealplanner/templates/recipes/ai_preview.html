@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Recipe idea · Meal Planner{% endblock %}
+{% block title %}Recipe idea · Zettai{% endblock %}
 {% block content %}
 {% for p in problems %}<div class="flash flash-error">{{ p }}</div>{% endfor %}
 {% for w in warnings %}<div class="flash flash-warn">{{ w }}</div>{% endfor %}
@@ -14,6 +14,12 @@
     <div><b>{{ cur }}{{ s.cost|round|int }}</b><span>per serving</span></div>
   </div>
   <p class="muted small" style="margin-bottom:0">{{ r.servings }} serving{{ 's' if r.servings > 1 }} · {{ r.active_min }} min active{% if r.spice_level %} · spice {{ r.spice_level }}{% endif %}</p>
+</div>
+{% endif %}
+{% if r.changes %}
+<div class="card">
+  <h2>What changed</h2>
+  <ul>{% for c in r.changes %}<li>{{ c }}</li>{% endfor %}</ul>
 </div>
 {% endif %}
 <div class="card">

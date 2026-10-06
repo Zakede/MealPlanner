@@ -1,55 +1,6 @@
 {% extends "base.html" %}
-{% block title %}Settings · Meal Planner{% endblock %}
+{% block title %}Settings · Zettai{% endblock %}
 {% block content %}
-<div class="card" id="profile">
-  <h2>Profile</h2>
-  <form method="post" action="{{ url_for('people.rename', pid=me.id) }}" class="form chip-entry">
-    <input name="name" value="{{ me.name }}" maxlength="30" aria-label="Profile name">
-    <button class="btn small secondary">Rename</button>
-  </form>
-  <div class="actions" style="margin-top:10px">
-    <a class="btn secondary small" href="{{ url_for('people.pick') }}">Switch person</a>
-  </div>
-  {% if me.id != 'main' %}
-  <details style="margin-top:8px">
-    <summary class="small"><b>Delete this profile</b></summary>
-    <form method="post" action="{{ url_for('people.delete', pid=me.id) }}" class="form" style="margin-top:8px">
-      <label>Type DELETE to remove {{ me.name }} and all their data<input name="confirm" autocomplete="off"></label>
-      <button class="btn danger wide">Delete profile</button>
-    </form>
-  </details>
-  {% endif %}
-</div>
-
-<div class="card" id="lock">
-  <h2>App lock</h2>
-  <p class="muted small">{{ 'On: the app asks for the password. ' if lock_on else 'Off: anyone who can reach the app can open it. ' }}Needed if you put it online.</p>
-  <form method="post" action="{{ url_for('auth.lock') }}" class="form">
-    <div class="row">
-      <label>{{ 'New password' if lock_on else 'Password' }}<input name="password" type="password" autocomplete="new-password" minlength="6"></label>
-      <label>Again<input name="again" type="password" autocomplete="new-password" minlength="6"></label>
-    </div>
-    <button class="btn wide">{{ 'Change password' if lock_on else 'Turn on lock' }}</button>
-  </form>
-  {% if lock_on %}
-  <div class="actions" style="margin-top:10px">
-    <form method="post" action="{{ url_for('auth.lock') }}"><input type="hidden" name="off" value="1"><button class="btn secondary small" data-confirm="Turn the app lock off?">Turn off lock</button></form>
-    <form method="post" action="{{ url_for('auth.logout') }}"><button class="btn secondary small">Log out</button></form>
-  </div>
-  {% endif %}
-</div>
-
-<div class="card" id="reset">
-  <h2>Backup &amp; reset</h2>
-  <p class="muted small">Download everything first if you might want it back. The backup leaves out your AI key.</p>
-  <a class="btn secondary wide" href="{{ url_for('track.backup') }}">Download backup</a>
-  <form method="post" action="{{ url_for('track.reset') }}" class="form" style="margin-top:14px">
-    <label>Type RESET to delete all plans, pantry, recipes you added, ratings and settings
-      <input name="confirm" autocomplete="off" placeholder="RESET"></label>
-    <label class="small" style="color:var(--ink)"><input type="checkbox" name="keep_key" checked>Keep my AI key</label>
-    <button class="btn danger wide">Reset everything</button>
-  </form>
-</div>
 <datalist id="food-suggest">{% for f in food_names %}<option value="{{ f }}">{% endfor %}</datalist>
 
 {% set imp = s.units == 'imperial' %}
@@ -224,8 +175,13 @@
 
 <div class="card" id="reset">
   <h2>Backup &amp; reset</h2>
-  <p class="muted small">Download everything first if you might want it back. The backup leaves out your AI key.</p>
+  <p class="muted small">Your data as one JSON file: easy to move to another computer or fix by hand. It leaves out your AI key.</p>
   <a class="btn secondary wide" href="{{ url_for('track.backup') }}">Download backup</a>
+  <form method="post" action="{{ url_for('track.restore') }}" enctype="multipart/form-data" class="form" style="margin-top:14px">
+    <label>Restore from a backup file (.json). This replaces this profile's data; your AI key stays.
+      <input type="file" name="file" accept=".json,application/json" required></label>
+    <button class="btn secondary wide">Restore backup</button>
+  </form>
   <form method="post" action="{{ url_for('track.reset') }}" class="form" style="margin-top:14px">
     <label>Type RESET to delete all plans, pantry, recipes you added, ratings and settings
       <input name="confirm" autocomplete="off" placeholder="RESET"></label>

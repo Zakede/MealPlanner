@@ -1,4 +1,4 @@
-"""Put Meal Planner on a free Google Cloud VM, and keep it updated. Run from this repo on Windows.
+"""Put Zettai on a free Google Cloud VM, and keep it updated. Run from this repo on Windows.
 
   python deploy/deploy.py create      make the VM, set it up, copy your data, set the site password
   python deploy/deploy.py update      after pushing new code: pull it on the server and restart

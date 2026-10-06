@@ -8,9 +8,6 @@ from ..db import execute, get_db, query, reset_all
 
 bp = Blueprint("track", __name__)
 
-# tables included in a backup; the AI key is left out on purpose
-BACKUP_SKIP_COLUMNS = {"settings": {"gemini_key"}}
-
 
 def water_today():
     row = query("SELECT ml FROM water_log WHERE date = ?", (today().isoformat(),), one=True)
@@ -68,15 +65,28 @@ def cook_now():
 
 @bp.route("/backup")
 def backup():
-    data = {"exported": datetime.now().isoformat(timespec="seconds"), "tables": {}}
-    for row in query("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"):
-        name = row["name"]
-        skip = BACKUP_SKIP_COLUMNS.get(name, set())
-        data["tables"][name] = [{k: v for k, v in dict(r).items() if k not in skip}
-                                for r in query(f"SELECT * FROM {name}")]
-    body = json.dumps(data, ensure_ascii=False, indent=1)
+    from .. import datafile
+    body = json.dumps(datafile.dump(get_db()), ensure_ascii=False, indent=1)
     return Response(body, mimetype="application/json", headers={
-        "Content-Disposition": f"attachment; filename=meal-planner-backup-{today().isoformat()}.json"})
+        "Content-Disposition": f"attachment; filename=zettai-backup-{today().isoformat()}.json"})
+
+
+@bp.route("/restore", methods=["POST"])
+def restore():
+    from .. import datafile
+    upload = request.files.get("file")
+    try:
+        data = json.loads(upload.read().decode("utf-8")) if upload else None
+    except (ValueError, UnicodeDecodeError):
+        flash("That file isn't valid JSON. Nothing was changed.", "error")
+        return redirect(url_for("settings.edit") + "#reset")
+    try:
+        datafile.load(get_db(), data)
+    except ValueError as e:
+        flash(str(e), "error")
+        return redirect(url_for("settings.edit") + "#reset")
+    flash("Backup restored.", "ok")
+    return redirect(url_for("main.home"))
 
 
 @bp.route("/reset", methods=["POST"])

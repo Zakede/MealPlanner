@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% block title %}New recipe idea · Meal Planner{% endblock %}
+{% block title %}New recipe idea · Zettai{% endblock %}
 {% block content %}
 <h1>Recipe idea</h1>
 {% if not available %}
-  <div class="card empty"><p>No recipe model found. Install opencode and log in, then reload.</p></div>
+  <div class="card empty"><p>No AI set up yet. Add a Gemini key in Settings → AI helper, then reload.</p></div>
 {% else %}
 <form method="post" class="card form" id="ai-form">
   <label for="request">What do you feel like?</label>

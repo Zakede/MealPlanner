@@ -1,6 +1,6 @@
-# Meal Planner
+# Zettai
 
-A self-hosted meal planner for cutting weight on a budget in Japan. It plans high-protein,
+Zettai is a self-hosted meal planner for cutting weight on a budget in Japan. It plans high-protein,
 low-calorie meals from what's already in the fridge, keeps the week inside a yen budget, and
 leaves room for snacks, cravings and eating out without wrecking the plan.
 

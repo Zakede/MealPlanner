@@ -98,3 +98,32 @@ def test_reset_can_drop_key(profile, client):
     client.post("/reset", data={"confirm": "RESET"})
     with profile.app_context():
         assert store.settings()["gemini_key"] == ""
+
+
+def test_backup_restores_into_a_fresh_profile(profile, client):
+    from io import BytesIO
+    with profile.app_context():
+        execute("UPDATE settings SET gemini_key = 'k1', allergies = 'shrimp' WHERE id = 1")
+    client.post("/plan/generate")
+    with profile.app_context():
+        meals = query("SELECT COUNT(*) c FROM plan_meals", one=True)["c"]
+    backup = client.get("/backup").data
+    client.post("/reset", data={"confirm": "RESET", "keep_key": "on"})
+    data = json.loads(backup)
+    data["tables"]["settings"][0]["not_a_column"] = 1          # old or hand-edited files still load
+    resp = client.post("/restore", data={"file": (BytesIO(json.dumps(data).encode()), "b.json")})
+    assert resp.status_code == 302
+    with profile.app_context():
+        s = store.settings()
+        assert s["allergies"] == "shrimp" and s["gemini_key"] == "k1"
+        assert query("SELECT COUNT(*) c FROM plan_meals", one=True)["c"] == meals
+
+
+def test_restore_rejects_bad_files(profile, client):
+    from io import BytesIO
+    resp = client.post("/restore", data={"file": (BytesIO(b"not json"), "b.json")}, follow_redirects=True)
+    assert b"valid JSON" in resp.data
+    resp = client.post("/restore", data={"file": (BytesIO(b'{"a": 1}'), "b.json")}, follow_redirects=True)
+    assert b"Zettai backup" in resp.data
+    with profile.app_context():
+        assert store.settings()["age"] is not None

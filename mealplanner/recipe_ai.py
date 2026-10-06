@@ -109,6 +109,8 @@ def validate(data, s):
         "cuisine": str(data.get("cuisine") or "").strip().lower()[:20], "spice_level": spice,
         "portable": 1 if data.get("portable") is True else 0, "batch_ok": 1 if data.get("batch_ok") is True else 0,
         "thaw_hours": 0, "fridge_days": 3, "steps": "\n".join(steps), "ingredients": ingredients,
+        "changes": [str(c).strip()[:120] for c in data.get("changes") or [] if str(c).strip()][:6]
+        if isinstance(data.get("changes"), list) else [],
     }
     if ingredients:
         # our own arithmetic, never the model's
@@ -132,15 +134,27 @@ def to_form(recipe):
     return form, [(i["name"], str(i["grams"])) for i in recipe["ingredients"]]
 
 
-def build_import_prompt(source_text, foods, s):
+IMPROVE_RULES = """- This is the user's own recipe, maybe rough notes. Give it a short, appetising name (2-5 words)
+  that says what it is, not a pun.
+- Improve it while keeping what they clearly like about it: more protein per calorie, less
+  oil and sugar, better texture and flavour (browning, acid, herbs, a sauce), clearer timing.
+  Keep it as easy as the original. No new equipment.
+- In "changes", list each thing you changed and why, in a few words each (max 6)."""
+
+KEEP_RULES = "- Keep the original idea and flavour. Make it a little lighter if it is very oily or sugary."
+
+
+def build_import_prompt(source_text, foods, s, improve=False):
     food_names = "\n".join(f"- {f['name']}" for f in foods)
-    return f"""Turn the recipe below into a simple home recipe for one person in Japan.
+    intro = ("Name and improve the user's own recipe below" if improve
+             else "Turn the recipe below into a simple home recipe") + " for one person in Japan."
+    return f"""{intro}
 
 Rules:
 - Map every ingredient to the closest item in the list below, spelled exactly as written.
   Leave out salt, pepper, water and anything with no close match.
 - Convert cups, spoons and pieces into grams for the whole recipe.
-- Keep the original idea and flavour. Make it a little lighter if it is very oily or sugary.
+{IMPROVE_RULES if improve else KEEP_RULES}
 - Never use these (allergies): {s["allergies"] or "none"}.
 - Steps: short, plain sentences with clear doneness cues.
 
@@ -157,7 +171,7 @@ Reply with ONE JSON object and nothing else, in this shape:
   "meal_types": ["lunch", "dinner"], "tags": ["garlicky"], "cuisine": "korean",
   "spice_level": 1, "portable": false, "batch_ok": false,
   "ingredients": [{{"food": "Chicken breast", "grams": 150}}],
-  "steps": ["...", "..."]}}
+  "steps": ["...", "..."]{', "changes": ["..."]' if improve else ''}}}
 """
 
 

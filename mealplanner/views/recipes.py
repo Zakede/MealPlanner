@@ -228,7 +228,7 @@ def ai():
     expiring = [i["name"] for i in store.pantry_items(today())
                 if i["days_left"] is not None and 0 <= i["days_left"] <= 3] if request.form.get("use_expiring") else []
     if p is None:
-        flash("No recipe model is set up. Install opencode, or set MEALPLANNER_LLM.", "error")
+        flash("No AI is set up. Add a Gemini key in Settings → AI helper.", "error")
         return redirect(url_for("recipes.ai"))
     try:
         data = llm.extract_json(p.complete(recipe_ai.build_prompt(request_text, store.foods(), s,
@@ -249,10 +249,10 @@ def ai_import():
         return render_template("recipes/import.html", available=p is not None)
     source = (request.form.get("source") or "").strip()
     if not source:
-        flash("Paste a recipe, a caption or a link.", "error")
+        flash("Paste a recipe, a caption, a link or your own notes.", "error")
         return redirect(url_for("recipes.ai_import"))
     if p is None:
-        flash("No recipe model is set up. Install opencode, or set MEALPLANNER_LLM.", "error")
+        flash("No AI is set up. Add a Gemini key in Settings → AI helper.", "error")
         return redirect(url_for("recipes.ai_import"))
     text = source
     if source.startswith(("http://", "https://")) and not any(c.isspace() for c in source):
@@ -267,7 +267,8 @@ def ai_import():
             return redirect(url_for("recipes.ai_import"))
     s = store.settings()
     try:
-        data = llm.extract_json(p.complete(recipe_ai.build_import_prompt(text, store.foods(), s)))
+        improve = bool(request.form.get("improve"))
+        data = llm.extract_json(p.complete(recipe_ai.build_import_prompt(text, store.foods(), s, improve)))
     except llm.LLMError as e:
         flash(f"Couldn't read that recipe: {e}. Try again.", "error")
         return redirect(url_for("recipes.ai_import"))

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Edit recipe · Meal Planner{% endblock %}
+{% block title %}Edit recipe · Zettai{% endblock %}
 {% block content %}
 {% set f = request.form if request.method == 'POST' else (r or {}) %}
 <h1>{{ r.name if r else 'New recipe' }}</h1>

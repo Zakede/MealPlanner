@@ -97,7 +97,7 @@ def test_model_error_is_shown(app, client):
 
 
 def test_ai_page_without_model(client):
-    assert b"No recipe model" in client.get("/recipes/ai").data
+    assert b"No AI set up" in client.get("/recipes/ai").data
 
 
 def test_event_error_explains_subscription_problem():
@@ -106,3 +106,14 @@ def test_event_error_explains_subscription_problem():
         "message": "Upstream request failed: An active OpenCode Go subscription is required to use Go models."}}})
     assert "subscription" in event_error(out)
     assert event_error('{"type": "text"}') is None
+
+
+def test_own_recipe_gets_named_and_improved(app, client):
+    reply = dict(GOOD, name="Garlic air fryer chicken", changes=["Breast instead of thigh for more protein"])
+    fake = FakeModel(json.dumps(reply))
+    app.config["LLM_PROVIDER"] = fake
+    page = client.post("/recipes/import", data={"source": "chicken garlic soy air fry 18 min", "improve": "on"})
+    assert b"Garlic air fryer chicken" in page.data and b"What changed" in page.data
+    assert "Improve it" in fake.prompts[0] and '"changes"' in fake.prompts[0]
+    client.post("/recipes/import", data={"source": "some recipe"})
+    assert "Improve it" not in fake.prompts[1] and '"changes"' not in fake.prompts[1]

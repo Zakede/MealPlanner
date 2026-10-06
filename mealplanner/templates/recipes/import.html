@@ -1,14 +1,15 @@
 {% extends "base.html" %}
-{% block title %}Import a recipe · Meal Planner{% endblock %}
+{% block title %}Add a recipe · Zettai{% endblock %}
 {% block content %}
-<h1>Import a recipe</h1>
+<h1>Add a recipe</h1>
 {% if not available %}
-  <div class="card empty"><p>No recipe model found. Install opencode and log in, then reload.</p></div>
+  <div class="card empty"><p>No AI set up yet. Add a Gemini key in Settings → AI helper, then reload.</p></div>
 {% else %}
 <form method="post" class="card form" id="imp">
-  <label for="source">Paste a recipe, a video caption, or a recipe page link</label>
-  <textarea id="source" name="source" placeholder="Saw a good one on TikTok? Paste the caption here." required></textarea>
-  <button class="btn wide" id="go">Import</button>
+  <label for="source">Your own recipe, a video caption, or a recipe page link</label>
+  <textarea id="source" name="source" rows="7" placeholder="e.g. chicken thighs, garlic, soy sauce, air fry 18 min, eat with rice and cabbage" required></textarea>
+  <label class="small" style="color:var(--ink)"><input type="checkbox" name="improve" checked> Name it and make it better (more protein, lighter, tastier)</label>
+  <button class="btn wide" id="go">Go</button>
   <p class="muted small" id="wait" hidden>Reading it… about 15 seconds.</p>
 </form>
 <p class="muted small">Ingredients get matched to your food list, calories and cost are worked out by the app, and allergens are checked before saving. Video links usually hide the recipe, so paste the caption text for those.</p>
