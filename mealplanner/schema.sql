@@ -218,3 +218,15 @@ CREATE TABLE IF NOT EXISTS shopping_list (
     est_cost   REAL    NOT NULL,
     checked    INTEGER NOT NULL DEFAULT 0
 );
+
+-- Side log only; does not change food targets.
+CREATE TABLE IF NOT EXISTS workouts (
+    id            INTEGER PRIMARY KEY,
+    date          TEXT    NOT NULL,
+    kind          TEXT    NOT NULL,
+    minutes       INTEGER NOT NULL,
+    effort        INTEGER NOT NULL CHECK (effort BETWEEN 1 AND 10),
+    kcal          INTEGER NOT NULL,
+    kcal_estimated INTEGER NOT NULL DEFAULT 1,
+    note          TEXT    NOT NULL DEFAULT ''
+);

@@ -13,6 +13,8 @@
       ('recipes.boosters', 'Flavour boosters', 'spark'),
       ('extras.snacks', 'Snacks & cravings', 'bowl'),
       ('extras.eat_out', 'Eating out', 'star'),
+      ('extras.spending', 'Spending', 'cart'),
+      ('extras.workouts', 'Workouts', 'spark'),
       ('settings.edit', 'Settings', 'settings'),
   ] if has_endpoint(endpoint) %}
   <a href="{{ url_for(endpoint) }}">{{ icon(ico) }}<span>{{ label }}</span></a>

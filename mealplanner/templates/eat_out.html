@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Eating out · Meal Planner{% endblock %}
+{% block content %}
+<h1>Eating out</h1>
+<div class="tiles">
+  <div class="tile"><small>Room right now</small><span class="num-big">{{ room }}<small> kcal</small></span></div>
+  <div class="tile"><small>Slots left this week</small><span class="num-big">{{ slots_left }}</span></div>
+</div>
+
+<div class="actions">
+  {% for k in [400, 600, 800] %}<a class="chip {{ 'ok' if room == k }}" href="{{ url_for('extras.eat_out', kcal=k) }}">{{ k }} kcal</a>{% endfor %}
+</div>
+
+{% for chain, c in combos.items() if c['items'] %}
+<div class="card">
+  <div class="line"><h2 style="margin:0">{{ chain }}</h2><span class="muted small">{{ c.kcal }} kcal · {{ c.protein|round|int }} g · ¥{{ c.yen }}</span></div>
+  <ul class="list">{% for p in c['items'] %}<li class="line"><span>{{ p.item }}</span><span class="muted small">{{ p.kcal }} kcal · {{ p.protein|round|int }} g</span></li>{% endfor %}</ul>
+</div>
+{% endfor %}
+<p class="muted small" style="margin:0 4px 14px">Values are approximate. Check the label or the chain's nutrition page.</p>
+
+<details class="card" open>
+  <summary><b>Log a meal out</b></summary>
+  <form method="post" class="form" style="margin-top:12px">
+    <div class="row">
+      <label>Date<input type="date" name="date" value="{{ today.isoformat() }}"></label>
+      <label>Meal<select name="slot">{% for s in slots %}<option {{ 'selected' if s == 'dinner' }}>{{ s }}</option>{% endfor %}</select></label>
+    </div>
+    <div class="row"><label>Where<input name="place" placeholder="Matsuya"></label><label>What<input name="item" placeholder="Gyumeshi"></label></div>
+    <div class="row3">
+      <label>kcal<input name="kcal" type="number" required></label>
+      <label>Protein g<input name="protein" type="number"></label>
+      <label>¥<input name="yen" type="number"></label>
+    </div>
+    <button class="btn wide">Log it</button>
+  </form>
+  <p class="muted small">Over the planned calories? Snacks and portions later in the week shrink to make room.</p>
+</details>
+
+{% if log %}
+<h2 style="margin:16px 4px 8px">This week</h2>
+<div class="day-list">
+  {% for e in log %}
+  <div class="lp"><span class="t">{{ e.date[5:] }}</span><div><b>{{ e.place or e.item or 'Eating out' }}</b><small>{{ e.slot }} · {{ e.kcal }} kcal · ¥{{ e.yen }}{% if e.planned %} · reserved slot{% endif %}</small></div><span></span></div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

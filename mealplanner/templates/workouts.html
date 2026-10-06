@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Workouts · Meal Planner{% endblock %}
+{% block content %}
+<h1>Workouts</h1>
+<div class="tiles">
+  <div class="tile"><small>This week</small><span class="num-big">{{ minutes }}<small> min</small></span></div>
+  <div class="tile"><small>Burnt (est.)</small><span class="num-big k">{{ kcal }}<small> kcal</small></span></div>
+</div>
+
+<details class="card" {{ 'open' if not week }}>
+  <summary><b>Log a workout</b></summary>
+  <form method="post" class="form" style="margin-top:12px">
+    <div class="row">
+      <label>Date<input type="date" name="date" value="{{ today.isoformat() }}"></label>
+      <label>Type<select name="kind">{% for k in kinds %}<option value="{{ k }}">{{ 'HIIT' if k == 'hiit' else k|capitalize }}</option>{% endfor %}</select></label>
+    </div>
+    <div class="row">
+      <label>Minutes<input name="minutes" type="number" required value="60"></label>
+      <label>kcal (if your watch knows)<input name="kcal" type="number" placeholder="estimate"></label>
+    </div>
+    <label>Effort: <output id="eff">6</output>/10
+      <input type="range" name="effort" min="1" max="10" value="6" oninput="document.getElementById('eff').value=this.value"></label>
+    <label>Note<input name="note" placeholder="push day, 5x5 squats"></label>
+    <button class="btn wide">Log</button>
+  </form>
+  <p class="muted small">Just a log. It doesn't change your food targets.</p>
+</details>
+
+{% set all = week + earlier %}
+{% if all %}
+<div class="day-list">
+  {% for w in all %}
+  <div class="lp">
+    <span class="t">{{ w.date[5:] }}</span>
+    <div><b>{{ 'HIIT' if w.kind == 'hiit' else w.kind|capitalize }} · {{ w.minutes }} min</b>
+      <small>effort {{ w.effort }}/10 · {{ w.kcal }} kcal{{ ' (est.)' if w.kcal_estimated }}{% if w.note %} · {{ w.note }}{% endif %}</small></div>
+    <form method="post" action="{{ url_for('extras.delete_workout', workout_id=w.id) }}"><button class="icon-btn" aria-label="Delete workout" data-confirm="Delete this workout?">✕</button></form>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

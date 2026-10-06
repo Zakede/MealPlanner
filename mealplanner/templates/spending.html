@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Spending · Meal Planner{% endblock %}
+{% block content %}
+{% set st = sp.status %}
+<h1>Spending</h1>
+<div class="tiles">
+  <div class="tile wide">
+    <small>Expected this week</small>
+    <span class="meal-name">¥{{ '{:,}'.format(sp.expected_total) }} <small style="font-size:.9rem">of ¥{{ '{:,}'.format(st.budget) }}</small></span>
+    <small>Spent ¥{{ '{:,}'.format(st.spent) }} + to buy ¥{{ '{:,}'.format(st.planned) }} + eat-out held ¥{{ '{:,}'.format(st.reserved) }}</small>
+  </div>
+  <div class="tile"><small>Groceries</small><span class="num-big">¥{{ '{:,}'.format(sp.groceries) }}</span>
+    {% if sp.estimated %}<small class="{{ 'bad' if sp.groceries > sp.estimated else 'good' }}">{{ 'over' if sp.groceries > sp.estimated else 'under' }} estimate by ¥{{ (sp.groceries - sp.estimated)|abs }}</small>{% endif %}</div>
+  <div class="tile"><small>Eating out</small><span class="num-big">¥{{ '{:,}'.format(sp.eat_out) }}</span><small>{{ sp.meals_out|length }} meal{{ 's' if sp.meals_out|length != 1 }}</small></div>
+</div>
+
+{% if sp.bought %}
+<div class="card">
+  <h2>Bought this week</h2>
+  <table>
+    <tr><th>Item</th><th class="num">Paid</th><th class="num">Est.</th></tr>
+    {% for i in sp.bought %}
+    <tr><td>{{ i.name }} <span class="muted small">{{ '%g'|format(i.quantity) }} {{ i.unit }}</span></td>
+      <td class="num">{{ '¥' ~ i.price_paid if i.price_paid is not none else '—' }}</td>
+      <td class="num muted">{{ '¥' ~ i.estimate if i.estimate else '—' }}</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% else %}
+<div class="card empty"><p>Nothing bought yet this week. Tap "Bought" on the shopping list to track it.</p></div>
+{% endif %}
+
+{% if changes %}
+<div class="card">
+  <h2>Price changes</h2>
+  <table>{% for c in changes %}<tr><td>{{ c.name }}</td><td class="num {{ 'bad' if c.change > 0 else 'good' }}">{{ '+' if c.change > 0 }}{{ (c.change * 100)|round|int }}%</td><td class="num muted small">¥{{ c.now|round|int }}/100 g</td></tr>{% endfor %}</table>
+</div>
+{% endif %}
+
+<div class="card">
+  <h2>Last weeks</h2>
+  <table>{% for h in sp.history %}<tr><td>Week of {{ h.week.strftime('%b') }} {{ h.week.day }}</td><td class="num">¥{{ '{:,}'.format(h.spent) }}</td></tr>{% endfor %}</table>
+</div>
+{% endblock %}

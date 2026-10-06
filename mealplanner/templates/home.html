@@ -47,7 +47,7 @@
       <span class="num-big k">{{ k_left }}<small> left</small></span>
       <div class="meter k {{ 'over' if k_left < 0 }}"><i style="width: {{ [100, kcal_eaten * 100 // kcal_target]|min }}%"></i></div>
     </div>
-    <a class="tile" href="{{ url_for('plan.shopping') }}">
+    <a class="tile" href="{{ url_for('extras.spending') }}">
       <small>This week</small>
       <span class="num-big {{ 'bad' if budget.over }}">¥{{ '{:,}'.format(budget.remaining) }}</span>
       <div class="meter {{ 'over' if budget.over }}"><i style="width: {{ budget.planned_pct }}%"></i></div>

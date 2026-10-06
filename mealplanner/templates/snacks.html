@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Snacks · Meal Planner{% endblock %}
+{% block content %}
+<h1>Snacks &amp; cravings</h1>
+<div class="tiles">
+  <div class="tile"><small>Daily snack room</small><span class="num-big">{{ allowance }}<small> kcal</small></span><a class="small" href="{{ url_for('settings.edit') }}">Change</a></div>
+  <div class="tile"><small>Best snack</small><b>{{ snacks[0].name if snacks else '—' }}</b><small>{% if snacks %}{{ snacks[0].per_serving.protein|round|int }} g protein{% endif %}</small></div>
+</div>
+
+<h2 style="margin:4px 4px 8px">Craving → swap</h2>
+<div class="day-list">
+  {% for c in swaps %}
+  <div class="lp">
+    <span class="t">{% if c.kcal_from and c.kcal_to %}−{{ c.kcal_from - c.kcal_to }}{% endif %}</span>
+    <div><b>{{ c.craving }} → {{ c.swap }}</b>{% if c.note %}<small>{{ c.note }}</small>{% endif %}</div>
+    <form method="post" action="{{ url_for('extras.delete_swap', swap_id=c.id) }}"><button class="icon-btn" aria-label="Remove swap">✕</button></form>
+  </div>
+  {% endfor %}
+</div>
+
+<details class="card">
+  <summary><b>Add a swap</b></summary>
+  <form method="post" class="form" style="margin-top:12px">
+    <div class="row"><label>Craving<input name="craving" required></label><label>Swap<input name="swap" required></label></div>
+    <div class="row"><label>kcal before<input name="kcal_from" type="number"></label><label>kcal after<input name="kcal_to" type="number"></label></div>
+    <label>Note<input name="note"></label>
+    <button class="btn wide">Add</button>
+  </form>
+</details>
+
+<h2 style="margin:16px 4px 8px">Snack recipes</h2>
+<div class="day-list">
+  {% for r in snacks %}
+  <a class="lp" href="{{ url_for('recipes.view', recipe_id=r.id) }}"><span class="t">{{ r.per_serving.kcal|round|int }}</span>
+    <div><b>{{ r.name }}</b><small>{{ r.per_serving.protein|round|int }} g protein · ¥{{ r.per_serving.cost|round|int }}</small></div><span></span></a>
+  {% endfor %}
+</div>
+{% endblock %}
