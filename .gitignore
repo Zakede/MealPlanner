@@ -4,3 +4,5 @@ instance/
 .pytest_cache/
 .venv/
 *.db
+backups/
+server.log

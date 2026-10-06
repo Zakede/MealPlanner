@@ -40,6 +40,11 @@ def create_app(config=None):
     )
     if config:
         app.config.update(config)
+    if os.environ.get("MEALPLANNER_BEHIND_PROXY"):
+        # online behind Caddy: trust its forwarded address and https, and only send cookies over https
+        from werkzeug.middleware.proxy_fix import ProxyFix
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+        app.config["SESSION_COOKIE_SECURE"] = True
 
     with app.app_context():
         conn = db.connect(app.config["DATABASE"])

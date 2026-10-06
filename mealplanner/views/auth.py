@@ -11,6 +11,27 @@ from ..db import execute
 bp = Blueprint("auth", __name__)
 OPEN_ENDPOINTS = {"auth.login", "static", "people.pick", "people.use", "people.create"}
 
+# Online, one site password guards everything (profiles included). Set MEALPLANNER_SITE_PASSWORD_HASH to a
+# werkzeug hash (see deploy/README.md). Five wrong tries from one address lock it out for 15 minutes.
+GATE_OPEN = {"auth.gate", "static"}
+MAX_TRIES, LOCK_SECONDS = 5, 15 * 60
+_tries = {}   # ip -> [wrong tries, locked until]
+
+
+def site_hash():
+    return os.environ.get("MEALPLANNER_SITE_PASSWORD_HASH", "")
+
+
+def _locked(ip):
+    count, until = _tries.get(ip, [0, 0])
+    return until > time.time()
+
+
+def _wrong(ip):
+    count, until = _tries.get(ip, [0, 0])
+    count += 1
+    _tries[ip] = [0, time.time() + LOCK_SECONDS] if count >= MAX_TRIES else [count, until]
+
 
 def unlocked():
     from ..profiles import current_id
@@ -46,6 +67,8 @@ def lock_enabled():
 
 def require_login():
     from ..profiles import all_profiles
+    if site_hash() and not session.get("site_ok") and request.endpoint not in GATE_OPEN:
+        return redirect(url_for("auth.gate", next=request.full_path if request.method == "GET" else None))
     if request.endpoint in OPEN_ENDPOINTS or request.endpoint is None:
         return None
     # with several people on one app, ask who's eating before showing anyone's data
@@ -58,6 +81,28 @@ def require_login():
 
 def set_password(new):
     execute("UPDATE settings SET password_hash = ? WHERE id = 1", (generate_password_hash(new) if new else "",))
+
+
+@bp.route("/gate", methods=["GET", "POST"])
+def gate():
+    """The site password for the online copy."""
+    if not site_hash():
+        return redirect(url_for("main.home"))
+    ip = request.remote_addr or "?"
+    if request.method == "POST":
+        if _locked(ip):
+            flash("Too many wrong tries. Wait 15 minutes.", "error")
+        elif check_password_hash(site_hash(), request.form.get("password", "")):
+            _tries.pop(ip, None)
+            session["site_ok"] = True
+            session.permanent = True
+            nxt = request.args.get("next") or ""
+            return redirect(nxt if nxt.startswith("/") and not nxt.startswith("//") else url_for("main.home"))
+        else:
+            _wrong(ip)
+            time.sleep(1)
+            flash("Too many wrong tries. Wait 15 minutes." if _locked(ip) else "Wrong password.", "error")
+    return render_template("gate.html")
 
 
 @bp.route("/login", methods=["GET", "POST"])

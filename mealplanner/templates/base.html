@@ -21,11 +21,11 @@
   <header class="top">
     <a class="brand" href="{{ url_for('main.home') }}" aria-label="Meal Planner home">{% include "_logo.html" %}<span class="word">Meal<em>Planner</em></span></a>
     <span style="display:flex;gap:8px">
-      {% if request.endpoint not in ('auth.login', 'people.pick') and request.blueprint != 'setup' %}
+      {% if request.endpoint not in ('auth.login', 'auth.gate', 'people.pick') and request.blueprint != 'setup' %}
       <button type="button" class="top-link bell" data-bell data-url="{{ url_for('main.api_nudges') }}" aria-label="Notifications" aria-expanded="false">{{ icon('bell') }}<span class="bell-count" hidden></span></button>
       {% endif %}
       <button type="button" class="top-link theme-btn" data-theme-toggle data-url="{{ url_for('settings.mode') }}" aria-label="Switch light or dark">{{ icon('moon', 'i-moon') }}{{ icon('sun', 'i-sun') }}</button>
-      {% if request.endpoint not in ('auth.login', 'people.pick') %}
+      {% if request.endpoint not in ('auth.login', 'auth.gate', 'people.pick') %}
       <a class="top-link avatar-link" href="{{ url_for('people.pick') }}" aria-label="Profile: {{ me.name }}">{{ me.name[:1]|upper }}</a>
       <a class="top-link" href="{{ url_for('settings.edit') }}" aria-label="Settings">{{ icon('settings') }}</a>
       {% endif %}
@@ -42,7 +42,7 @@
     <p class="safety-note">Plans are suggestions. Check allergens and food safety yourself.</p>
   </main>
 
-  {% if request.endpoint not in ('auth.login', 'people.pick') and request.blueprint != 'setup' %}
+  {% if request.endpoint not in ('auth.login', 'auth.gate', 'people.pick') and request.blueprint != 'setup' %}
   <nav class="bottom" aria-label="Main">
     {% for endpoint, ico, label in [('main.home', 'home', 'Today'), ('plan.week', 'plan', 'Plan'),
                                    ('plan.shopping', 'cart', 'Shop'), ('pantry.index', 'pantry', 'Pantry'),
