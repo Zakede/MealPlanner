@@ -18,28 +18,44 @@ def hhmm(total):
 
 
 def works(day):
-    return bool(day.get("work_start") and day.get("work_end"))
+    return bool(day.get("work_start") and day.get("work_end")) or bool(day.get("blocks"))
+
+
+def blocks(day):
+    """Busy stretches of the day as (leave, back) minutes, commute included, in time order."""
+    if day.get("blocks") is not None:
+        raw = [(b["start"], b["end"], b.get("commute") or 0) for b in day["blocks"]]
+    elif day.get("work_start") and day.get("work_end"):
+        raw = [(day["work_start"], day["work_end"], day.get("commute_min") or 0)]
+    else:
+        raw = []
+    return sorted((minutes(a) - c, minutes(b) + c) for a, b, c in raw if minutes(b) > minutes(a))
 
 
 def slot_limits(day):
     """Max cooking minutes per slot, and whether the slot is eaten away from home."""
     wake = minutes(day["wake"]) or 7 * 60
     effort_cap = EFFORT_MAX_ACTIVE[day["effort"]]
+    busy_at = blocks(day)
+    lunch, dinner = minutes(day["lunch_time"]), minutes(day["dinner_time"])
 
-    if works(day):
-        leave = minutes(day["work_start"]) - (day["commute_min"] or 0)
-        home = minutes(day["work_end"]) + (day["commute_min"] or 0)
-        breakfast_time = max(0, leave - wake - 10)
-        lunch_at_work = minutes(day["work_start"]) <= minutes(day["lunch_time"]) <= minutes(day["work_end"])
-        dinner_time = max(0, minutes(day["dinner_time"]) - home)
+    def inside(t):
+        return any(a < t < b for a, b in busy_at)
+
+    morning = [a for a, _ in busy_at if a < lunch]
+    breakfast_time = max(0, morning[0] - wake - 10) if morning else 45
+    lunch_at_work = inside(lunch) or any(a <= lunch <= b for a, b in busy_at)
+    if any(a <= dinner < b for a, b in busy_at):
+        dinner_time, dinner_away = 0, True
     else:
-        breakfast_time, lunch_at_work, dinner_time = 45, False, 120
+        back = max([b for _, b in busy_at if b <= dinner] or [dinner - 120])
+        dinner_time, dinner_away = max(0, min(120, dinner - back)), False
 
     limits = {
         "breakfast": {"max_total": min(breakfast_time, 30), "max_active": min(effort_cap, 15), "away": False},
         "lunch": {"max_total": 0 if lunch_at_work else 60,
                   "max_active": 0 if lunch_at_work else effort_cap, "away": lunch_at_work},
-        "dinner": {"max_total": dinner_time, "max_active": effort_cap, "away": False},
+        "dinner": {"max_total": dinner_time, "max_active": 0 if dinner_away else effort_cap, "away": dinner_away},
         "snack": {"max_total": 15, "max_active": 5, "away": False},
     }
     if day["away"]:

@@ -48,26 +48,48 @@
     </div>
     <div class="day-info">
       {% set i = d.info %}
-      <form method="post" action="{{ url_for('plan.work', day=d.date.isoformat()) }}" class="work-tick">
-        <label class="tick"><input type="checkbox" name="work" value="1" {{ 'checked' if i.work_start }} data-work-tick><span>Got work</span></label>
-        {% if i.work_start %}<button type="button" class="work-summary" data-work-open>{{ i.work_start }}–{{ i.work_end }}{% if i.work_job and i.work_job != 'desk' %} · {{ {'standing': 'on feet', 'physical': 'physical'}[i.work_job] }}{% endif %}</button>{% endif %}
-        <span class="work-times">
-          <input type="time" name="work_start" value="{{ i.work_start or '09:00' }}" aria-label="Work starts">
-          <span>–</span>
-          <input type="time" name="work_end" value="{{ i.work_end or '18:00' }}" aria-label="Work ends">
-          <select name="work_kind" aria-label="How hard is the shift">
-            {% for v, label in [('desk', 'Desk'), ('standing', 'On feet'), ('physical', 'Physical')] %}
-            <option value="{{ v }}" {{ 'selected' if (i.work_job or job) == v }}>{{ label }}</option>
-            {% endfor %}
-          </select>
-          <button class="chip ok">Save</button>
-        </span>
-      </form>
+      {% set marks = {'work': '仕', 'school': '学', 'parttime': 'バ', 'club': '部', 'gym': '運', 'other': '他'} %}
+      {% for b in i.blocks %}
+      <span class="act k-{{ b.kind }}">
+        <i class="act-mark">{{ marks.get(b.kind, '他') }}</i>
+        <span><b>{{ b.label }}</b> {{ b.start }}–{{ b.end }}{% if b.intensity != 'desk' and b.kind != 'gym' %} · {{ {'standing': 'on feet', 'physical': 'physical'}[b.intensity] }}{% endif %}{% if b.weekly %} <span class="act-rep" title="Every week">↻</span>{% endif %}</span>
+        {% if b.id %}
+        <form method="post" action="{{ url_for('plan.remove_activity', activity_id=b.id) }}"><input type="hidden" name="date" value="{{ d.date.isoformat() }}"><button class="act-x" aria-label="Remove {{ b.label }}{{ ' this day' if b.weekly }}">×</button></form>
+        {% else %}
+        <form method="post" action="{{ url_for('plan.work', day=d.date.isoformat()) }}"><button class="act-x" aria-label="No work this day">×</button></form>
+        {% endif %}
+      </span>
+      {% endfor %}
+      <button type="button" class="act-add" data-act-open aria-expanded="false">+ Add</button>
       {% if i.gym %}<span class="tag">gym</span>{% endif %}
       {% if i.away %}<span class="tag out">out</span>{% endif %}
       {% if i.effort == 'full' %}<span class="tag">big cook</span>{% elif i.effort == 'none' %}<span class="tag soft">no cooking</span>{% endif %}
       {% if i.note %}<span class="muted small">· {{ i.note }}</span>{% endif %}
     </div>
+    <form method="post" action="{{ url_for('plan.add_activity', day=d.date.isoformat()) }}" class="act-form card" hidden>
+      <input type="hidden" name="week" value="{{ wk or '' }}">
+      <div class="act-kinds">
+        {% for k, label in kinds.items() %}
+        <label><input type="radio" name="kind" value="{{ k }}" {{ 'checked' if loop.first }}><span><i>{{ marks[k] }}</i>{{ label }}</span></label>
+        {% endfor %}
+      </div>
+      <input name="label" maxlength="40" placeholder="Name it (optional): Calculus, konbini shift, band practice…" aria-label="Name">
+      <div class="act-row">
+        <label>From<input type="time" name="start" value="09:00" required></label>
+        <label>Until<input type="time" name="end" value="15:00" required></label>
+        <label>Travel<input type="number" name="commute" min="0" max="240" step="5" value="0" inputmode="numeric" aria-label="Travel minutes each way"></label>
+      </div>
+      <div class="act-row">
+        <select name="intensity" aria-label="How active">
+          <option value="desk">Sitting</option><option value="standing">On my feet</option><option value="physical">Physical</option>
+        </select>
+        <label class="act-weekly"><input type="checkbox" name="weekly" value="1">Every {{ d.date.strftime('%A') }}</label>
+      </div>
+      <div class="act-row end">
+        <button type="button" class="chip" data-act-cancel>Cancel</button>
+        <button class="btn small">Add to {{ d.date.strftime('%a') }}</button>
+      </div>
+    </form>
     <div class="keys three">
       {% for m in d.meals %}
         {% set done = m.status in ('cooked', 'eaten', 'eaten_out', 'skipped') %}

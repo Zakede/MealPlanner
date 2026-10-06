@@ -184,8 +184,6 @@ def test_editing_a_day_replans_the_rest_of_the_week(profile, client):
 def test_got_work_tick_on_the_week_page(profile, client):
     client.post("/plan/generate")
     fri = WED + timedelta(days=2)
-    page = client.get("/plan/").get_data(as_text=True)
-    assert "Got work" in page
     client.post(f"/plan/day/{fri.isoformat()}/work", data={})          # unticked: day off
     with profile.app_context():
         assert plans.build_days([fri])[fri]["work_start"] is None
@@ -196,3 +194,39 @@ def test_got_work_tick_on_the_week_page(profile, client):
         assert (day["work_start"], day["work_end"], day["work_job"]) == ("13:00", "22:00", "standing")
     bad = client.post(f"/plan/day/{fri.isoformat()}/work", data={"work": "1", "work_start": "", "work_end": ""})
     assert bad.status_code == 302 and f"/plan/day/{fri.isoformat()}" in bad.headers["Location"]
+
+
+def test_activities_any_kind_one_day_or_weekly(profile, client):
+    client.post("/plan/generate")
+    thu = WED + timedelta(days=1)
+    client.post(f"/plan/day/{thu.isoformat()}/work", data={})          # no usual work that day
+    client.post(f"/plan/day/{thu.isoformat()}/activity",
+                data={"kind": "school", "label": "Calculus", "start": "09:00", "end": "12:00", "intensity": "desk"})
+    client.post(f"/plan/day/{thu.isoformat()}/activity",
+                data={"kind": "parttime", "start": "17:00", "end": "22:00", "intensity": "standing", "weekly": "1"})
+    with profile.app_context():
+        day = plans.build_days([thu])[thu]
+        labels = [(b["label"], b["weekly"]) for b in day["blocks"]]
+        assert labels == [("Calculus", False), ("Part-time", True)]
+        from mealplanner.schedule import slot_limits
+        lim = slot_limits(day)
+        assert lim["dinner"]["away"] and not lim["lunch"]["away"]       # 19:00 dinner falls in the shift
+        nxt = thu + timedelta(days=7)
+        assert [b["label"] for b in plans.build_days([nxt])[nxt]["blocks"]] == ["Work", "Part-time"]
+        weekly_id = query("SELECT id FROM activities WHERE weekday IS NOT NULL", one=True)["id"]
+    page = client.get("/plan/").get_data(as_text=True)
+    assert "Calculus" in page and "+ Add" in page
+    client.post(f"/plan/activity/{weekly_id}/remove", data={"date": thu.isoformat()})            # skip one day
+    with profile.app_context():
+        assert [b["label"] for b in plans.build_days([thu])[thu]["blocks"]] == ["Calculus"]
+        assert "Part-time" in [b["label"] for b in plans.build_days([nxt])[nxt]["blocks"]]
+    client.post(f"/plan/activity/{weekly_id}/remove", data={"date": thu.isoformat(), "scope": "all"})
+    with profile.app_context():
+        assert "Part-time" not in [b["label"] for b in plans.build_days([nxt])[nxt]["blocks"]]
+
+
+def test_gym_activity_makes_it_a_gym_day(profile, client):
+    sat = WED + timedelta(days=3)
+    client.post(f"/plan/day/{sat.isoformat()}/activity", data={"kind": "gym", "start": "10:00", "end": "11:30"})
+    with profile.app_context():
+        assert plans.build_days([sat])[sat]["gym"] == 1

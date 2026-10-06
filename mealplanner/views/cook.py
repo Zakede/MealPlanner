@@ -33,8 +33,43 @@ def cook(meal_id):
     if meal["booster_id"]:
         booster = query("SELECT b.*, f.name FROM flavor_boosters b JOIN foods f ON f.id = b.food_id WHERE b.id = ?",
                         (meal["booster_id"],), one=True)
+    from ..swaps import PROTEIN_CATEGORIES, main_ingredient
+    main = main_ingredient(recipe)
+    foods = sorted(store.foods(), key=lambda f: (f["category"] not in PROTEIN_CATEGORIES, f["name"].lower()))
     return render_template("cook.html", meal=meal, r=recipe, factor=factor, plate=plate,
-                           cook_portions=cook_portions, steps=steps, booster=booster)
+                           cook_portions=cook_portions, steps=steps, booster=booster,
+                           main_id=main["id"] if main else None, swap_foods=foods, protein_cats=PROTEIN_CATEGORIES)
+
+
+@bp.route("/<int:meal_id>/swap", methods=["POST"])
+def swap(meal_id):
+    """Swap one ingredient (say chicken for ground beef) in this meal or in the whole week."""
+    from .. import plans, swaps
+    meal = get_meal(meal_id)
+    if meal["status"] not in ("draft", "approved") or not meal["recipe_id"]:
+        flash("This meal is already done, so it can't change.", "error")
+        return redirect(url_for("cook.cook", meal_id=meal_id))
+    try:
+        old_id, new_id = int(request.form.get("old_food", 0)), int(request.form.get("new_food", 0))
+    except ValueError:
+        abort(400)
+    scope = "week" if request.form.get("scope") == "week" else "meal"
+    from datetime import date as date_cls
+    first, last = plans.budget.week_bounds(date_cls.fromisoformat(meal["date"]))
+    try:
+        changed = swaps.swap(meal_id, old_id, new_id, scope, first, last)
+    except ValueError as e:
+        flash(str(e), "error")
+        return redirect(url_for("cook.cook", meal_id=meal_id))
+    old, new = store.food(old_id), store.food(new_id)
+    if request.form.get("less"):
+        execute("INSERT INTO taste_scores (food_id, score) VALUES (?, 'small')"
+                " ON CONFLICT(food_id) DO UPDATE SET score = 'small'", (old_id,))
+    if query("SELECT 1 FROM shopping_list WHERE week_start = ? LIMIT 1", (first.isoformat(),), one=True):
+        plans.build_shopping_list(first)
+    extra = " Future plans will use less of it." if request.form.get("less") else ""
+    flash(f"{new['name']} in for {old['name'].lower()} in {changed} meal{'s' if changed != 1 else ''}.{extra}", "ok")
+    return redirect(url_for("cook.cook", meal_id=meal_id))
 
 
 @bp.route("/<int:meal_id>/done", methods=["POST"])

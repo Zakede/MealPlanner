@@ -5,6 +5,24 @@
 <p class="muted">Tell the app what this day looks like. This day and the rest of the week re-plan around it.</p>
 {% if target %}<div class="plate"><div><span class="lbl">Target for this day</span><span class="num-big" style="font-size:2.2rem">{{ target.kcal_target }}<small style="font: 700 .9rem var(--text)"> kcal · {{ target.protein_target }} g protein</small></span></div></div>{% endif %}
 
+{% set acts = info.blocks|selectattr('id')|list %}
+{% if acts %}
+<div class="card">
+  <h2>Activities</h2>
+  <ul class="list">
+    {% for b in acts %}
+    <li class="line"><span><b>{{ b.label }}</b> <span class="muted small">{{ b.start }}–{{ b.end }}{{ ' · every ' ~ on.strftime('%A') if b.weekly }}</span></span>
+      <span style="display:flex;gap:4px">
+        {% if b.weekly %}<form method="post" action="{{ url_for('plan.remove_activity', activity_id=b.id) }}"><input type="hidden" name="date" value="{{ on.isoformat() }}"><button class="chip">Skip this day</button></form>{% endif %}
+        <form method="post" action="{{ url_for('plan.remove_activity', activity_id=b.id) }}"><input type="hidden" name="date" value="{{ on.isoformat() }}"><input type="hidden" name="scope" value="all"><button class="chip hot" {% if b.weekly %}data-confirm="Remove {{ b.label }} from every {{ on.strftime('%A') }}?"{% endif %}>{{ 'Every week' if b.weekly else 'Remove' }}</button></form>
+      </span>
+    </li>
+    {% endfor %}
+  </ul>
+  <p class="muted small">Add more from the Plan page with + Add.</p>
+</div>
+{% endif %}
+
 <form method="post" class="form" id="day-form">
   <div class="card">
     <h2>Work or study</h2>

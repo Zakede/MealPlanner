@@ -22,34 +22,48 @@ def _num(form, name, default=None):
 
 
 def save_food(form, food_id=None):
-    """Create or update a food from form fields. Returns the food id."""
+    """Create or update a food from form fields. Returns the food id.
+
+    A new food with no numbers typed in gets them from the built-in guess table when it knows the food,
+    and a blank price is left to the price model, which estimates it from the food's category.
+    """
+    from ..food_guess import CATEGORIES, guess
     name = (form.get("name") or "").strip()
     if not name:
         raise ValueError("name is required")
-    values = {m: _num(form, m, 0.0) for m in MACRO_FIELDS}
+    typed = {m: _num(form, m) for m in MACRO_FIELDS}
+    existing = store.food(food_id) if food_id else store.food_by_name(name)
+    hint = guess(name) if not existing else None
+    if hint and all(v is None for v in typed.values()):
+        typed = {m: hint[m] for m in MACRO_FIELDS}
+    values = {m: v if v is not None else 0.0 for m, v in typed.items()}
     for m, v in values.items():
         if v < 0 or (m != "kcal" and v > 100) or v > 900:
             raise ValueError(f"{m} per 100 g looks wrong")
     piece_g = _num(form, "piece_g")
     allergens = form.get("allergens")  # None keeps the stored value
     allergens = allergens.strip() if allergens is not None else None
+    if hint and not allergens:
+        allergens = hint["allergens"]
     ref_price = _num(form, "price_per_100g")
+    if ref_price is None and hint:
+        ref_price = hint["price_jpy"]
+    category = form.get("category") if form.get("category") in CATEGORIES else (hint["category"] if hint else None)
 
-    existing = store.food(food_id) if food_id else store.food_by_name(name)
     db = get_db()
     if existing:
         db.execute(
             """UPDATE foods SET name = ?, kcal = ?, protein = ?, carbs = ?, fat = ?,
                piece_g = COALESCE(?, piece_g), allergens = COALESCE(?, allergens),
-               price_per_100g = COALESCE(?, price_per_100g) WHERE id = ?""",
-            (name, *values.values(), piece_g, allergens, ref_price, existing["id"]),
+               price_per_100g = COALESCE(?, price_per_100g), category = COALESCE(?, category) WHERE id = ?""",
+            (name, *values.values(), piece_g, allergens, ref_price, category, existing["id"]),
         )
         db.commit()
         return existing["id"]
     cur = db.execute(
-        "INSERT INTO foods (name, kcal, protein, carbs, fat, piece_g, allergens, price_per_100g)"
-        " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-        (name, *values.values(), piece_g, allergens or "", ref_price),
+        "INSERT INTO foods (name, kcal, protein, carbs, fat, piece_g, allergens, price_per_100g, category)"
+        " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (name, *values.values(), piece_g, allergens or "", ref_price, category or ""),
     )
     db.commit()
     return cur.lastrowid
@@ -149,7 +163,35 @@ def food_edit(food_id=None):
             return redirect(url_for("pantry.foods"))
     history = query("SELECT * FROM price_history WHERE food_id = ? ORDER BY recorded_on DESC LIMIT 10",
                     (food_id,)) if food_id else []
-    return render_template("pantry/food_edit.html", food=food, history=history)
+    from ..food_guess import CATEGORIES
+    return render_template("pantry/food_edit.html", food=food, history=history, categories=CATEGORIES)
+
+
+@bp.route("/foods/guess")
+def food_guess():
+    """Numbers for a food name: the built-in table first, then the AI helper if asked and set up."""
+    from .. import llm
+    from ..food_guess import ai_prompt, guess, validate_ai
+    from ..pricing import COUNTRIES, country_code, factor
+    name = (request.args.get("name") or "").strip()[:60]
+    if not name:
+        return jsonify({"error": "Type a name first."}), 400
+    s = store.settings()
+    found = guess(name)
+    if found is None and request.args.get("ai"):
+        p = llm.provider()
+        if p is None:
+            return jsonify({"error": "Not in the built-in list, and no AI helper is set up (Settings → AI helper)."}), 404
+        try:
+            found = validate_ai(llm.extract_json(p.complete(ai_prompt(name, COUNTRIES[country_code(s)][0]))))
+        except llm.LLMError as e:
+            return jsonify({"error": f"AI helper: {e}."}), 502
+        if found is None:
+            return jsonify({"error": "The AI's numbers didn't add up. Try a more specific name."}), 502
+    if found is None:
+        return jsonify({"error": "Not in the built-in list.", "can_ai": llm.provider() is not None}), 404
+    found["price_local"] = round(found["price_jpy"] * factor(s)) if found.get("price_jpy") else None
+    return jsonify(found)
 
 
 @bp.route("/api/foods")

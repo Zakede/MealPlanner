@@ -130,6 +130,8 @@ def build_days(dates, s=None):
     s = s or store.settings()
     sched = weekday_schedule()
     overrides = {_d(r["date"]): dict(r) for r in query("SELECT * FROM day_overrides")}
+    acts = [dict(r) for r in query("SELECT * FROM activities")]
+    skips = {(r["activity_id"], r["date"]) for r in query("SELECT * FROM activity_skips")}
     flexible = s.get("schedule_mode") == "flexible"
     prep = set()
     if flexible and dates:
@@ -155,12 +157,24 @@ def build_days(dates, s=None):
             day["note"] = o.get("note") or ""
         else:
             day["note"] = ""
-        # how hard today's work is, for calorie targets
+        # everything that takes you out of the kitchen: usual work plus any added activities
+        blocks = []
         if day.get("work_start") and day.get("work_end"):
             day["work_hours"] = max(0, (minutes(day["work_end"]) - minutes(day["work_start"])) / 60)
             day["work_job"] = (o or {}).get("work_kind") or s.get("job") or "desk"
+            blocks.append({"id": None, "label": "Work", "kind": "work", "start": day["work_start"],
+                           "end": day["work_end"], "intensity": day["work_job"], "commute": day.get("commute_min") or 0,
+                           "hours": day["work_hours"], "weekly": not (o and o.get("work_mode") == "work")})
         else:
             day["work_hours"], day["work_job"] = 0, None
+        for a in acts:
+            if (a["date"] == d.isoformat() or (a["weekday"] == d.weekday() and not a["date"]))                     and (a["id"], d.isoformat()) not in skips:
+                blocks.append({"id": a["id"], "label": a["label"], "kind": a["kind"], "start": a["start"], "end": a["end"],
+                               "intensity": a["intensity"], "commute": a["commute_min"], "weekly": a["date"] is None,
+                               "hours": max(0, (minutes(a["end"]) - minutes(a["start"])) / 60)})
+                if a["kind"] == "gym":
+                    day["gym"] = 1
+        day["blocks"] = sorted(blocks, key=lambda b: b["start"])
         day["prep"] = d in prep or (o is not None and o["effort"] == "full")
         days[d] = day
     return days
@@ -169,11 +183,7 @@ def build_days(dates, s=None):
 OVERRIDE_KEYS = ("effort", "gym", "away", "work_mode", "work_start", "work_end", "commute_min", "note", "work_kind")
 
 
-def work_of(day, s):
-    """The work part of a day, in the shape nutrition.day_targets wants, or None on a day off."""
-    if not day.get("work_job"):
-        return None
-    return {"job": day["work_job"], "hours": day.get("work_hours", 0), "base_job": s.get("job") or "desk"}
+work_of = planner.work_of
 
 
 def set_override(on, **values):

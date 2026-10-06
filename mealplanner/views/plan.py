@@ -44,6 +44,7 @@ def week():
         budget=plans.week_budget(first),
         needs_profile=store.targets() is None,
         job=store.settings().get("job") or "desk",
+        kinds=ACTIVITY_KINDS,
         can_undo=bool(plans.query("SELECT 1 FROM plan_actions WHERE undone = 0 LIMIT 1")),
     )
 
@@ -191,15 +192,72 @@ def work(day):
     else:
         plans.set_override(on, work_mode="off", work_start=None, work_end=None, commute_min=None, work_kind=None)
         what = "a day off"
+    return after_day_change(on, f"{on.strftime('%A')} is now {what}")
+
+
+def after_day_change(on, message):
+    """Re-plan from a changed day if there's a plan to change, then back to that week."""
     if store.targets() is not None and plans.query("SELECT 1 FROM plan_meals WHERE date >= ? LIMIT 1",
                                                    (on.isoformat(),), one=True):
         plans.replan_from(on)
-        flash(f"{on.strftime('%A')} is now {what}; the rest of the week re-planned.", "ok")
+        flash(f"{message}; the rest of the week re-planned.", "ok")
     else:
-        flash(f"{on.strftime('%A')} is now {what}.", "ok")
+        flash(f"{message}.", "ok")
     current, _ = plans.current_week()
     return redirect(url_for("plan.week", week="next" if on >= current + timedelta(days=7) else None))
 
+
+ACTIVITY_KINDS = {"work": "Work", "school": "School", "parttime": "Part-time", "club": "Club",
+                  "gym": "Gym / sport", "other": "Other"}
+INTENSITIES = ("desk", "standing", "physical")
+
+
+@bp.route("/day/<day>/activity", methods=["POST"])
+def add_activity(day):
+    """Add school, a shift, a club, a class... to one day or to that weekday every week."""
+    try:
+        on = date_cls.fromisoformat(day)
+    except ValueError:
+        return redirect(url_for("plan.week"))
+    f = request.form
+    hhmm = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
+    start, end = f.get("start", ""), f.get("end", "")
+    if not (hhmm.match(start) and hhmm.match(end)) or end <= start:
+        flash("Give it a start and an end time, like 09:00 and 15:00.", "error")
+        return redirect(url_for("plan.week", week=f.get("week") or None))
+    kind = f.get("kind") if f.get("kind") in ACTIVITY_KINDS else "other"
+    label = (f.get("label") or "").strip()[:40] or ACTIVITY_KINDS[kind]
+    intensity = f.get("intensity") if f.get("intensity") in INTENSITIES else ("physical" if kind == "gym" else "desk")
+    try:
+        commute = max(0, min(240, int(f.get("commute") or 0)))
+    except ValueError:
+        commute = 0
+    weekly = bool(f.get("weekly"))
+    execute("INSERT INTO activities (date, weekday, label, kind, start, end, intensity, commute_min)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (None if weekly else on.isoformat(), on.weekday() if weekly else None, label, kind, start, end,
+             intensity, commute))
+    when = f"every {on.strftime('%A')}" if weekly else on.strftime("%A")
+    return after_day_change(on, f"{label} {start}–{end} added {when}")
+
+
+@bp.route("/activity/<int:activity_id>/remove", methods=["POST"])
+def remove_activity(activity_id):
+    """Take an activity off: just this date, or (for weekly ones) every week."""
+    row = plans.query("SELECT * FROM activities WHERE id = ?", (activity_id,), one=True)
+    try:
+        on = date_cls.fromisoformat(request.form.get("date", ""))
+    except ValueError:
+        on = today()
+    if row is None:
+        return redirect(url_for("plan.week"))
+    if row["date"] is None and request.form.get("scope") != "all":
+        execute("INSERT OR IGNORE INTO activity_skips (activity_id, date) VALUES (?, ?)", (activity_id, on.isoformat()))
+        message = f"{row['label']} skipped on {on.strftime('%A')}"
+    else:
+        execute("DELETE FROM activities WHERE id = ?", (activity_id,))
+        message = f"{row['label']} removed" + (" from every week" if row["date"] is None else "")
+    return after_day_change(on, message)
 
 SECTIONS = [
     ("Meat & fish", {"poultry", "meat", "fish", "seafood"}),

@@ -14,7 +14,7 @@ from datetime import timedelta
 from . import diet
 from .costing import MACROS
 from .equipment import can_make
-from .nutrition import HARD_DAY_SNACK, day_targets, is_hard_day
+from .nutrition import HARD_DAY_SNACK, day_targets, is_hard
 from .schedule import busy, hhmm, minutes, slot_limits
 
 MEAL_SLOTS = ("breakfast", "lunch", "dinner")
@@ -166,7 +166,35 @@ def score(recipe, portion, target, check, ctx, date, chosen, gym, budget_left, m
         total -= 0.35 * (cooldown - gap) / cooldown + 0.1
     uses = sum(1 for m in chosen if m.get("recipe_id") == recipe["id"] and m["kind"] != "leftover")
     total -= 0.12 * uses
+    total -= variety_penalty(recipe, ctx, chosen)
     return total
+
+
+def main_protein(recipe):
+    """(food id, category) of the ingredient giving the most protein."""
+    if not recipe["ingredients"]:
+        return None, None
+    top = max(recipe["ingredients"], key=lambda i: i["protein"] * i["grams"])
+    return top["id"], top.get("category")
+
+
+def variety_penalty(recipe, ctx, chosen):
+    """Don't build the week on one protein: each repeat of the same main food, and of the same kind
+    (chicken, pork, fish...) past a couple of meals, costs a little more."""
+    mains = ctx.setdefault("_mains", {})
+    if recipe["id"] not in mains:
+        mains[recipe["id"]] = main_protein(recipe)
+    food, cat = mains[recipe["id"]]
+    if food is None:
+        return 0
+    same_food = same_cat = 0
+    for m in chosen:
+        if m["kind"] == "leftover" or m.get("recipe_id") not in mains:
+            continue
+        f, c = mains[m["recipe_id"]]
+        same_food += f == food
+        same_cat += c == cat and cat is not None
+    return 0.07 * same_food + 0.05 * max(0, same_cat - 2)
 
 
 def macros_for(recipe, portion):
@@ -234,6 +262,14 @@ def reserve_eat_out(ctx, dates, taken):
     return [(d, slot) for _, _, d, slot in candidates[:count]]
 
 
+def work_of(day, s):
+    """The day's activities in the shape nutrition.day_targets wants, or None on a free day."""
+    parts = [(b["intensity"], b["hours"]) for b in day.get("blocks") or [] if b.get("kind") != "gym"]
+    if not parts:
+        return None
+    return {"blocks": parts, "base_job": s.get("job") or "desk"}
+
+
 def plan(ctx, dates):
     """Fill every empty slot for the given dates.
 
@@ -247,6 +283,7 @@ def plan(ctx, dates):
     pantry = PantrySim(ctx["pantry_lots"])
     leftovers = [dict(lo) for lo in ctx["fridge_leftovers"]]
     recipes = [r for r in ctx["recipes"] if r["ingredients"] and not blocked(r, ctx)]
+    ctx["_mains"] = {r["id"]: main_protein(r) for r in ctx["recipes"] if r["ingredients"]}
     gym_days = sum(1 for d in ctx["schedule"].values() if d["gym"])
 
     chosen = []
@@ -282,11 +319,9 @@ def plan(ctx, dates):
     for d in dates:
         day = day_info(ctx, d)
         limits = slot_limits(day)
-        work = None
-        if day.get("work_job"):
-            work = {"job": day["work_job"], "hours": day.get("work_hours", 0), "base_job": s.get("job") or "desk"}
+        work = work_of(day, s)
         kcal_target, protein_target = day_targets(ctx["targets"], day["gym"], gym_days, s["sex"], work=work)
-        hard = bool(work) and is_hard_day(work["job"], work["hours"])
+        hard = bool(work) and is_hard(work)
         snack_kcal = min(s["snack_kcal"] + (HARD_DAY_SNACK if hard else 0), kcal_target // 5)
         day_meals = [m for (md, _), ms in taken.items() if md == d for m in ms]
         day_kcal = sum(m["kcal"] for m in day_meals)

@@ -62,6 +62,42 @@
   <form method="post" action="{{ url_for('recipes.pref', recipe_id=r.id) }}"><input type="hidden" name="status" value="never"><button class="btn secondary small" data-confirm="Never plan {{ r.name }} again?">Not for me</button></form>
 </div>
 {% endif %}
+{% if meal.status in ('draft', 'approved') and r.ingredients and meal.kind != 'leftover' %}
+<details class="card swap-card">
+  <summary><h2 style="margin:0">Swap an ingredient</h2><span class="muted small">chicken → beef, tofu…</span></summary>
+  <form method="post" action="{{ url_for('cook.swap', meal_id=meal.id) }}" class="form swap-form" style="margin-top:12px">
+    <div class="swap-pair">
+      <label>Take out
+        <select name="old_food" data-swap-old>
+          {% for i in r.ingredients %}<option value="{{ i.id }}" data-g="{{ (i.grams * plate)|round|int }}" data-p="{{ i.protein }}" data-k="{{ i.kcal }}" data-c="{{ i.category }}" {{ 'selected' if i.id == main_id }}>{{ i.name }}</option>{% endfor %}
+        </select>
+      </label>
+      <span class="swap-arrow" aria-hidden="true">→</span>
+      <label>Put in
+        <select name="new_food" data-swap-new>
+          {% set ns = namespace(group=None) %}
+          {% for f in swap_foods %}
+            {% set g = 'Protein' if f.category in protein_cats else 'Everything else' %}
+            {% if g != ns.group %}{% if ns.group %}</optgroup>{% endif %}<optgroup label="{{ g }}">{% set ns.group = g %}{% endif %}
+            <option value="{{ f.id }}" data-p="{{ f.protein }}" data-k="{{ f.kcal }}" data-c="{{ f.category }}" data-price="{{ f.current_price or '' }}">{{ f.name }}</option>
+          {% endfor %}
+          {% if ns.group %}</optgroup>{% endif %}
+        </select>
+      </label>
+    </div>
+    <p class="swap-preview muted small" data-swap-preview></p>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="scope" value="meal" checked><span><b>Just this meal</b></span></label>
+      <label class="opt"><input type="radio" name="scope" value="week"><span><b>All week</b><small>every planned meal with it</small></span></label>
+    </div>
+    <label class="small" style="display:flex;gap:6px;align-items:center;margin:10px 0 0;color:var(--ink)"><input type="checkbox" name="less" value="1">Use less of it in future plans</label>
+    <div class="actions" style="margin:12px 0 0">
+      <button class="btn">Swap it</button>
+      <a class="btn secondary small" href="{{ url_for('pantry.food_edit') }}">Not listed? Add a food</a>
+    </div>
+  </form>
+</details>
+{% endif %}
 {% if meal.note %}<p class="muted small">{{ meal.note }}</p>{% endif %}
 {% endblock %}
 {% block scripts %}
@@ -75,6 +111,29 @@
       if (document.visibilityState === "visible") lock = await navigator.wakeLock.request("screen");
     });
   } catch (e) {}
+})();
+
+// Swap preview: how much of the new food keeps the protein, and what that does to calories.
+(() => {
+  const old = document.querySelector("[data-swap-old]"), neu = document.querySelector("[data-swap-new]");
+  const out = document.querySelector("[data-swap-preview]");
+  if (!old || !neu) return;
+  const proteinCats = new Set({{ protein_cats|list|tojson }});
+  const show = () => {
+    const o = old.selectedOptions[0].dataset, n = neu.selectedOptions[0].dataset;
+    let g = +o.g;
+    if (proteinCats.has(o.c) && proteinCats.has(n.c) && +o.p > 0 && +n.p > 0) {
+      g = Math.round(g * Math.min(1.6, Math.max(1 / 1.6, o.p / n.p)) / 5) * 5 || 5;
+    }
+    const dk = Math.round(g * n.k / 100 - o.g * o.k / 100), dp = Math.round(g * n.p / 100 - o.g * o.p / 100);
+    const sign = (v) => (v > 0 ? "+" : "") + v;
+    out.textContent = `About ${g} g of ${neu.selectedOptions[0].text} on your plate · ${sign(dk)} kcal · ${sign(dp)} g protein`;
+    out.classList.remove("pop"); void out.offsetWidth; out.classList.add("pop");
+  };
+  old.addEventListener("change", show); neu.addEventListener("change", show);
+  // start on a different protein than the one being swapped
+  if (neu.value === old.value) { const next = [...neu.options].find((op) => op.value !== old.value); if (next) neu.value = next.value; }
+  show();
 })();
 
 // Tap an ingredient to tick it off.

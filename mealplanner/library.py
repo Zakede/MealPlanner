@@ -1,7 +1,7 @@
 """Built-in food and recipe library. Values are approximate Japanese food-table and supermarket
 figures; users edit them to match their labels and receipts."""
 
-LIBRARY_VERSION = 4
+LIBRARY_VERSION = 5
 
 # Category drives diet filters: poultry, meat, fish, seafood, egg, dairy, soy, legume, grain,
 # veg, fruit, sauce, fat, snack.
@@ -13,6 +13,9 @@ FOODS = [
     ("Salad chicken", 105, 24.0, 0.5, 1.0, 230, 110, "", "poultry"),
     ("Pork komagire", 200, 18.5, 0.2, 14.0, 140, None, "", "meat"),
     ("Lean beef", 140, 21.0, 0.4, 5.5, 300, None, "", "meat"),
+    ("Ground beef", 251, 17.1, 0.3, 21.1, 250, None, "", "meat"),
+    ("Ground pork", 209, 17.7, 0.1, 15.1, 140, None, "", "meat"),
+    ("Mixed mince (beef & pork)", 236, 17.3, 0.3, 18.4, 160, None, "", "meat"),
     ("Egg", 142, 12.2, 0.4, 10.2, 40, 60, "egg", "egg"),
     ("Firm tofu", 73, 7.0, 1.5, 4.9, 30, 300, "soy", "soy"),
     ("Atsuage", 143, 10.7, 0.9, 11.3, 50, 150, "soy", "soy"),
@@ -306,6 +309,24 @@ RECIPES = [
      "Portion 30 g into a bowl rather than eating from the bag."),
     ("Light popcorn", 0, 0, 1, "crunchy", 0, 0, "snack", "", 0, 1, [("Light popcorn", 25)],
      "Portion 25 g. Season with chili powder or nori if you like."),
+    ("Beef & tofu soboro bowl", 12, 15, 1, "savory,sweet-savory", 0, 0, "lunch,dinner", "japanese", 1, 1,
+     [("Ground beef", 80), ("Firm tofu", 150), ("Ginger", 5), ("Soy sauce", 15), ("Mirin", 10), ("Green onion", 10),
+      ("Cooked rice", 150)],
+     "Fry the ground beef in a dry pan, breaking it up, until browned, 4 minutes.\n"
+     "Crumble in the tofu with grated ginger and cook 3 minutes until dry and crumbly.\n"
+     "Add soy sauce and mirin, stir until absorbed. Spoon over rice, top with green onion."),
+    ("Light mapo tofu", 12, 15, 1, "spicy,garlicky,savory", 2, 0, "lunch,dinner", "chinese", 1, 0,
+     [("Ground pork", 70), ("Firm tofu", 250), ("Chili bean paste", 10), ("Garlic", 5), ("Ginger", 5),
+      ("Soy sauce", 5), ("Green onion", 10), ("Cooked rice", 150)],
+     "Cube the tofu. Fry the ground pork until browned and no pink is left, 4 minutes.\n"
+     "Add garlic, ginger and chili bean paste, fry 30 seconds.\n"
+     "Add 120 ml water and soy sauce, slide in the tofu and simmer 4 minutes. Top with green onion, serve with rice."),
+    ("Hamburg steak with cabbage", 20, 30, 1, "savory,comfort", 0, 0, "dinner", "japanese", 1, 0,
+     [("Mixed mince (beef & pork)", 120), ("Onion", 50), ("Egg", 30), ("Panko", 10), ("Cabbage", 100),
+      ("Soy sauce", 10), ("Mirin", 10), ("Cooked rice", 150)],
+     "Chop the onion finely. Mix with the mince, egg, panko and a pinch of salt; shape into a thick patty.\n"
+     "Fry 3 minutes per side, then add 50 ml water, cover and steam 6 minutes until cooked through (75 °C inside).\n"
+     "Add soy sauce and mirin to the pan and spoon the glaze over. Serve with shredded cabbage and rice."),
 ]
 
 # Built-in recipes from earlier versions that are no longer shipped.

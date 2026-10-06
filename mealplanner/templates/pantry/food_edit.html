@@ -2,8 +2,18 @@
 {% block title %}Food · Meal Planner{% endblock %}
 {% block content %}
 <h1>{{ food.name or 'New food' }}</h1>
-<form method="post" class="card form">
-  <label>Name<input name="name" value="{{ food.name or '' }}" required></label>
+<form method="post" class="card form" id="food-form">
+  <label>Name<input name="name" value="{{ food.name or request.args.get('name', '') }}" required placeholder="e.g. ground beef, 豚ひき肉"></label>
+  <div class="guess-row">
+    <button type="button" class="btn secondary small" data-guess>✦ Fill in for me</button>
+    <span class="muted small" data-guess-status>No idea of the numbers? Tap this, or just save: blanks get estimated.</span>
+  </div>
+  <label>Type
+    <select name="category">
+      <option value="">Not sure</option>
+      {% for c in categories %}<option value="{{ c }}" {{ 'selected' if food.category == c }}>{{ {'poultry': 'Chicken & poultry', 'meat': 'Meat', 'fish': 'Fish', 'seafood': 'Seafood', 'egg': 'Eggs', 'dairy': 'Dairy', 'soy': 'Tofu & soy', 'legume': 'Beans', 'grain': 'Rice, bread & noodles', 'veg': 'Vegetables', 'fruit': 'Fruit', 'sauce': 'Sauces & spices', 'fat': 'Oils & fats', 'snack': 'Snacks'}[c] }}</option>{% endfor %}
+    </select>
+  </label>
   <h2>Per 100 g</h2>
   <div class="row4">
     <label>kcal<input name="kcal" type="number" step="any" value="{{ food.kcal if food.kcal is not none }}"></label>
@@ -12,7 +22,7 @@
     <label>Fat<input name="fat" type="number" step="any" value="{{ food.fat if food.fat is not none }}"></label>
   </div>
   <div class="row3">
-    <label>Ref. {{ cur }}/100 g<input name="price_per_100g" type="number" step="any" value="{{ food.price_per_100g if food.price_per_100g is not none }}"></label>
+    <label>Ref. {{ cur }}/100 g<input name="price_per_100g" type="number" step="any" value="{{ food.price_per_100g if food.price_per_100g is not none }}" placeholder="{{ (food.current_price|round|int) if food.current_price else 'estimate' }}"></label>
     <label>g per piece<input name="piece_g" type="number" step="any" value="{{ food.piece_g if food.piece_g is not none }}"></label>
     <label>Allergens<input name="allergens" value="{{ food.allergens or '' }}"></label>
   </div>
@@ -26,4 +36,36 @@
   </table>
 </div>
 {% endif %}
+{% endblock %}
+{% block scripts %}
+<script>
+(() => {
+  const form = document.getElementById("food-form");
+  const btn = form.querySelector("[data-guess]"), status = form.querySelector("[data-guess-status]");
+  const fill = (d) => {
+    for (const k of ["kcal", "protein", "carbs", "fat"]) form.elements[k].value = d[k];
+    if (d.price_jpy) form.elements.price_per_100g.value = d.price_jpy;
+    if (d.category) form.elements.category.value = d.category;
+    if (d.allergens && !form.elements.allergens.value) form.elements.allergens.value = d.allergens;
+    form.querySelectorAll(".row4 input, .row3 input, select").forEach((el, i) => {
+      el.classList.remove("filled"); void el.offsetWidth; el.style.setProperty("--i", i); el.classList.add("filled");
+    });
+    status.textContent = (d.source === "ai" ? "AI estimate" : "Typical values") + ". Check the label and fix anything off.";
+  };
+  const ask = async (ai) => {
+    const name = form.elements.name.value.trim();
+    if (!name) { status.textContent = "Type a name first."; form.elements.name.focus(); return; }
+    btn.disabled = true; btn.classList.add("thinking"); status.textContent = ai ? "Asking the AI helper…" : "Looking it up…";
+    try {
+      const r = await fetch(`{{ url_for('pantry.food_guess') }}?name=${encodeURIComponent(name)}${ai ? "&ai=1" : ""}`);
+      const d = await r.json();
+      if (r.ok) { fill(d); burst(btn); }
+      else if (d.can_ai && !ai) { return ask(true); }
+      else status.textContent = d.error || "Couldn't guess that one.";
+    } catch { status.textContent = "Couldn't reach the app."; }
+    finally { btn.disabled = false; btn.classList.remove("thinking"); }
+  };
+  btn.addEventListener("click", () => ask(false));
+})();
+</script>
 {% endblock %}

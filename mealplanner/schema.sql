@@ -312,3 +312,21 @@ CREATE TABLE IF NOT EXISTS shopping_skip (
     food_id    INTEGER NOT NULL,
     PRIMARY KEY (week_start, food_id)
 );
+
+-- Anything that takes you out of the kitchen: school, a shift, a club, a class. One date or every week.
+CREATE TABLE IF NOT EXISTS activities (
+    id          INTEGER PRIMARY KEY,
+    date        TEXT,              -- one day, or NULL when it repeats
+    weekday     INTEGER,           -- 0 = Monday, for weekly ones
+    label       TEXT    NOT NULL,
+    kind        TEXT    NOT NULL DEFAULT 'other',   -- work / school / parttime / club / gym / other
+    start       TEXT    NOT NULL,
+    end         TEXT    NOT NULL,
+    intensity   TEXT    NOT NULL DEFAULT 'desk',    -- desk / standing / physical
+    commute_min INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS activity_skips (
+    activity_id INTEGER NOT NULL REFERENCES activities(id) ON DELETE CASCADE,
+    date        TEXT    NOT NULL,
+    PRIMARY KEY (activity_id, date)
+);

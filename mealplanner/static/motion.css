@@ -13,7 +13,7 @@
   background: linear-gradient(90deg, var(--fuji-deep), var(--fuji), var(--fuji-light)); box-shadow: 0 0 12px var(--fuji); opacity: 0; }
 .loadbar.go { opacity: 1; width: 85%; transition: width 4s cubic-bezier(.1, .7, .2, 1), opacity .2s; }
 
-.btn, .chip, nav.bottom a, .menu a, .boost-add, .key, .opt span, .work-tick .tick { position: relative; overflow: hidden; isolation: isolate; }
+.btn, .chip, nav.bottom a, .menu a, .boost-add, .key, .opt span, .act-kinds span { position: relative; overflow: hidden; isolation: isolate; }
 .ripple { position: absolute; z-index: -1; border-radius: 50%; pointer-events: none; transform: translate(-50%, -50%) scale(0);
   background: currentColor; opacity: .22; animation: ripple .6s var(--ease) forwards; }
 @keyframes ripple { to { transform: translate(-50%, -50%) scale(1); opacity: 0; } }
@@ -89,14 +89,21 @@
   @keyframes wiggle { 30% { transform: rotate(-12deg) scale(1.1); } 60% { transform: rotate(8deg); } }
   .key.flagged .badge { animation: pill-pulse 1.6s ease-in-out infinite; }
 
-  /* "Got work" tick */
-  .work-tick input:checked { animation: tick-pop .4s var(--spring); }
-  @keyframes tick-pop { 40% { transform: scale(1.35); } }
-  .work-tick.open .work-times { animation: slide-open .4s var(--ease) both; }
-  .work-tick.open .work-times > * { animation: rise .45s var(--ease) both; }
-  .work-tick.open .work-times > :nth-child(2) { animation-delay: .04s; } .work-tick.open .work-times > :nth-child(3) { animation-delay: .08s; }
-  .work-tick.open .work-times > :nth-child(4) { animation-delay: .12s; } .work-tick.open .work-times > :nth-child(5) { animation-delay: .16s; }
-  @keyframes slide-open { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 -10% 0); } }
+  /* activities */
+  .act { animation: pop .4s var(--spring) both; }
+  .act:nth-child(2) { animation-delay: .05s; } .act:nth-child(3) { animation-delay: .1s; }
+  .act-form:not([hidden]) { animation: slide-open .45s var(--ease) both; }
+  .act-form:not([hidden]) > * { animation: rise .45s var(--ease) both; }
+  .act-form > :nth-child(2) { animation-delay: .04s; } .act-form > :nth-child(3) { animation-delay: .08s; }
+  .act-form > :nth-child(4) { animation-delay: .12s; } .act-form > :nth-child(5) { animation-delay: .16s; }
+  .act-form > :nth-child(6) { animation-delay: .2s; }
+  @keyframes slide-open { from { clip-path: inset(0 0 100% 0 round 14px); } to { clip-path: inset(0 0 0 0 round 14px); } }
+  .act-kinds input:checked + span { animation: pick .35s var(--spring); }
+  .act-kinds input:checked + span i { animation: wiggle .5s var(--spring); }
+  .act-add { transition: transform .2s var(--spring), background .2s; }
+  .act-add:active { transform: scale(.94); }
+  .act-x { transition: transform .2s var(--spring), opacity .2s, background .2s; }
+  .act-x:hover { transform: rotate(90deg); }
 
   /* taste boosters */
   .boost-add { transition: transform .25s var(--spring), background .2s; }
@@ -110,4 +117,18 @@
   .flash:not(.flash-error)::after { content: ""; position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; transform-origin: left;
     background: var(--fuji); opacity: .6; animation: timer 3.5s linear both; }
   @keyframes timer { to { transform: scaleX(0); } }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* "Fill in for me": the button breathes while it thinks, the fields flash as they fill */
+  .btn.thinking { animation: think 1s ease-in-out infinite; }
+  @keyframes think { 50% { box-shadow: var(--press), 0 0 0 6px color-mix(in srgb, var(--fuji) 25%, transparent); } }
+  .filled { animation: filled .9s var(--ease) both; animation-delay: calc(var(--i, 0) * 50ms); }
+  @keyframes filled { 0% { background: color-mix(in srgb, var(--fuji) 40%, transparent); transform: scale(1.03); } }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .swap-preview.pop { animation: rise .4s var(--ease) both; }
+  .swap-arrow { animation: nudge 1.8s ease-in-out infinite; }
+  @keyframes nudge { 50% { translate: 4px 0; } }
 }

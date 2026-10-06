@@ -103,20 +103,23 @@ document.querySelectorAll("input[data-chips]").forEach((input) => {
   render();
 });
 
-// "Got work" tick on the week plan: ticking opens the hours, unticking makes it a day off right away.
-document.querySelectorAll(".work-tick").forEach((form) => {
-  const tick = form.querySelector("[data-work-tick]");
-  tick.addEventListener("change", () => {
-    if (tick.checked) {
-      burst(tick);
-      form.classList.add("open");
-      form.querySelector("input[type=time]").focus();
-    } else {
-      loading();
-      setTimeout(() => form.submit(), calm ? 0 : 180);
-    }
-  });
-  form.querySelector("[data-work-open]")?.addEventListener("click", () => form.classList.toggle("open"));
+// Activities on the week plan: "+ Add" opens a small form under that day.
+document.querySelectorAll("[data-act-open]").forEach((btn) => {
+  const form = btn.closest(".day-info").nextElementSibling;
+  if (!form || !form.classList.contains("act-form")) return;
+  const toggle = (open) => {
+    form.hidden = !open;
+    btn.setAttribute("aria-expanded", open);
+    btn.textContent = open ? "Close" : "+ Add";
+    if (open) { burst(btn, 8); form.querySelector("input[name=label]").focus({ preventScroll: true }); }
+  };
+  btn.addEventListener("click", () => toggle(form.hidden));
+  form.querySelector("[data-act-cancel]").addEventListener("click", () => toggle(false));
+  // sensible effort for the kind picked
+  const effort = { work: "desk", school: "desk", parttime: "standing", club: "standing", gym: "physical", other: "desk" };
+  form.querySelectorAll("input[name=kind]").forEach((r) => r.addEventListener("change", () => {
+    form.querySelector("select[name=intensity]").value = effort[r.value] || "desk";
+  }));
 });
 
 // ---- motion ----
@@ -160,7 +163,7 @@ addEventListener("pageshow", () => document.querySelector(".loadbar")?.classList
 // Ripple from where you touched a key.
 document.addEventListener("pointerdown", (e) => {
   if (calm) return;
-  const el = e.target.closest(".btn, .chip, nav.bottom a, .menu a, .boost-add, .key, .opt span, .work-tick .tick");
+  const el = e.target.closest(".btn, .chip, nav.bottom a, .menu a, .boost-add, .key, .opt span, .act-kinds span, .act-add");
   if (!el) return;
   const r = el.getBoundingClientRect();
   const size = Math.max(r.width, r.height) * 2.2;
