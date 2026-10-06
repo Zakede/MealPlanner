@@ -68,7 +68,9 @@ def test_gym_today_raises_target_and_replans_rest_of_day(profile, client):
     client.post("/plan/generate")
     with profile.app_context():
         before = query("SELECT kcal_target FROM plan_days WHERE date = ?", (WED.isoformat(),), one=True)["kcal_target"]
-        early = {m["id"] for m in plans.meals_between(WED, WED) if m["slot"] in ("breakfast", "lunch")}
+        early = {m["id"] for m in plans.meals_between(WED, WED) if m["slot"] == "breakfast"}
+        execute(f"UPDATE plan_meals SET status = 'eaten' WHERE id IN ({','.join('?' * len(early))})", tuple(early))
+        lunch = {m["id"] for m in plans.meals_between(WED, WED) if m["slot"] == "lunch"}
         thursday = {m["id"] for m in plans.meals_between(WED + timedelta(days=1), WED + timedelta(days=1))}
     client.post("/today/gym")
     with profile.app_context():
@@ -77,7 +79,8 @@ def test_gym_today_raises_target_and_replans_rest_of_day(profile, client):
         assert after >= before
         assert plans.override(WED)["gym"] == 1
         now_ids = {m["id"] for m in plans.meals_between(WED, WED)}
-        assert early <= now_ids   # meals already past stay put
+        assert early <= now_ids            # eaten meals stay put
+        assert not (lunch & now_ids)       # the clock doesn't matter: uneaten lunch is re-planned too
         assert thursday == {m["id"] for m in plans.meals_between(WED + timedelta(days=1), WED + timedelta(days=1))}
 
 

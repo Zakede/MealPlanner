@@ -1,7 +1,7 @@
 import re
 from datetime import date as date_cls, timedelta
 
-from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, abort, flash, jsonify, redirect, render_template, request, url_for
 
 from .. import plans, store, today
 from ..db import execute
@@ -365,15 +365,29 @@ def buy_amount(item):
     return f"{int(-(-g // step) * step)} g"
 
 
+def shopping_day():
+    """The ?day= being shopped for, if it falls in the selected week from today on."""
+    first = selected_week()
+    try:
+        day = date_cls.fromisoformat(request.values.get("day") or "")
+    except ValueError:
+        return None
+    return day if first <= day <= first + timedelta(days=6) and day >= today() else None
+
+
 @bp.route("/shopping")
 def shopping():
     first = selected_week()
-    items = plans.shopping_list(first)
     last = first + timedelta(days=6)
-    drafts = [m for m in plans.meals_between(first, last) if m["status"] == "draft"]
-    preview = not items and bool(drafts)
-    if preview:
-        items = plans.shopping_preview(first)
+    day = shopping_day()
+    if day:
+        items, preview = plans.day_shopping(first, day), False
+    else:
+        items = plans.shopping_list(first)
+        drafts = [m for m in plans.meals_between(first, last) if m["status"] == "draft"]
+        preview = not items and bool(drafts)
+        if preview:
+            items = plans.shopping_preview(first)
     for i in items:
         i["buy"] = buy_amount(i)
     sections = []
@@ -385,7 +399,9 @@ def shopping():
     skipped_ids = plans.skipped_foods(first)
     skipped = [store.food(fid) for fid in skipped_ids]
     total = sum(i["est_cost"] for i in items if not i["checked"]) + sum(e["est_cost"] for e in extras if not e["checked"])
+    days = [d for d in (first + timedelta(days=i) for i in range(7)) if d >= today()]
     return render_template("plan/shopping.html", sections=sections, extras=extras, skipped=[f for f in skipped if f],
+                           day=day, days=days, today=today(),
                            first=first, preview=preview, has_plan=bool(plans.meals_between(first, last)),
                            is_next=request.args.get("week") == "next", total=total, budget=plans.week_budget(first),
                            count=sum(1 for i in items if not i["checked"]) + sum(1 for e in extras if not e["checked"]))
@@ -432,6 +448,18 @@ def extra_action(extra_id, action):
     elif action == "delete":
         execute("DELETE FROM shopping_extra WHERE id = ?", (extra_id,))
     return redirect(url_for("plan.shopping", week=request.values.get("week")))
+
+
+@bp.route("/shopping/day-bought/<int:food_id>", methods=["POST"])
+def day_bought(food_id):
+    raw = (request.form.get("price") or "").strip()
+    try:
+        grams = max(1, int(float(request.form.get("grams") or 0)))
+        est = int(float(request.form.get("est") or 0))
+    except ValueError:
+        abort(400)
+    plans.buy_for_day(selected_week(), food_id, grams, int(raw) if raw.isdigit() else est)
+    return redirect(url_for("plan.shopping", week=request.values.get("week"), day=request.values.get("day")))
 
 
 @bp.route("/shopping/<int:item_id>/bought", methods=["POST"])

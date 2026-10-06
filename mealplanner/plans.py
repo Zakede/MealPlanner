@@ -216,11 +216,9 @@ def override(on):
 def replan_rest_of_day(on):
     """Plan one day's remaining meals again (after e.g. "gym today"), leaving the other days alone."""
     first, last = budget.week_bounds(on)
-    now = now_minutes() if on == get_today() else -1
-    days = build_days([on])
-    rows = [dict(r) for r in query("SELECT * FROM plan_meals WHERE date = ? AND status IN ('draft', 'approved')",
-                                   (on.isoformat(),))]
-    clear = [r for r in rows if not r["eat_time"] or minutes(r["eat_time"]) >= now]
+    # everything not eaten yet is fair game, whatever the time
+    clear = [dict(r) for r in query("SELECT * FROM plan_meals WHERE date = ? AND status IN ('draft', 'approved')",
+                                    (on.isoformat(),))]
     for r in clear:
         clear += [dict(x) for x in query("SELECT * FROM plan_meals WHERE cook_group = ? AND status IN ('draft', 'approved')",
                                          (r["id"],))]
@@ -299,14 +297,9 @@ def load_context(first, last, exclude=None, skip=None):
 
 
 def past_slots(dates):
-    """Today's slots whose meal time has already gone by are not planned."""
-    today = get_today()
-    if today not in dates:
-        return set()
-    day = build_days([today])[today]
-    now = now_minutes()
-    return {(today, slot) for slot in planner.MEAL_SLOTS + ("snack",)
-            if minutes(planner.eat_time(day, slot)) < now}
+    """Slots never get dropped for the clock: meal times are only suggestions, so planning at 7 am or
+    7 pm still fills the whole day. Kept as a hook so callers stay simple."""
+    return set()
 
 
 def save_meals(meals):
@@ -439,8 +432,10 @@ def approve_week(first):
     return replaced
 
 
-def shopping_needs(first, statuses=("approved",)):
-    """What planned meals still need beyond the pantry: food_id -> {grams, price}. Skipped foods are left out."""
+def shopping_needs(first, statuses=("approved",), only=None):
+    """What planned meals still need beyond the pantry: food_id -> {grams, price}. Skipped foods are left out.
+
+    With `only` (a date), just that day's meals count, after earlier days have used up the pantry."""
     last = first + timedelta(days=6)
     today = get_today()
     sim = planner.PantrySim(pantry_lots())
@@ -453,6 +448,8 @@ def shopping_needs(first, statuses=("approved",)):
             continue
         for ing, grams in planner.scaled_ingredients(m["recipe"], m["cook_portions"]):
             missing = sim.take(ing["id"], grams, m["date"])
+            if only is not None and m["date"] != only:
+                continue
             if missing > 0.5 and ing["id"] not in skipped and ing["name"].lower() not in home:
                 entry = need.setdefault(ing["id"], {"grams": 0.0, "price": ing.get("price_per_100g") or 0,
                                                     "name": ing["name"], "piece_g": ing.get("piece_g"),
@@ -472,6 +469,35 @@ def build_shopping_list(first):
         db.execute("INSERT INTO shopping_list (week_start, food_id, grams, est_cost, checked) VALUES (?, ?, ?, ?, ?)",
                    (first.isoformat(), food_id, round(e["grams"]), round(e["grams"] / 100 * e["price"]),
                     1 if food_id in checked else 0))
+    db.commit()
+
+
+def day_shopping(first, day):
+    """What one day's meals need (draft or approved), for buying a day at a time."""
+    need = shopping_needs(first, statuses=("draft", "approved"), only=day)
+    return [{"food_id": fid, "name": e["name"], "grams": round(e["grams"]), "piece_g": e["piece_g"],
+             "category": e["category"], "est_cost": round(e["grams"] / 100 * e["price"]), "checked": 0}
+            for fid, e in need.items()]
+
+
+def buy_for_day(first, food_id, grams, price):
+    """Put one day's amount in the pantry and take it off the week's list."""
+    db = get_db()
+    today = get_today().isoformat()
+    db.execute("INSERT INTO pantry_items (food_id, quantity, unit, price_paid, location, added_on)"
+               " VALUES (?, ?, 'g', ?, 'fridge', ?)", (food_id, grams, price, today))
+    if price and grams:
+        db.execute("INSERT INTO price_history (food_id, price_per_100g, recorded_on, source) VALUES (?, ?, ?, 'shopping')",
+                   (food_id, round(price / grams * 100, 2), today))
+    row = query("SELECT * FROM shopping_list WHERE week_start = ? AND food_id = ? AND checked = 0",
+                (first.isoformat(), food_id), one=True)
+    if row:
+        left = row["grams"] - grams
+        if left <= 0.5:
+            db.execute("UPDATE shopping_list SET checked = 1 WHERE id = ?", (row["id"],))
+        else:
+            db.execute("UPDATE shopping_list SET grams = ?, est_cost = ? WHERE id = ?",
+                       (round(left), round(row["est_cost"] * left / row["grams"]), row["id"]))
     db.commit()
 
 

@@ -7,6 +7,15 @@
   <a class="chip {{ 'ok' if not is_next }}" href="{{ url_for('plan.shopping') }}">This week</a>
   <a class="chip {{ 'ok' if is_next }}" href="{{ url_for('plan.shopping', week='next') }}">Next week</a>
 </div>
+{% if has_plan and days %}
+<div class="actions shop-days">
+  <span class="muted small">Buy for</span>
+  <a class="chip {{ 'ok' if not day }}" href="{{ url_for('plan.shopping', week=wk) }}">Whole week</a>
+  {% for d in days %}
+  <a class="chip {{ 'ok' if day == d }}" href="{{ url_for('plan.shopping', week=wk, day=d.isoformat()) }}">{{ 'Today' if d == today else ('Tomorrow' if (d - today).days == 1 else d.strftime('%a') ~ ' ' ~ d.day) }}</a>
+  {% endfor %}
+</div>
+{% endif %}
 
 {% if not has_plan %}
 <div class="card empty"><p>Plan the week and this fills in with exactly what to buy, inside your budget.</p>
@@ -15,7 +24,7 @@
 {% set left = budget.remaining - budget.reserved %}
 <div class="plate rise" style="--i:1">
   <div>
-    <span class="lbl">{{ count }} item{{ 's' if count != 1 }} to buy · estimated</span>
+    <span class="lbl">{{ count }} item{{ 's' if count != 1 }} to buy{{ ' for ' ~ ('today' if day == today else day.strftime('%A')) if day }} · estimated</span>
     <span class="num-big" style="font-size:2.4rem">{{ cur }}{{ '{:,}'.format(total|int) }}</span>
   </div>
   <div class="stamp {{ 'over' if total > left }}">Budget<b>{{ 'fits' if total <= left else 'over' }}</b></div>
@@ -43,6 +52,12 @@
     <div><b>{% if i.checked %}<s>{{ i.name }}</s>{% else %}{{ i.name }}{% endif %}</b><small>{{ i.grams|int }} g needed · about {{ cur }}{{ i.est_cost|int }}</small></div>
     <span class="row-actions">
       {% if i.checked %}<span class="tag">in pantry</span>
+      {% elif day %}
+      <form method="post" action="{{ url_for('plan.day_bought', food_id=i.food_id, week=wk, day=day.isoformat()) }}" class="bought-form">
+        <input type="hidden" name="grams" value="{{ i.grams|int }}"><input type="hidden" name="est" value="{{ i.est_cost|int }}">
+        <input name="price" inputmode="numeric" placeholder="{{ cur }}{{ i.est_cost|int }}" aria-label="Price paid for {{ i.name }}">
+        <button class="icon-btn" aria-label="Bought {{ i.name }}">✓</button>
+      </form>
       {% elif not preview and i.id %}
       <form method="post" action="{{ url_for('plan.bought', item_id=i.id, week=wk) }}" class="bought-form">
         <input name="price" inputmode="numeric" placeholder="{{ cur }}{{ i.est_cost|int }}" aria-label="Price paid for {{ i.name }}">
@@ -57,7 +72,7 @@
   {% endfor %}
 </div>
 {% else %}
-<div class="card empty"><p>Nothing to buy. The pantry already covers the plan.</p></div>
+<div class="card empty"><p>Nothing to buy{{ ' for this day' if day }}. The pantry already covers {{ 'it' if day else 'the plan' }}.</p></div>
 {% endfor %}
 {% endif %}
 

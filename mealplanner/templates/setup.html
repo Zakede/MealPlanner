@@ -3,6 +3,7 @@
 {% block content %}
 {% from "_icons.html" import icon %}
 {% from "_prep.html" import prep_picker %}
+{% from "_all_none.html" import all_none %}
 <datalist id="food-suggest">{% for f in food_names %}<option value="{{ f }}">{% endfor %}</datalist>
 <div class="wizard-head" aria-hidden="true">
   <div class="wizard-dots" id="dots"></div>
@@ -56,17 +57,25 @@
       <label class="opt iconed"><input type="radio" name="job" value="{{ k }}" {{ 'checked' if s.job == k }}><span><i class="opt-ico">{{ icon({'desk': 'desk', 'standing': 'standing', 'physical': 'hardhat'}.get(k, 'desk')) }}</i><b>{{ label }}</b><small>{{ sub }}</small></span></label>
       {% endfor %}
     </div>
+    <h2>Everyday walking</h2>
+    <div class="opts">
+      {% for k, (add, label, sub) in walking.items() %}
+      <label class="opt iconed"><input type="radio" name="walking" value="{{ k }}" {{ 'checked' if (s.walking or 'little') == k }}><span><i class="opt-ico">{{ icon('walk') }}</i><b>{{ label }}</b><small>{{ sub }}</small></span></label>
+      {% endfor %}
+    </div>
     <h2>Training days a week</h2>
     <div class="opts seven">
       {% for n in range(8) %}
       <label class="opt"><input type="radio" name="training_days" value="{{ n }}" {{ 'checked' if s.training_days == n }}><span><b>{{ n }}</b></span></label>
       {% endfor %}
     </div>
+    <div class="trains">
     <h2>How hard?</h2>
     <div class="opts">
       {% for k, (per, label, sub) in intensities.items() %}
       <label class="opt iconed"><input type="radio" name="training_intensity" value="{{ k }}" {{ 'checked' if s.training_intensity == k }}><span><i class="opt-ico">{{ icon({'light': 'feather', 'moderate': 'dumbbell', 'hard': 'flame'}.get(k, 'dumbbell')) }}</i><b>{{ label }}</b><small>{{ sub }}</small></span></label>
       {% endfor %}
+    </div>
     </div>
   </section>
 
@@ -91,9 +100,11 @@
       <label>Until<input type="time" name="work_end" value="{{ work.work_end if work else '18:00' }}"></label>
       <label>Commute min<input type="number" name="commute_min" value="{{ work.commute_min if work else 30 }}"></label>
     </div>
+    <div class="trains">
     <h2>Gym days</h2>
     <div class="tag-picks left">
       {% for d in sched %}<input type="checkbox" name="gym_{{ d.weekday }}" id="g{{ d.weekday }}" {{ 'checked' if d.gym }}><label for="g{{ d.weekday }}">{{ weekdays[d.weekday][:3] }}</label>{% endfor %}
+    </div>
     </div>
     </div>
     <h2>Cooking on work days</h2>
@@ -117,8 +128,8 @@
     </div>
     <h2>How you like each protein</h2>
     {% include "_food_rules.html" %}
-    <h2>Skip these</h2>
-    <div class="tag-picks left">
+    <div class="h2-row"><h2>Skip these</h2>{{ all_none('skip-picks') }}</div>
+    <div class="tag-picks left" id="skip-picks">
       {% for k, (label, cats, words, tags) in avoid.items() %}<span class="pick" data-diet-hide="{{ diet_hides(k) }}"><input type="checkbox" name="avoid_{{ k }}" id="a{{ k }}" {{ 'checked' if k in avoid_on }}><label for="a{{ k }}">{{ label }}</label></span>{% endfor %}
     </div>
     <div class="form">
@@ -202,6 +213,13 @@
   };
   form.querySelectorAll('input[name="schedule_mode"]').forEach(r => r.addEventListener("change", modeBoxes));
   modeBoxes();
+  // no training: hide how hard and which gym days
+  const trains = () => {
+    const none = form.querySelector('input[name="training_days"]:checked')?.value === "0";
+    form.querySelectorAll(".trains").forEach(el => el.hidden = none);
+  };
+  form.querySelectorAll('input[name="training_days"]').forEach(r => r.addEventListener("change", trains));
+  trains();
   const dots = document.getElementById("dots"), count = document.getElementById("count");
   steps.forEach((st, k) => {
     const b = document.createElement("button");

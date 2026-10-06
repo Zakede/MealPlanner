@@ -1,5 +1,11 @@
 {# How you like each protein. Needs: rules (dict), rule_groups, rule_options; icon macro imported by the caller. #}
 <div class="rules">
+  <div class="rule-row rule-all">
+    <span class="rule-name">Set all</span>
+    <span class="rule-pick">
+      {% for v, (name, sub) in rule_options.items() %}<button type="button" class="r-{{ v }}" data-rule-all="{{ v }}" title="{{ sub }}">{{ name }}</button>{% endfor %}
+    </span>
+  </div>
   {% for g, label in rule_groups.items() %}
   {% set cur = rules.get(g, 'any') %}
   <div class="rule-row" data-diet-hide="{{ diet_hides(g) }}" {{ 'hidden' if (diet_now is defined and diet_now and diet_now in diet_hides(g).split()) }}>

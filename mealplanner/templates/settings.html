@@ -2,6 +2,7 @@
 {% block title %}Settings · Zettai{% endblock %}
 {% block content %}
 {% from "_prep.html" import prep_picker %}
+{% from "_all_none.html" import all_none %}
 <datalist id="food-suggest">{% for f in food_names %}<option value="{{ f }}">{% endfor %}</datalist>
 
 {% set imp = s.units == 'imperial' %}
@@ -76,9 +77,12 @@
   <label>Work or study
     <select name="job">{% for k, (m, label, sub) in jobs.items() %}<option value="{{ k }}" {{ 'selected' if s.job == k }}>{{ label }} ({{ sub|lower }})</option>{% endfor %}</select>
   </label>
+  <label>Everyday walking
+    <select name="walking">{% for k, (add, label, sub) in walking.items() %}<option value="{{ k }}" {{ 'selected' if (s.walking or 'little') == k }}>{{ label }} ({{ sub }})</option>{% endfor %}</select>
+  </label>
   <div class="row">
-    <label>Training days / week<input name="training_days" type="number" min="0" max="7" value="{{ s.training_days }}"></label>
-    <label>Training intensity
+    <label>Training days / week<input name="training_days" id="training_days" type="number" min="0" max="7" value="{{ s.training_days }}"></label>
+    <label id="intensity_box">Training intensity
       <select name="training_intensity">{% for k, (p, label, sub) in intensities.items() %}<option value="{{ k }}" {{ 'selected' if s.training_intensity == k }}>{{ label }}</option>{% endfor %}</select>
     </label>
   </div>
@@ -116,7 +120,8 @@
   <label>Diet style
     <select name="diet">{% for k, (label, sub) in diets.items() %}<option value="{{ k }}" {{ 'selected' if s.diet == k }}>{{ label }}: {{ sub|lower }}</option>{% endfor %}</select>
   </label>
-  <div class="tag-picks left" style="margin-bottom:12px">
+  <div class="h2-row"><span class="muted small">Things you skip</span>{{ all_none('avoid-picks') }}</div>
+  <div class="tag-picks left" id="avoid-picks" style="margin-bottom:12px">
     {% for k, (label, c, w, t) in avoid_options.items() %}<span class="pick" data-diet-hide="{{ diet_hides(k) }}"><input type="checkbox" name="avoid_{{ k }}" id="av{{ k }}" {{ 'checked' if k in avoid_on }}><label for="av{{ k }}">No {{ label|lower }}</label></span>{% endfor %}
   </div>
   <label>Allergies (comma separated)<input name="allergies" data-chips list="food-suggest" value="{{ s.allergies }}" placeholder="e.g. shrimp, peanut"></label>

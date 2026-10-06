@@ -37,10 +37,19 @@ TRAINING_LEVELS = {
 }
 
 
-def activity_multiplier(job, training_days, intensity):
+# everyday walking on top of work and training: (multiplier added, label, hint)
+WALKING_LEVELS = {
+    "little": (0.0, "Not much", "Under 5,000 steps"),
+    "some": (0.05, "Some", "5,000-10,000 steps"),
+    "lots": (0.1, "Lots", "10,000+, walk everywhere"),
+}
+
+
+def activity_multiplier(job, training_days, intensity, walking="little"):
     base = JOB_LEVELS.get(job, JOB_LEVELS["desk"])[0]
     per_day = TRAINING_LEVELS.get(intensity, TRAINING_LEVELS["moderate"])[0]
-    return round(min(2.0, base + per_day * max(0, min(7, training_days))), 3)
+    walk = WALKING_LEVELS.get(walking, WALKING_LEVELS["little"])[0]
+    return round(min(2.0, base + walk + per_day * max(0, min(7, training_days))), 3)
 
 
 def bmr_mifflin(weight_kg, height_cm, age, sex):

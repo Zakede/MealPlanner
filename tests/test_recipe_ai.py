@@ -115,5 +115,6 @@ def test_own_recipe_gets_named_and_improved(app, client):
     page = client.post("/recipes/import", data={"source": "chicken garlic soy air fry 18 min", "improve": "on"})
     assert b"Garlic air fryer chicken" in page.data and b"What changed" in page.data
     assert "Improve it" in fake.prompts[0] and '"changes"' in fake.prompts[0]
+    assert "Where no amount is given" in fake.prompts[0]
     client.post("/recipes/import", data={"source": "some recipe"})
     assert "Improve it" not in fake.prompts[1] and '"changes"' not in fake.prompts[1]

@@ -9,7 +9,7 @@ from ..db import get_db
 from ..diet import AVOID_OPTIONS, DIETS
 from ..equipment import APPLIANCES
 from ..pricing import COUNTRIES, areas, options_json, shops
-from ..nutrition import JOB_LEVELS, TRAINING_LEVELS
+from ..nutrition import JOB_LEVELS, TRAINING_LEVELS, WALKING_LEVELS
 from ..schedule import WEEKDAYS
 
 bp = Blueprint("setup", __name__, url_prefix="/setup")
@@ -56,6 +56,7 @@ def parse(form):
     v["sex"] = sex
     v["job"] = form.get("job") if form.get("job") in JOB_LEVELS else "desk"
     v["training_intensity"] = form.get("training_intensity") if form.get("training_intensity") in TRAINING_LEVELS else "moderate"
+    v["walking"] = form.get("walking") if form.get("walking") in WALKING_LEVELS else "little"
     v["diet"] = form.get("diet") if form.get("diet") in DIETS else "any"
     v["avoid"] = ",".join(k for k in AVOID_OPTIONS if form.get(f"avoid_{k}"))
     v["allergies"] = (form.get("allergies") or "").strip()[:200]
@@ -135,7 +136,7 @@ def start():
 def render_wizard(s, sched):
     work = next((d for d in sched if d["work_start"]), None)
     return render_template(
-        "setup.html", s=s, jobs=JOB_LEVELS, intensities=TRAINING_LEVELS, diets=DIETS, avoid=AVOID_OPTIONS,
+        "setup.html", s=s, jobs=JOB_LEVELS, intensities=TRAINING_LEVELS, walking=WALKING_LEVELS, diets=DIETS, avoid=AVOID_OPTIONS,
         appliances=APPLIANCES, app_on=store.split_list(s.get("appliances")),
         countries=COUNTRIES, areas=areas(s.get("country") or "JP"), shops=shops(s.get("country") or "JP"),
         country_options=options_json(),

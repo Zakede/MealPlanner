@@ -281,3 +281,23 @@ if (!calm && matchMedia("(hover: hover) and (pointer: fine)").matches) {
   pickers.forEach((p) => p.addEventListener("change", apply));
   apply();
 })();
+
+// "Set all" for the protein rules and All / None for checkbox groups. Hidden (diet-ruled-out) rows are left alone.
+document.addEventListener("click", (e) => {
+  const rule = e.target.closest("[data-rule-all]");
+  if (rule) {
+    rule.closest(".rules").querySelectorAll(".rule-row:not(.rule-all):not([hidden])").forEach((row) => {
+      const r = row.querySelector(`input[value="${rule.dataset.ruleAll}"]`);
+      if (r) { r.checked = true; r.dispatchEvent(new Event("change", { bubbles: true })); }
+    });
+    return;
+  }
+  const all = e.target.closest("[data-check-all]");
+  if (!all) return;
+  const box = document.getElementById(all.dataset.checkAll);
+  box?.querySelectorAll('input[type="checkbox"]').forEach((c) => {
+    if (c.closest("[hidden]")) return;
+    c.checked = all.dataset.on === "1";
+    c.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+});

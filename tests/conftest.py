@@ -22,7 +22,11 @@ def app(tmp_path):
 
 @pytest.fixture
 def client(app):
-    return app.test_client()
+    """A browser that has already picked the first profile (a new one is asked who's eating)."""
+    c = app.test_client()
+    with c.session_transaction() as sess:
+        sess["profile"] = "main"
+    return c
 
 
 @pytest.fixture

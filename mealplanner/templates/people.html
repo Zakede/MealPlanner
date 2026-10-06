@@ -14,12 +14,12 @@
   {% endfor %}
 </div>
 
-<details class="card">
-  <summary><b>Add someone</b></summary>
+<details class="card" {{ 'open' if not chosen }}>
+  <summary><b>{{ "I'm new here" if not chosen else 'Add someone' }}</b></summary>
   <form method="post" action="{{ url_for('people.create') }}" class="form" style="margin-top:12px">
-    <label>Their name<input name="name" maxlength="30" required placeholder="Ken"></label>
-    <button class="btn wide">Make profile</button>
-    <p class="muted small">They get their own plan, pantry, prices and settings. Give them their own password in Settings so only they can open it.</p>
+    <label>{{ 'Your name' if not chosen else 'Their name' }}<input name="name" maxlength="30" required placeholder="Ken"></label>
+    <button class="btn wide">Make my profile</button>
+    <p class="muted small">Everyone gets their own plan, pantry, prices and settings, kept in a separate file. Add a password in Settings so only you can open yours.</p>
   </form>
 </details>
 {% endblock %}

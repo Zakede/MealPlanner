@@ -23,11 +23,8 @@ def use(pid):
 
 @bp.route("/new", methods=["POST"])
 def create():
-    # adding people needs an open (or unlocked) profile, except the very first extra one
+    # anyone past the site password can add themselves; a locked profile has to be unlocked first
     from .auth import lock_enabled, unlocked
-    if session.get("profile") is None and len(profiles.all_profiles()) > 1:
-        flash("Open your own profile first, then add someone.", "error")
-        return redirect(url_for("people.pick"))
     if session.get("profile") and lock_enabled() and not unlocked():
         return redirect(url_for("auth.login"))
     try:
@@ -36,7 +33,8 @@ def create():
         flash(str(e).capitalize() + ".", "error")
         return redirect(url_for("people.pick"))
     session["profile"] = pid
-    flash("New profile made. Hand the phone over for setup.", "ok")
+    session.permanent = True
+    flash("Your own profile is ready. Let's set it up.", "ok")
     return redirect(url_for("setup.start"))
 
 

@@ -5,7 +5,6 @@ from flask import Blueprint, flash, redirect, render_template, request, url_for
 from .. import plans, planner, store, today
 from ..db import query
 from ..nutrition import day_targets
-from ..schedule import minutes
 from .. import tracking
 
 
@@ -59,10 +58,9 @@ def home():
     protein_eaten = round(sum(m["protein"] for m in eaten) + sum(e["protein"] for e in extras)
                           + sum(e["protein"] for e in out))
 
-    now = plans.now_minutes()
+    # the next meal is the first one not eaten yet; meal times are only a suggestion
     upcoming = [m for m in meals if m["status"] not in DONE and m["kind"] != "empty"]
-    next_meal = next((m for m in upcoming if m["eat_time"] and minutes(m["eat_time"]) >= now - 60), None) \
-        or (upcoming[0] if upcoming else None)
+    next_meal = upcoming[0] if upcoming else None
     start_at = planner.start_cooking_at(next_meal, recipes_by_id.get(next_meal["recipe_id"])) \
         if next_meal and next_meal["kind"] == "cook" else None
 

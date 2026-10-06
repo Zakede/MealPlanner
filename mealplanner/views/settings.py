@@ -4,7 +4,7 @@ from .. import store
 from ..db import execute
 from ..diet import AVOID_OPTIONS, DIETS
 from ..pricing import COUNTRIES, areas, options_json, shops
-from ..nutrition import (JOB_LEVELS, MAX_DEFICIT, MAX_PACE_KG_WEEK, TRAINING_LEVELS, activity_multiplier, cm_to_in, in_to_cm,
+from ..nutrition import (JOB_LEVELS, WALKING_LEVELS, MAX_DEFICIT, MAX_PACE_KG_WEEK, TRAINING_LEVELS, activity_multiplier, cm_to_in, in_to_cm,
                          kg_to_lb, lb_to_kg)
 
 bp = Blueprint("settings", __name__, url_prefix="/settings")
@@ -66,6 +66,7 @@ def parse_form(form):
     values["job"] = job if job in JOB_LEVELS else "desk"
     intensity = form.get("training_intensity", "moderate")
     values["training_intensity"] = intensity if intensity in TRAINING_LEVELS else "moderate"
+    values["walking"] = form.get("walking") if form.get("walking") in WALKING_LEVELS else "little"
     try:
         values["training_days"] = max(0, min(7, int(form.get("training_days", 3))))
     except ValueError:
@@ -144,10 +145,11 @@ def edit():
         targets=store.targets(s),
         jobs=JOB_LEVELS,
         intensities=TRAINING_LEVELS,
+        walking=WALKING_LEVELS,
         diets=DIETS,
         avoid_options=AVOID_OPTIONS,
         avoid_on=store.split_list(s.get("avoid")),
-        multiplier=activity_multiplier(s["job"], s["training_days"], s["training_intensity"]),
+        multiplier=activity_multiplier(s["job"], s["training_days"], s["training_intensity"], s.get("walking")),
         themes=THEMES,
         modes=MODES,
         countries=COUNTRIES,

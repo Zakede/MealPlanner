@@ -232,9 +232,10 @@ def test_plan_pages_render(profile, client):
     assert client.post("/plan/approve", follow_redirects=True).status_code == 200
 
 
-def test_evening_plan_does_not_stuff_dinner(profile):
+def test_evening_plan_still_fills_the_whole_day(profile):
+    # meal times are only suggestions: planning late still gives a normal-sized dinner and the rest of the day
     profile.config["NOW"] = "17:50"
     meals = generate(profile)
     today = [m for m in meals if m["date"] == WED]
-    assert [m["slot"] for m in today] == ["dinner"]
-    assert today[0]["kcal"] < 1000
+    assert {"breakfast", "lunch", "dinner"} <= {m["slot"] for m in today}
+    assert next(m for m in today if m["slot"] == "dinner")["kcal"] < 1000

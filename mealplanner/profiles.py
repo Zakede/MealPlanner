@@ -38,6 +38,18 @@ def _save(people):
     _registry_path().write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
 
 
+def main_set_up():
+    """Has someone already set up the first profile? Then a new phone must pick or add a person,
+    instead of landing in (and overwriting) that profile."""
+    from .db import connect
+    conn = connect(current_app.config["DATABASE"])
+    try:
+        row = conn.execute("SELECT setup_done FROM settings WHERE id = 1").fetchone()
+    finally:
+        conn.close()
+    return bool(row and row[0])
+
+
 def find(pid):
     return next((p for p in all_profiles() if p["id"] == pid), None)
 

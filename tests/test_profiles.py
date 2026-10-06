@@ -77,3 +77,20 @@ def test_duplicate_names_rejected(client):
     client.post("/people/main/use")
     resp = client.post("/people/new", data={"name": "ken"}, follow_redirects=True)
     assert b"taken" in resp.data
+
+
+def test_new_phone_never_lands_in_a_set_up_profile(profile):
+    # someone set up the first profile; a second phone must be asked, not dropped into it
+    phone = profile.test_client()
+    resp = phone.get("/")
+    assert resp.status_code == 302 and "/people/" in resp.headers["Location"]
+    assert "I&#39;m new here" in phone.get("/people/").data.decode()
+    resp = phone.post("/people/new", data={"name": "Aiko"})
+    assert "/setup/" in resp.headers["Location"]
+    phone.post("/setup/", data={"profile_name": "Aiko", "sex": "female", "age": "24", "height_cm": "160",
+                                "weight_kg": "55", "goal_weight_kg": "52", "pace_kg_week": "0.3",
+                                "training_days": "2", "weekly_budget_yen": "8000", "eat_out_slots": "1",
+                                "eat_out_budget_yen": "1000", "spice_tolerance": "2"})
+    with profile.app_context():
+        assert store.settings()["age"] == 25 and store.settings()["sex"] == "male"   # first profile untouched
+        assert [p["name"] for p in profiles.all_profiles()] == ["Me", "Aiko"]

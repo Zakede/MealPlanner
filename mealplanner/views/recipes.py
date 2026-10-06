@@ -268,7 +268,9 @@ def ai_import():
     s = store.settings()
     try:
         improve = bool(request.form.get("improve"))
-        data = llm.extract_json(p.complete(recipe_ai.build_import_prompt(text, store.foods(), s, improve)))
+        targets = store.targets(s)
+        kcal_hint = round(targets.kcal * 0.35) if targets else 600
+        data = llm.extract_json(p.complete(recipe_ai.build_import_prompt(text, store.foods(), s, improve, kcal_hint)))
     except llm.LLMError as e:
         flash(f"Couldn't read that recipe: {e}" + ("" if "Try again" in str(e) else ". Try again."), "error")
         return redirect(url_for("recipes.ai_import"))

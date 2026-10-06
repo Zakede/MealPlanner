@@ -66,13 +66,13 @@ def lock_enabled():
 
 
 def require_login():
-    from ..profiles import all_profiles
+    from ..profiles import all_profiles, main_set_up
     if site_hash() and not session.get("site_ok") and request.endpoint not in GATE_OPEN:
         return redirect(url_for("auth.gate", next=request.full_path if request.method == "GET" else None))
     if request.endpoint in OPEN_ENDPOINTS or request.endpoint is None:
         return None
-    # with several people on one app, ask who's eating before showing anyone's data
-    if len(all_profiles()) > 1 and not session.get("profile"):
+    # a phone that hasn't picked a person yet is asked who's eating, so nobody lands in someone else's profile
+    if not session.get("profile") and (len(all_profiles()) > 1 or main_set_up()):
         return redirect(url_for("people.pick"))
     if not lock_enabled() or unlocked():
         return None

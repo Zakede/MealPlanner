@@ -144,7 +144,7 @@ IMPROVE_RULES = """- This is the user's own recipe, maybe rough notes. Give it a
 KEEP_RULES = "- Keep the original idea and flavour. Make it a little lighter if it is very oily or sugary."
 
 
-def build_import_prompt(source_text, foods, s, improve=False):
+def build_import_prompt(source_text, foods, s, improve=False, kcal_hint=600):
     food_names = "\n".join(f"- {f['name']}" for f in foods)
     intro = ("Name and improve the user's own recipe below" if improve
              else "Turn the recipe below into a simple home recipe") + " for one person in Japan."
@@ -154,6 +154,8 @@ Rules:
 - Map every ingredient to the closest item in the list below, spelled exactly as written.
   Leave out salt, pepper, water and anything with no close match.
 - Convert cups, spoons and pieces into grams for the whole recipe.
+- Where no amount is given, choose normal home-cooking grams yourself so one serving is about
+  {kcal_hint} kcal, with plenty of protein. Never leave an ingredient at 0 g.
 {IMPROVE_RULES if improve else KEEP_RULES}
 - Never use these (allergies): {s["allergies"] or "none"}.
 - Steps: short, plain sentences with clear doneness cues.

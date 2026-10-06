@@ -131,3 +131,29 @@ def test_setup_rejects_mismatched_password(client):
     from tests.test_preferences import wizard_form
     resp = client.post("/setup/", data=wizard_form(password="fujiiro1", again="nope"), follow_redirects=True)
     assert b"must match" in resp.data
+
+
+def test_shopping_for_one_day(profile, client):
+    from mealplanner import plans
+    client.post("/plan/generate")
+    page = client.get("/plan/shopping").data.decode()
+    assert "Buy for" in page and "Today" in page and "Tomorrow" in page
+    with profile.app_context():
+        first, _ = plans.current_week()
+        today_items = plans.day_shopping(first, plans.get_today())
+        week = plans.shopping_needs(first, statuses=("draft", "approved"))
+    assert today_items and all(i["food_id"] in week for i in today_items)
+    assert all(i["grams"] <= week[i["food_id"]]["grams"] + 1 for i in today_items)
+    day_page = client.get(f"/plan/shopping?day={plans_today(profile)}").data.decode()
+    assert "for today" in day_page
+    item = today_items[0]
+    client.post(f"/plan/shopping/day-bought/{item['food_id']}?day={plans_today(profile)}",
+                data={"grams": item["grams"], "est": item["est_cost"], "price": ""})
+    with profile.app_context():
+        after = {i["food_id"] for i in plans.day_shopping(first, plans.get_today())}
+        assert item["food_id"] not in after          # bought, so today no longer needs it
+
+
+def plans_today(app):
+    return app.config["TODAY"]
+

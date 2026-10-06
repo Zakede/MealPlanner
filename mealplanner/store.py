@@ -31,7 +31,7 @@ def targets(s=None):
         age=s["age"],
         sex=s["sex"],
         activity=activity_multiplier(s.get("job", "desk"), s.get("training_days", 3),
-                                     s.get("training_intensity", "moderate")),
+                                     s.get("training_intensity", "moderate"), s.get("walking", "little")),
         pace_kg_week=s["pace_kg_week"],
         goal_weight_kg=s["goal_weight_kg"],
         deficit_kcal=s.get("deficit_kcal") if s.get("goal_mode") == "deficit" else None,

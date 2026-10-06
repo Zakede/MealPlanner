@@ -204,3 +204,31 @@ body { padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
 }
 .brand .logo { color: var(--fuji); transition: transform .7s var(--ease), color .4s; }
 .brand:hover .logo { transform: rotate(-8deg) scale(1.08); color: var(--fuji-light); animation: none; }
+
+/* Option spacing. Chips wrapped in .pick spans were inline, so their padding overlapped the next row:
+   let the label be the flex item. Icon tiles get two per row on phones so names aren't cut off. */
+.tag-picks .pick { display: contents; }
+.tag-picks { gap: 8px; row-gap: 10px; margin-bottom: 14px; }
+.opts:has(> .opt.iconed) { grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: 10px; }
+.opt.iconed span { padding: 14px; min-height: 76px; }
+.opt.iconed span b, .opt.iconed span small { min-width: 0; overflow-wrap: break-word; }
+.opt.iconed span small { line-height: 1.35; }
+.step h2 { margin-top: 26px; }
+.rules { display: grid; gap: 14px; margin-bottom: 8px; }
+
+/* lone third tile in a two-column option grid takes the whole row */
+@media (max-width: 640px) {
+  .opts:has(> .opt.iconed) > .opt:last-child:nth-child(odd) { grid-column: 1 / -1; }
+}
+.h2-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; }
+.h2-row h2 { margin-bottom: 10px; }
+.all-none { display: inline-flex; gap: 6px; margin-bottom: 10px; }
+.all-none .btn { padding: 6px 12px; min-height: 0; font-size: .72rem; }
+.rule-all .rule-name { color: var(--muted); text-transform: uppercase; font-size: .75rem; letter-spacing: .06em; }
+.rule-all .rule-pick button { font-family: inherit; font-weight: 600; font-size: .66rem; background: transparent; color: var(--muted); border: 0; cursor: pointer; }
+.rule-all .rule-pick button:hover { color: var(--fuji); background: color-mix(in srgb, var(--fuji) 10%, transparent); }
+.rule-pick button { display: grid; place-items: center; min-height: 38px; padding: 4px 2px; text-align: center;
+  text-transform: uppercase; letter-spacing: .04em; font-size: .66rem; border-right: 1px solid var(--line) !important; }
+.rule-pick button:last-of-type { border-right: 0 !important; }
+
+.rule-all .rule-pick { border-style: dashed; }

@@ -1,0 +1,13 @@
+{
+  "name": "Zettai",
+  "short_name": "Zettai",
+  "description": "High-protein meal plans on a budget, with meal prep and a shopping list.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0B0C0D",
+  "theme_color": "#0B0C0D",
+  "icons": [
+    {"src": "/static/icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "/static/icon-512.png", "sizes": "512x512", "type": "image/png"}
+  ]
+}

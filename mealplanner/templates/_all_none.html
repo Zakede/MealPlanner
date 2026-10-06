@@ -1,0 +1,4 @@
+{# "All" / "None" buttons for a group of checkboxes; skips options hidden by the diet. #}
+{% macro all_none(target) -%}
+<span class="all-none"><button type="button" class="btn secondary small" data-check-all="{{ target }}" data-on="1">All</button><button type="button" class="btn secondary small" data-check-all="{{ target }}" data-on="0">None</button></span>
+{%- endmacro %}
