@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+{% if needs_profile %}
+  <div class="card callout">
+    <h2>Finish your profile</h2>
+    <p>Age and sex are needed to calculate calorie targets. Nothing can be planned until they are set.</p>
+    <a class="btn" href="{{ url_for('settings.edit') }}">Open settings</a>
+  </div>
+{% endif %}
+
+{% if targets %}
+  <div class="card">
+    <h2>Daily targets</h2>
+    <div class="stats">
+      <div><b>{{ targets.kcal }}</b><span>kcal</span></div>
+      <div><b>{{ targets.protein_g }} g</b><span>protein</span></div>
+      <div><b>{{ targets.carbs_g }} g</b><span>carbs</span></div>
+      <div><b>{{ targets.fat_g }} g</b><span>fat</span></div>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}
