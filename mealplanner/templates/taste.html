@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Taste · Meal Planner{% endblock %}
+{% block content %}
+<h1>Your taste</h1>
+{% for h in hints %}<div class="flash flash-warn">{{ h }}</div>{% endfor %}
+
+{% if ranked %}
+<div class="card">
+  <h2>Favourites so far</h2>
+  <table>{% for name, stars, n in ranked[:8] %}<tr><td>{{ name }}</td><td class="num">{{ stars }} ★ <span class="muted small">({{ n }})</span></td></tr>{% endfor %}</table>
+</div>
+{% else %}
+<div class="card empty"><p>Rate meals after you eat them and favourites show up here.</p></div>
+{% endif %}
+
+<form method="post" class="card">
+  <h2>Ingredients</h2>
+  <p class="muted small">Like = more often. Small = fine in small amounts. Dislike = rarely.</p>
+  <ul class="list">
+    {% for f in foods %}{% set cur = scores.get(f.id, '') %}
+    <li class="line">
+      <span>{{ f.name }}</span>
+      <span class="seg-mini">
+        {% for v, label in [('', '–'), ('like', '♥'), ('small', 'a bit'), ('dislike', '✕')] %}
+        <input type="radio" name="f{{ f.id }}" value="{{ v }}" id="f{{ f.id }}{{ v }}" {{ 'checked' if cur == v }}><label for="f{{ f.id }}{{ v }}">{{ label }}</label>
+        {% endfor %}
+      </span>
+    </li>
+    {% endfor %}
+  </ul>
+  <button class="btn wide">Save</button>
+</form>
+{% endblock %}

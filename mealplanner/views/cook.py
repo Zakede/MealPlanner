@@ -1,7 +1,7 @@
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, url_for
 
-from .. import cooking, store
-from ..db import query
+from .. import cooking, store, today
+from ..db import execute, query
 
 bp = Blueprint("cook", __name__, url_prefix="/cook")
 
@@ -87,3 +87,27 @@ def discard(leftover_id):
     cooking.discard_leftover(leftover_id)
     flash("Thrown out.", "ok")
     return redirect(url_for("cook.leftovers"))
+
+
+QUICK_TAGS = ("loved it", "too spicy", "too bland", "too salty", "loved the crunch", "too much effort", "too small")
+
+
+@bp.route("/<int:meal_id>/rate", methods=["GET", "POST"])
+def rate(meal_id):
+    meal = get_meal(meal_id)
+    if not meal["recipe_id"]:
+        return redirect(url_for("main.home"))
+    if request.method == "POST":
+        try:
+            stars = int(request.form.get("stars", ""))
+        except ValueError:
+            stars = 0
+        if not 1 <= stars <= 5:
+            flash("Pick 1 to 5 stars, or tap Skip.", "error")
+        else:
+            tags = ",".join(t for t in QUICK_TAGS if request.form.get(f"tag_{t}"))
+            execute("INSERT INTO ratings (recipe_id, plan_meal_id, stars, tags, rated_on) VALUES (?, ?, ?, ?, ?)",
+                    (meal["recipe_id"], meal_id, stars, tags, today().isoformat()))
+            flash("Thanks. Future plans will use this.", "ok")
+            return redirect(url_for("main.home"))
+    return render_template("rate.html", meal=meal, tags=QUICK_TAGS)

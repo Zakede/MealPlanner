@@ -230,3 +230,19 @@ tr:last-child td { border-bottom: 0; }
 .actions .chip { background: var(--surface); padding: 6px 12px; font-size: .82rem; cursor: pointer; }
 .actions .chip.ok { background: var(--a-tint); }
 .actions .chip.hot { background: var(--b-tint); }
+
+/* rating */
+.stars { display: flex; justify-content: center; gap: 6px; flex-direction: row-reverse; margin: 6px 0 16px; }
+.stars input, .tag-picks input, .seg-mini input { position: absolute; opacity: 0; pointer-events: none; }
+.stars label { font-size: 2.4rem; line-height: 1; color: var(--line); cursor: pointer; }
+.stars input:checked ~ label, .stars label:hover, .stars label:hover ~ label { color: var(--b); }
+.stars input:focus-visible + label { outline: 3px solid var(--b); border-radius: 6px; }
+.tag-picks { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 8px; }
+.tag-picks label { padding: 8px 14px; border-radius: 99px; background: var(--bg); font-weight: 700; font-size: .88rem; cursor: pointer; }
+.tag-picks input:checked + label { background: var(--a); color: var(--on-a); }
+.tag-picks input:focus-visible + label, .seg-mini input:focus-visible + label { outline: 3px solid var(--b); }
+.seg-mini { display: inline-flex; background: var(--bg); border-radius: 99px; padding: 3px; flex: none; }
+.seg-mini label { padding: 4px 10px; border-radius: 99px; font-size: .8rem; font-weight: 700; color: var(--soft); cursor: pointer; }
+.seg-mini input:checked + label { background: var(--surface); color: var(--ink); }
+.seg-mini input[value="like"]:checked + label { background: var(--a); color: var(--on-a); }
+.seg-mini input[value="dislike"]:checked + label { background: var(--b); color: var(--on-b); }

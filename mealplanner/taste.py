@@ -62,4 +62,25 @@ def recipe_score(recipe, prefs):
         score -= 0.05
     if "loved it" in feedback:
         score += 0.05
+    if "loved the crunch" in feedback:
+        score += 0.04
+    if "too much effort" in feedback and recipe.get("active_min", 0) > 15:
+        score -= 0.08
     return max(0.0, min(1.0, score))
+
+
+def insights(ratings, recipes_by_id, spice_tolerance):
+    """Plain-language hints from rating history. ratings: list of dicts with recipe_id, stars, tags."""
+    out = []
+    spicy = [r for r in ratings if "too spicy" in r["tags"]]
+    if len(spicy) >= 2:
+        levels = [recipes_by_id[r["recipe_id"]]["spice_level"] for r in spicy if r["recipe_id"] in recipes_by_id]
+        if levels and min(levels) <= spice_tolerance:
+            out.append(f"You marked {len(spicy)} meals too spicy. Try spice tolerance {max(1, min(levels) - 1)}.")
+    bland = [r for r in ratings if "too bland" in r["tags"]]
+    if len(bland) >= 2:
+        out.append(f"{len(bland)} meals felt bland, so flavour boosters get added to those.")
+    small = [r for r in ratings if "too small" in r["tags"]]
+    if len(small) >= 3:
+        out.append("Portions often feel small. Bulk meals with more vegetables or raise snack calories.")
+    return out
