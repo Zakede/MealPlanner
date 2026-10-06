@@ -1,8 +1,11 @@
+import re
+
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 
 from .. import plans, store
 from ..db import get_db
 from ..diet import AVOID_OPTIONS, DIETS
+from ..equipment import APPLIANCES
 from ..nutrition import JOB_LEVELS, TRAINING_LEVELS
 from ..schedule import WEEKDAYS
 
@@ -51,6 +54,10 @@ def parse(form):
     v["flavor_likes"] = ",".join(f for f in FLAVORS if form.get(f"flavor_{f}"))
     v["cuisines_liked"] = ",".join(c for c in CUISINES if form.get(f"cuisine_{c}"))
     v["setup_done"] = 1
+    v["schedule_mode"] = "flexible" if form.get("schedule_mode") == "flexible" else "fixed"
+    v["prep_days"] = int(_num(form, "prep_days", 0, 4)) if form.get("prep_days") else 2
+    v["appliances"] = ",".join(k for k in APPLIANCES if form.get(f"app_{k}"))
+    v["about_me"] = (form.get("about_me") or "").strip()[:1000]
 
     work_days = {d for d in range(7) if form.get(f"work_{d}")}
     gym_days = {d for d in range(7) if form.get(f"gym_{d}")}
@@ -93,10 +100,111 @@ def start():
 
     from ..db import query
     sched = [dict(r) for r in query("SELECT * FROM schedule_days ORDER BY weekday")]
+    return render_wizard(s, sched)
+
+
+def render_wizard(s, sched):
     work = next((d for d in sched if d["work_start"]), None)
     return render_template(
         "setup.html", s=s, jobs=JOB_LEVELS, intensities=TRAINING_LEVELS, diets=DIETS, avoid=AVOID_OPTIONS,
+        appliances=APPLIANCES, app_on=store.split_list(s.get("appliances")),
         flavors=FLAVORS, cuisines=CUISINES, paces=PACES, efforts=EFFORTS, weekdays=WEEKDAYS, sched=sched,
         work=work, avoid_on=store.split_list(s.get("avoid")), flavor_on=store.split_list(s["flavor_likes"]),
         cuisine_on=store.split_list(s["cuisines_liked"]),
     )
+
+
+def describe_prompt(text):
+    return f"""Someone described themselves for a meal-planning app. Pull out ONLY what they actually said.
+Leave out any key they didn't mention. Reply with ONE JSON object and nothing else.
+
+Their words:
+\"\"\"
+{text[:1500]}
+\"\"\"
+
+Keys you may use (exact values where listed):
+age (number), sex ("male"/"female"), height_cm, weight_kg, goal_weight_kg,
+pace ("gentle"/"steady"/"fast"), job ({"/".join(JOB_LEVELS)}), training_days (0-7),
+training_intensity ({"/".join(TRAINING_LEVELS)}), schedule_mode ("fixed" or "flexible" if hours change),
+work_days (list of 0-6, Monday=0), work_start ("HH:MM"), work_end ("HH:MM"), commute_min,
+gym_days (list of 0-6), prep_days (0-4, big cooking sessions a week),
+diet ({"/".join(DIETS)}), avoid (list from {", ".join(AVOID_OPTIONS)}),
+allergies (text), dislikes (text), spice_tolerance (0-5),
+flavors (list from {", ".join(FLAVORS)}), cuisines (list from {", ".join(CUISINES)}),
+appliances (list from {", ".join(APPLIANCES)}), weekly_budget_yen, eat_out_slots
+"""
+
+
+def _clamp(value, lo, hi, cast=float):
+    try:
+        return max(lo, min(hi, cast(float(value))))
+    except (TypeError, ValueError):
+        return None
+
+
+def apply_description(data, s, sched):
+    """Merge a model's reading of the description into the wizard's values. Every value is checked."""
+    s = dict(s)
+    sched = [dict(d) for d in sched]
+    if not isinstance(data, dict):
+        return s, sched
+    for key, lo, hi, cast in (("age", 16, 100, int), ("height_cm", 120, 230, float), ("weight_kg", 35, 300, float),
+                              ("goal_weight_kg", 35, 300, float), ("training_days", 0, 7, int),
+                              ("spice_tolerance", 0, 5, int), ("weekly_budget_yen", 0, 200000, int),
+                              ("eat_out_slots", 0, 14, int), ("prep_days", 0, 4, int)):
+        if key in data and _clamp(data[key], lo, hi, cast) is not None:
+            s[key] = _clamp(data[key], lo, hi, cast)
+    choices = {"sex": ("male", "female"), "job": JOB_LEVELS, "training_intensity": TRAINING_LEVELS,
+               "diet": DIETS, "schedule_mode": ("fixed", "flexible")}
+    for key, allowed in choices.items():
+        if data.get(key) in allowed:
+            s[key] = data[key]
+    pace = {"gentle": 0.25, "steady": 0.5, "fast": 0.75}.get(data.get("pace"))
+    if pace:
+        s["pace_kg_week"] = pace
+    for key, field, allowed in (("avoid", "avoid", AVOID_OPTIONS), ("flavors", "flavor_likes", FLAVORS),
+                                ("cuisines", "cuisines_liked", CUISINES), ("appliances", "appliances", APPLIANCES)):
+        if isinstance(data.get(key), list):
+            s[field] = ",".join(x for x in allowed if x in data[key])
+    for key in ("allergies", "dislikes"):
+        if isinstance(data.get(key), str):
+            s[key] = data[key][:200]
+
+    def days(key):
+        return {int(x) for x in data.get(key, []) if str(x).isdigit() and 0 <= int(x) <= 6}             if isinstance(data.get(key), list) else None
+    work, gym = days("work_days"), days("gym_days")
+    hhmm = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
+    start = data.get("work_start") if hhmm.match(str(data.get("work_start", ""))) else None
+    end = data.get("work_end") if hhmm.match(str(data.get("work_end", ""))) else None
+    for d in sched:
+        if work is not None:
+            d["work_start"] = (start or d["work_start"] or "09:00") if d["weekday"] in work else None
+            d["work_end"] = (end or d["work_end"] or "18:00") if d["weekday"] in work else None
+        if gym is not None:
+            d["gym"] = 1 if d["weekday"] in gym else 0
+        if "commute_min" in data and d["work_start"] and _clamp(data["commute_min"], 0, 240, int) is not None:
+            d["commute_min"] = _clamp(data["commute_min"], 0, 240, int)
+    return s, sched
+
+
+@bp.route("/describe", methods=["POST"])
+def describe():
+    from .. import llm
+    from ..db import query
+    text = (request.form.get("about_me") or "").strip()
+    s = store.settings()
+    s["about_me"] = text[:1000]
+    sched = [dict(r) for r in query("SELECT * FROM schedule_days ORDER BY weekday")]
+    p = llm.provider()
+    if not text:
+        flash("Write a few lines about yourself first.", "error")
+    elif p is None:
+        flash("No model is set up, so fill the steps in by hand.", "error")
+    else:
+        try:
+            s, sched = apply_description(llm.extract_json(p.complete(describe_prompt(text))), s, sched)
+            flash("Filled in from your description. Check each step, nothing is saved yet.", "ok")
+        except llm.LLMError as e:
+            flash(f"Couldn't read that: {e}. Fill the steps in by hand.", "error")
+    return render_wizard(s, sched)

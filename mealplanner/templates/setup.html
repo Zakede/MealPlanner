@@ -6,6 +6,12 @@
 
   <section class="step" data-title="About you">
     <h1>About you</h1>
+    <details class="describe" {{ 'open' if s.about_me }}>
+      <summary>Rather just describe yourself?</summary>
+      <label for="about_me" class="muted small">Write it how you'd say it. The app fills in the answers below for you to check.</label>
+      <textarea id="about_me" name="about_me" placeholder="23, male, 190 cm, 85 kg, want 78. Work shifts that change every week, gym 3-4 times whenever I can. Hate fish, love garlic and spicy stuff. Only have a microwave and one stove.">{{ s.about_me }}</textarea>
+      <button class="btn secondary small" formaction="{{ url_for('setup.describe') }}" formnovalidate>Fill it in for me</button>
+    </details>
     <p class="muted">Used only to work out your calories and protein.</p>
     <div class="opts two">
       {% for v, label in [('male', 'Male'), ('female', 'Female')] %}
@@ -52,6 +58,16 @@
 
   <section class="step" data-title="Your week">
     <h1>Your week</h1>
+    <div class="opts two">
+      <label class="opt"><input type="radio" name="schedule_mode" value="fixed" {{ 'checked' if s.schedule_mode != 'flexible' }}><span><b>Regular hours</b><small>Same days most weeks</small></span></label>
+      <label class="opt"><input type="radio" name="schedule_mode" value="flexible" {{ 'checked' if s.schedule_mode == 'flexible' }}><span><b>It changes</b><small>Shifts, random days</small></span></label>
+    </div>
+    <div class="flex-only">
+      <h2>Big cook sessions a week</h2>
+      <div class="opts seven">{% for n in range(5) %}<label class="opt"><input type="radio" name="prep_days" value="{{ n }}" {{ 'checked' if s.prep_days == n }}><span><b>{{ n }}</b></span></label>{% endfor %}</div>
+      <p class="muted small">The app spreads them out and fills the other days with leftovers and quick meals. On Home, tap "Free to cook" or "Gym today" whenever it happens.</p>
+    </div>
+    <div class="fixed-only">
     <h2>Days you work</h2>
     <div class="tag-picks left">
       {% for d in sched %}<input type="checkbox" name="work_{{ d.weekday }}" id="w{{ d.weekday }}" {{ 'checked' if d.work_start }}><label for="w{{ d.weekday }}">{{ weekdays[d.weekday][:3] }}</label>{% endfor %}
@@ -64,6 +80,7 @@
     <h2>Gym days</h2>
     <div class="tag-picks left">
       {% for d in sched %}<input type="checkbox" name="gym_{{ d.weekday }}" id="g{{ d.weekday }}" {{ 'checked' if d.gym }}><label for="g{{ d.weekday }}">{{ weekdays[d.weekday][:3] }}</label>{% endfor %}
+    </div>
     </div>
     <h2>Cooking on work days</h2>
     <div class="opts">{% for k, label in efforts %}<label class="opt"><input type="radio" name="weekday_effort" value="{{ k }}" {{ 'checked' if k == (work.effort if work else 'low') }}><span><b>{{ label }}</b></span></label>{% endfor %}</div>
@@ -103,6 +120,14 @@
     </div>
   </section>
 
+  <section class="step" data-title="Your kitchen">
+    <h1>Your kitchen</h1>
+    <p class="muted">Recipes that need something you don't have are skipped.</p>
+    <div class="tag-picks left">
+      {% for k, label in appliances.items() %}<input type="checkbox" name="app_{{ k }}" id="ap{{ k }}" {{ 'checked' if k in app_on }}><label for="ap{{ k }}">{{ label }}</label>{% endfor %}
+    </div>
+  </section>
+
   <section class="step" data-title="Money">
     <h1>Money</h1>
     <div class="form">
@@ -130,6 +155,13 @@
   const back = document.getElementById("back"), next = document.getElementById("next"), prog = document.getElementById("prog");
   let i = 0;
   form.classList.add("js");
+  const modeBoxes = () => {
+    const flex = form.querySelector('input[name="schedule_mode"]:checked')?.value === "flexible";
+    form.querySelectorAll(".flex-only").forEach(el => el.hidden = !flex);
+    form.querySelectorAll(".fixed-only").forEach(el => el.hidden = flex);
+  };
+  form.querySelectorAll('input[name="schedule_mode"]').forEach(r => r.addEventListener("change", modeBoxes));
+  modeBoxes();
   function show() {
     steps.forEach((s, k) => s.classList.toggle("on", k === i));
     back.style.visibility = i === 0 ? "hidden" : "visible";

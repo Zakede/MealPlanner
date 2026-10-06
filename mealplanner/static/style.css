@@ -352,3 +352,6 @@ details.meal[open] .chev { transform: rotate(180deg); }
 .opt input:focus-visible + span { outline: 3px solid var(--b); outline-offset: 2px; }
 .tag-picks.left { justify-content: flex-start; }
 .tag-picks label { background: var(--surface); }
+.describe { background: var(--surface); border-radius: var(--r-sm); padding: 12px 14px; margin: 0 0 14px; }
+.describe summary { font-weight: 700; color: var(--b-ink); }
+.describe textarea { min-height: 110px; margin: 8px 0; }

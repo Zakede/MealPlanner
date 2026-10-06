@@ -117,6 +117,83 @@ def boosters():
     return out
 
 
+def weekday_schedule():
+    return {r["weekday"]: dict(r) for r in query("SELECT * FROM schedule_days")}
+
+
+def build_days(dates, s=None):
+    """Schedule for each date: weekday pattern, flexible-mode defaults, then one-off overrides."""
+    s = s or store.settings()
+    sched = weekday_schedule()
+    overrides = {_d(r["date"]): dict(r) for r in query("SELECT * FROM day_overrides")}
+    flexible = s.get("schedule_mode") == "flexible"
+    prep = set()
+    if flexible and dates:
+        count = max(0, min(len(dates), s.get("prep_days") or 0))
+        # spread prep days out so each batch covers the days after it
+        prep = {dates[round(i * len(dates) / count)] for i in range(count)} if count else set()
+    days = {}
+    for d in dates:
+        day = dict(sched[d.weekday()])
+        if flexible:
+            day.update(work_start=None, work_end=None, commute_min=0, gym=0, away=0,
+                       effort="full" if d in prep else "low")
+        o = overrides.get(d)
+        if o:
+            for key in ("effort", "gym", "away"):
+                if o[key] is not None:
+                    day[key] = o[key]
+        day["prep"] = d in prep or (o is not None and o["effort"] == "full")
+        days[d] = day
+    return days
+
+
+def set_override(on, **values):
+    """values: effort / gym / away. None clears that part."""
+    row = query("SELECT * FROM day_overrides WHERE date = ?", (on.isoformat(),), one=True)
+    current = dict(row) if row else {"effort": None, "gym": None, "away": None}
+    current.update(values)
+    db = get_db()
+    if all(current[k] is None for k in ("effort", "gym", "away")):
+        db.execute("DELETE FROM day_overrides WHERE date = ?", (on.isoformat(),))
+    else:
+        db.execute("INSERT INTO day_overrides (date, effort, gym, away) VALUES (?, ?, ?, ?)"
+                   " ON CONFLICT(date) DO UPDATE SET effort = excluded.effort, gym = excluded.gym, away = excluded.away",
+                   (on.isoformat(), current["effort"], current["gym"], current["away"]))
+    db.commit()
+
+
+def override(on):
+    row = query("SELECT * FROM day_overrides WHERE date = ?", (on.isoformat(),), one=True)
+    return dict(row) if row else {}
+
+
+def replan_rest_of_day(on):
+    """Plan today's remaining meals again (after e.g. "gym today"), leaving the other days alone."""
+    first, last = budget.week_bounds(on)
+    now = now_minutes()
+    days = build_days([on])
+    rows = [dict(r) for r in query("SELECT * FROM plan_meals WHERE date = ? AND status IN ('draft', 'approved')",
+                                   (on.isoformat(),))]
+    clear = [r for r in rows if not r["eat_time"] or minutes(r["eat_time"]) >= now]
+    for r in clear:
+        clear += [dict(x) for x in query("SELECT * FROM plan_meals WHERE cook_group = ? AND status IN ('draft', 'approved')",
+                                         (r["id"],))]
+    ids = {r["id"] for r in clear}
+    if ids:
+        get_db().execute(f"DELETE FROM plan_meals WHERE id IN ({','.join('?' * len(ids))})", tuple(ids))
+        get_db().commit()
+    dates = [d for d in budget.week_dates(first) if d >= on]
+    filled = {(m["date"], m["slot"]) for m in meals_between(first, last)}
+    cleared = {(_d(r["date"]), r["slot"]) for r in clear}
+    all_slots = {(d, slot) for d in dates for slot in planner.MEAL_SLOTS + ("snack",)}
+    skip = (all_slots - filled - cleared) | past_slots(dates)
+    ctx = load_context(first, last, skip=skip)
+    save_meals(planner.plan(ctx, dates))
+    save_plan_days([on])
+    return len(ids)
+
+
 def load_context(first, last, exclude=None, skip=None):
     s = store.settings()
     today = get_today()
@@ -147,7 +224,9 @@ def load_context(first, last, exclude=None, skip=None):
         "settings": s,
         "targets": store.targets(s),
         "recipes": recipes,
-        "schedule": {r["weekday"]: dict(r) for r in query("SELECT * FROM schedule_days")},
+        "schedule": weekday_schedule(),
+        "days": build_days([first + timedelta(days=i) for i in range((last - first).days + 1)], s),
+        "appliances": set(store.split_list(s.get("appliances"))),
         "pantry_lots": pantry_lots(),
         "fridge_leftovers": leftovers,
         "history": history,
@@ -176,8 +255,7 @@ def past_slots(dates):
     today = get_today()
     if today not in dates:
         return set()
-    sched = {r["weekday"]: dict(r) for r in query("SELECT * FROM schedule_days")}
-    day = sched[today.weekday()]
+    day = build_days([today])[today]
     now = now_minutes()
     return {(today, slot) for slot in planner.MEAL_SLOTS + ("snack",)
             if minutes(planner.eat_time(day, slot)) < now}
@@ -205,11 +283,11 @@ def save_meals(meals):
 def save_plan_days(dates):
     s = store.settings()
     targets = store.targets(s)
-    sched = {r["weekday"]: dict(r) for r in query("SELECT * FROM schedule_days")}
-    gym_days = sum(1 for d in sched.values() if d["gym"])
+    days = build_days(sorted(dates), s)
+    gym_days = sum(1 for d in weekday_schedule().values() if d["gym"]) if s.get("schedule_mode") != "flexible"         else max(1, s.get("training_days") or 0)
     db = get_db()
     for d in dates:
-        day = sched[d.weekday()]
+        day = days[d]
         kcal, protein = day_targets(targets, day["gym"], gym_days, s["sex"])
         db.execute("""INSERT INTO plan_days (date, kcal_target, protein_target, gym, effort, away)
                       VALUES (?, ?, ?, ?, ?, ?)

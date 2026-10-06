@@ -37,6 +37,11 @@ MIGRATIONS = [
     ("settings", "setup_done", "INTEGER NOT NULL DEFAULT 0"),
     ("foods", "category", "TEXT NOT NULL DEFAULT ''"),
     ("recipes", "builtin", "INTEGER NOT NULL DEFAULT 0"),
+    ("recipes", "equipment", "TEXT NOT NULL DEFAULT ''"),
+    ("settings", "schedule_mode", "TEXT NOT NULL DEFAULT 'fixed'"),
+    ("settings", "prep_days", "INTEGER NOT NULL DEFAULT 2"),
+    ("settings", "appliances", "TEXT NOT NULL DEFAULT 'stove,microwave,rice_cooker,freezer'"),
+    ("settings", "about_me", "TEXT NOT NULL DEFAULT ''"),
 ]
 
 

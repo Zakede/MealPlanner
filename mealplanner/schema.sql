@@ -28,7 +28,11 @@ CREATE TABLE IF NOT EXISTS settings (
     training_intensity TEXT    NOT NULL DEFAULT 'moderate',
     diet               TEXT    NOT NULL DEFAULT 'any',
     avoid              TEXT    NOT NULL DEFAULT '',
-    setup_done         INTEGER NOT NULL DEFAULT 0
+    setup_done         INTEGER NOT NULL DEFAULT 0,
+    schedule_mode      TEXT    NOT NULL DEFAULT 'fixed',
+    prep_days          INTEGER NOT NULL DEFAULT 2,
+    appliances         TEXT    NOT NULL DEFAULT 'stove,microwave,rice_cooker,freezer',
+    about_me           TEXT    NOT NULL DEFAULT ''
 );
 
 -- One row per weekday (0 = Monday).
@@ -95,7 +99,8 @@ CREATE TABLE IF NOT EXISTS recipes (
     batch_ok     INTEGER NOT NULL DEFAULT 0,
     portable     INTEGER NOT NULL DEFAULT 0,
     fridge_days  INTEGER NOT NULL DEFAULT 3,
-    builtin      INTEGER NOT NULL DEFAULT 0
+    builtin      INTEGER NOT NULL DEFAULT 0,
+    equipment    TEXT    NOT NULL DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS recipe_ingredients (
@@ -243,4 +248,12 @@ CREATE TABLE IF NOT EXISTS workouts (
 CREATE TABLE IF NOT EXISTS recipe_prefs (
     recipe_id INTEGER PRIMARY KEY REFERENCES recipes(id) ON DELETE CASCADE,
     status    TEXT    NOT NULL CHECK (status IN ('favorite', 'never', 'try'))
+);
+
+-- One-off changes for a single date: "free today", "gym today", "away today".
+CREATE TABLE IF NOT EXISTS day_overrides (
+    date   TEXT PRIMARY KEY,
+    effort TEXT CHECK (effort IN ('none', 'low', 'full')),
+    gym    INTEGER,
+    away   INTEGER
 );

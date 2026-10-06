@@ -13,6 +13,7 @@ from datetime import timedelta
 
 from . import diet
 from .costing import MACROS
+from .equipment import can_make
 from .nutrition import day_targets
 from .schedule import busy, hhmm, minutes, slot_limits
 
@@ -101,6 +102,8 @@ def blocked(recipe, ctx):
     if ctx.get("prefs", {}).get(recipe["id"]) == "never":
         return True
     if not diet.allowed(recipe, ctx.get("diet", "any"), ctx.get("avoid", [])):
+        return True
+    if "appliances" in ctx and not can_make(recipe, ctx["appliances"]):
         return True
     allergies = ctx["allergies"]
     names = [ing["name"].lower() for ing in recipe["ingredients"]]
@@ -202,6 +205,11 @@ def pick_booster(recipe, ctx, kcal_room):
     return max(options, key=lambda b: (len(likes & set(b["tag_list"])), -b["kcal"]))
 
 
+def day_info(ctx, d):
+    """The schedule for one date: per-date overrides first, then the weekday pattern."""
+    return ctx.get("days", {}).get(d) or ctx["schedule"][d.weekday()]
+
+
 def eat_time(day, slot):
     if slot == "snack":
         return hhmm((minutes(day["lunch_time"]) + minutes(day["dinner_time"])) // 2)
@@ -215,7 +223,7 @@ def reserve_eat_out(ctx, dates, taken):
         return []
     candidates = []
     for d in dates:
-        day = ctx["schedule"][d.weekday()]
+        day = day_info(ctx, d)
         lim = slot_limits(day)
         for slot in ("dinner", "lunch"):
             if (d, slot) in taken or (d, slot) in ctx["skip"]:
@@ -272,7 +280,7 @@ def plan(ctx, dates):
     next_key = 0
 
     for d in dates:
-        day = ctx["schedule"][d.weekday()]
+        day = day_info(ctx, d)
         limits = slot_limits(day)
         kcal_target, protein_target = day_targets(ctx["targets"], day["gym"], gym_days, s["sex"])
         snack_kcal = min(s["snack_kcal"], kcal_target // 5)
@@ -416,7 +424,7 @@ def batch_slots(ctx, dates, cook_date, recipe, taken, reserved, chosen):
     for d in dates:
         if d <= cook_date or (d - cook_date).days > recipe["fridge_days"]:
             continue
-        day = ctx["schedule"][d.weekday()]
+        day = day_info(ctx, d)
         lim = slot_limits(day)
         for slot in ("lunch", "dinner"):
             if (d, slot) in taken or (d, slot) in reserved or (d, slot) in ctx["skip"]:

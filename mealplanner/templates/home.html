@@ -60,6 +60,14 @@
     {% endif %}
   </div>
 
+  <div class="actions today-switch">
+    {% for key, label, active in [('free', 'Free to cook', today_override.get('effort') == 'full'),
+                                  ('gym', 'Gym today', day.gym),
+                                  ('away', 'Out all day', day.away)] %}
+    <form method="post" action="{{ url_for('main.today_toggle', what=key) }}"><button class="chip {{ 'ok' if active }}" aria-pressed="{{ 'true' if active else 'false' }}">{{ label }}</button></form>
+    {% endfor %}
+  </div>
+
   {% if meals %}
   <div class="day-list">
     {% for m in meals %}

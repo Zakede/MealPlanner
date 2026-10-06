@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from flask import Blueprint, redirect, render_template, url_for
+from flask import Blueprint, flash, redirect, render_template, request, url_for
 
 from .. import plans, planner, store, today
 from ..db import query
@@ -72,7 +72,37 @@ def home():
         budget=plans.week_budget(first),
         reminders=reminders(on, recipes_by_id),
         has_plan=plans.week_has_plan(first),
+        today_override=plans.override(on),
+        day=plans.build_days([on])[on],
     )
+
+
+@bp.route("/today/<what>", methods=["POST"])
+def today_toggle(what):
+    """Quick switches for days that don't follow the usual pattern."""
+    on = today()
+    current = plans.override(on)
+    if what == "free":
+        turning_on = current.get("effort") != "full"
+        plans.set_override(on, effort="full" if turning_on else None)
+        first, _ = plans.current_week(on)
+        if plans.week_has_plan(first):
+            plans.generate_week(first)
+        flash("Prep day: today gets a bigger cook and the leftovers cover the next few days." if turning_on
+              else "Back to a normal day.", "ok")
+    elif what == "gym":
+        turning_on = not current.get("gym")
+        plans.set_override(on, gym=1 if turning_on else None)
+        plans.replan_rest_of_day(on)
+        flash("Gym day: a bit more food and protein for the rest of today." if turning_on
+              else "Gym day removed.", "ok")
+    elif what == "away":
+        turning_on = not current.get("away")
+        plans.set_override(on, away=1 if turning_on else None)
+        plans.replan_rest_of_day(on)
+        flash("Out today: lunch and dinner are things you can take or buy." if turning_on
+              else "Home again.", "ok")
+    return redirect(request.referrer or url_for("main.home"))
 
 
 @bp.route("/more")
