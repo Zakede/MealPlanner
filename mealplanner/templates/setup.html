@@ -1,12 +1,17 @@
 {% extends "base.html" %}
-{% block title %}Setup · Meal Planner<datalist id="food-suggest">{% for f in food_names %}<option value="{{ f }}">{% endfor %}</datalist>
-{% endblock %}
+{% block title %}Setup · Meal Planner{% endblock %}
 {% block content %}
+{% from "_icons.html" import icon %}
+<datalist id="food-suggest">{% for f in food_names %}<option value="{{ f }}">{% endfor %}</datalist>
+<div class="wizard-head" aria-hidden="true">
+  <div class="wizard-dots" id="dots"></div>
+  <span class="wizard-count" id="count"></span>
+</div>
 <div class="wizard-progress" aria-hidden="true"><i id="prog"></i></div>
 <form method="post" id="wizard" class="wizard">
 
   <section class="step" data-title="About you">
-    <h1>About you</h1>
+    <div class="step-head"><span class="step-badge">{{ icon('user') }}</span><h1>About you</h1></div>
     <details class="describe" {{ 'open' if s.about_me }}>
       <summary>Rather just describe yourself?</summary>
       <label for="about_me" class="muted small">Write it how you'd say it. The app fills in the answers below for you to check.</label>
@@ -16,7 +21,7 @@
     <p class="muted">Used only to work out your calories and protein.</p>
     <div class="opts two">
       {% for v, label in [('male', 'Male'), ('female', 'Female')] %}
-      <label class="opt"><input type="radio" name="sex" value="{{ v }}" {{ 'checked' if s.sex == v }} required><span><b>{{ label }}</b></span></label>
+      <label class="opt iconed"><input type="radio" name="sex" value="{{ v }}" {{ 'checked' if s.sex == v }} required><span><i class="opt-ico">{{ icon(v) }}</i><b>{{ label }}</b></span></label>
       {% endfor %}
     </div>
     <div class="row form">
@@ -30,17 +35,17 @@
     <h2>How fast?</h2>
     <div class="opts">
       {% for v, label, sub in paces %}
-      <label class="opt"><input type="radio" name="pace_kg_week" value="{{ v }}" {{ 'checked' if (s.pace_kg_week - v)|abs < 0.01 }}><span><b>{{ label }}</b><small>{{ sub }}</small></span></label>
+      <label class="opt iconed"><input type="radio" name="pace_kg_week" value="{{ v }}" {{ 'checked' if (s.pace_kg_week - v)|abs < 0.01 }}><span><i class="opt-ico">{{ icon(['snail', 'walk', 'run'][loop.index0] if loop.index0 < 3 else 'run') }}</i><b>{{ label }}</b><small>{{ sub }}</small></span></label>
       {% endfor %}
     </div>
   </section>
 
   <section class="step" data-title="Your days">
-    <h1>Your days</h1>
+    <div class="step-head"><span class="step-badge">{{ icon('desk') }}</span><h1>Your days</h1></div>
     <h2>Work or study</h2>
     <div class="opts">
       {% for k, (mult, label, sub) in jobs.items() %}
-      <label class="opt"><input type="radio" name="job" value="{{ k }}" {{ 'checked' if s.job == k }}><span><b>{{ label }}</b><small>{{ sub }}</small></span></label>
+      <label class="opt iconed"><input type="radio" name="job" value="{{ k }}" {{ 'checked' if s.job == k }}><span><i class="opt-ico">{{ icon({'desk': 'desk', 'standing': 'standing', 'physical': 'hardhat'}.get(k, 'desk')) }}</i><b>{{ label }}</b><small>{{ sub }}</small></span></label>
       {% endfor %}
     </div>
     <h2>Training days a week</h2>
@@ -52,16 +57,16 @@
     <h2>How hard?</h2>
     <div class="opts">
       {% for k, (per, label, sub) in intensities.items() %}
-      <label class="opt"><input type="radio" name="training_intensity" value="{{ k }}" {{ 'checked' if s.training_intensity == k }}><span><b>{{ label }}</b><small>{{ sub }}</small></span></label>
+      <label class="opt iconed"><input type="radio" name="training_intensity" value="{{ k }}" {{ 'checked' if s.training_intensity == k }}><span><i class="opt-ico">{{ icon({'light': 'feather', 'moderate': 'dumbbell', 'hard': 'flame'}.get(k, 'dumbbell')) }}</i><b>{{ label }}</b><small>{{ sub }}</small></span></label>
       {% endfor %}
     </div>
   </section>
 
   <section class="step" data-title="Your week">
-    <h1>Your week</h1>
+    <div class="step-head"><span class="step-badge">{{ icon('calendar') }}</span><h1>Your week</h1></div>
     <div class="opts two">
-      <label class="opt"><input type="radio" name="schedule_mode" value="fixed" {{ 'checked' if s.schedule_mode != 'flexible' }}><span><b>Regular hours</b><small>Same days most weeks</small></span></label>
-      <label class="opt"><input type="radio" name="schedule_mode" value="flexible" {{ 'checked' if s.schedule_mode == 'flexible' }}><span><b>It changes</b><small>Shifts, random days</small></span></label>
+      <label class="opt iconed"><input type="radio" name="schedule_mode" value="fixed" {{ 'checked' if s.schedule_mode != 'flexible' }}><span><i class="opt-ico">{{ icon('calendar') }}</i><b>Regular hours</b><small>Same days most weeks</small></span></label>
+      <label class="opt iconed"><input type="radio" name="schedule_mode" value="flexible" {{ 'checked' if s.schedule_mode == 'flexible' }}><span><i class="opt-ico">{{ icon('shuffle') }}</i><b>It changes</b><small>Shifts, random days</small></span></label>
     </div>
     <div class="flex-only">
       <h2>Big cook sessions a week</h2>
@@ -84,16 +89,16 @@
     </div>
     </div>
     <h2>Cooking on work days</h2>
-    <div class="opts">{% for k, label in efforts %}<label class="opt"><input type="radio" name="weekday_effort" value="{{ k }}" {{ 'checked' if k == (work.effort if work else 'low') }}><span><b>{{ label }}</b></span></label>{% endfor %}</div>
+    <div class="opts">{% for k, label in efforts %}<label class="opt iconed"><input type="radio" name="weekday_effort" value="{{ k }}" {{ 'checked' if k == (work.effort if work else 'low') }}><span><i class="opt-ico">{{ icon({'none': 'nocook', 'low': 'bolt', 'full': 'chef'}[k]) }}</i><b>{{ label }}</b></span></label>{% endfor %}</div>
     <h2>Cooking on days off</h2>
-    <div class="opts">{% for k, label in efforts %}<label class="opt"><input type="radio" name="weekend_effort" value="{{ k }}" {{ 'checked' if k == 'full' }}><span><b>{{ label }}</b></span></label>{% endfor %}</div>
+    <div class="opts">{% for k, label in efforts %}<label class="opt iconed"><input type="radio" name="weekend_effort" value="{{ k }}" {{ 'checked' if k == 'full' }}><span><i class="opt-ico">{{ icon({'none': 'nocook', 'low': 'bolt', 'full': 'chef'}[k]) }}</i><b>{{ label }}</b></span></label>{% endfor %}</div>
   </section>
 
   <section class="step" data-title="What you eat">
-    <h1>What you eat</h1>
+    <div class="step-head"><span class="step-badge">{{ icon('plate') }}</span><h1>What you eat</h1></div>
     <div class="opts">
       {% for k, (label, sub) in diets.items() %}
-      <label class="opt"><input type="radio" name="diet" value="{{ k }}" {{ 'checked' if s.diet == k }}><span><b>{{ label }}</b><small>{{ sub }}</small></span></label>
+      <label class="opt iconed"><input type="radio" name="diet" value="{{ k }}" {{ 'checked' if s.diet == k }}><span><i class="opt-ico">{{ icon({'any': 'plate', 'high_meat': 'drumstick', 'pescatarian': 'fish', 'vegetarian': 'egg', 'vegan': 'sprout', 'keto': 'avocado'}.get(k, 'plate')) }}</i><b>{{ label }}</b><small>{{ sub }}</small></span></label>
       {% endfor %}
     </div>
     <h2>Skip these</h2>
@@ -109,7 +114,7 @@
   </section>
 
   <section class="step" data-title="What tastes good">
-    <h1>What tastes good to you?</h1>
+    <div class="step-head"><span class="step-badge">{{ icon('chili') }}</span><h1>What tastes good to you?</h1></div>
     <p class="muted">Pick a few. Meals lean this way and learn from your ratings.</p>
     <h2>Flavours</h2>
     <div class="tag-picks left">
@@ -122,15 +127,15 @@
   </section>
 
   <section class="step" data-title="Your kitchen">
-    <h1>Your kitchen</h1>
+    <div class="step-head"><span class="step-badge">{{ icon('stove') }}</span><h1>Your kitchen</h1></div>
     <p class="muted">Recipes that need something you don't have are skipped.</p>
-    <div class="tag-picks left">
-      {% for k, label in appliances.items() %}<input type="checkbox" name="app_{{ k }}" id="ap{{ k }}" {{ 'checked' if k in app_on }}><label for="ap{{ k }}">{{ label }}</label>{% endfor %}
+    <div class="tag-picks left kitchen">
+      {% for k, label in appliances.items() %}<input type="checkbox" name="app_{{ k }}" id="ap{{ k }}" {{ 'checked' if k in app_on }}><label for="ap{{ k }}" class="with-ico">{{ icon({'stove': 'stove', 'microwave': 'microwave', 'rice_cooker': 'ricecooker', 'toaster_oven': 'toaster', 'oven': 'oven', 'air_fryer': 'airfryer', 'blender': 'blender', 'freezer': 'snow'}.get(k, 'pantry')) }}<span>{{ label }}</span></label>{% endfor %}
     </div>
   </section>
 
   <section class="step" data-title="Money">
-    <h1>Money</h1>
+    <div class="step-head"><span class="step-badge">{{ icon('wallet') }}</span><h1>Money</h1></div>
     <div class="form">
       <div class="row">
         <label>Country<select name="country" data-country-switch>{% for k, c in countries.items() %}<option value="{{ k }}" {{ 'selected' if s.country == k }}>{{ c[0] }}</option>{% endfor %}</select></label>
@@ -147,7 +152,7 @@
   </section>
 
   <section class="step" data-title="You">
-    <h1>Your profile</h1>
+    <div class="step-head"><span class="step-badge">{{ icon('lock') }}</span><h1>Your profile</h1></div>
     <div class="form">
       <label>Your name<input name="profile_name" maxlength="30" value="{{ me.name }}" required></label>
       <label>Password (optional)<input name="password" type="password" autocomplete="new-password" minlength="6" placeholder="Leave empty for no lock"></label>
@@ -179,8 +184,17 @@
   };
   form.querySelectorAll('input[name="schedule_mode"]').forEach(r => r.addEventListener("change", modeBoxes));
   modeBoxes();
+  const dots = document.getElementById("dots"), count = document.getElementById("count");
+  steps.forEach((st, k) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "wdot"; b.title = st.dataset.title; b.setAttribute("aria-label", st.dataset.title);
+    b.addEventListener("click", () => { if (k < i) { i = k; show(); } });
+    dots.append(b);
+  });
   function show() {
     steps.forEach((s, k) => s.classList.toggle("on", k === i));
+    [...dots.children].forEach((d, k) => { d.classList.toggle("done", k < i); d.classList.toggle("here", k === i); });
+    count.textContent = (i + 1) + " / " + steps.length + " · " + steps[i].dataset.title;
     back.style.visibility = i === 0 ? "hidden" : "visible";
     next.hidden = i === steps.length - 1;
     prog.style.width = ((i + 1) / steps.length * 100) + "%";

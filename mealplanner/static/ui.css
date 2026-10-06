@@ -1,0 +1,123 @@
+/* Pickers, the theme switch and the setup screens. */
+
+.ico { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+/* ---- theme switch (same idea as the portfolio: moon / sun, circle wipe) ---- */
+.theme-btn { border: 0; cursor: pointer; color: var(--ink); }
+.theme-btn .ico { width: 20px; height: 20px; transition: transform .7s var(--ease); }
+.theme-btn:hover .ico { transform: rotate(180deg); }
+.theme-btn .i-sun { display: none; }
+.theme-btn[data-now="light"] .i-sun { display: block; }
+.theme-btn[data-now="light"] .i-moon { display: none; }
+html.theming::view-transition-old(root), html.theming::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+
+/* ---- pickers ---- */
+.fsel { position: relative; width: 100%; margin-top: 4px; }
+.fsel-native { position: absolute !important; inset: 0; width: 100% !important; height: 100% !important; opacity: 0;
+  pointer-events: none; margin: 0 !important; }
+.fsel-btn { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; padding: 10px 12px 10px 14px; cursor: pointer;
+  border: 2px solid var(--line); border-radius: 12px; background: var(--key); color: var(--ink); text-align: left;
+  font: 700 1rem var(--text); box-shadow: var(--press); transition: border-color .2s, box-shadow .2s, transform .18s var(--spring); }
+.fsel-btn:hover { border-color: color-mix(in srgb, var(--fuji) 50%, transparent); }
+.fsel-btn:focus-visible { outline: none; border-color: var(--fuji); box-shadow: var(--press), 0 0 0 4px color-mix(in srgb, var(--fuji) 25%, transparent); }
+.fsel-btn:active { transform: translateY(2px); box-shadow: var(--press-down); }
+.fsel-btn.empty .fsel-val { color: var(--muted); }
+.fsel-btn.bad { border-color: var(--bad); }
+.fsel-val { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fsel-chev { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 9px; flex: none;
+  background: var(--fuji); color: var(--on-fuji); transition: transform .35s var(--spring); }
+.fsel-chev svg, .fsel-opt i svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.8; stroke-linecap: round; stroke-linejoin: round; }
+.fsel.open .fsel-chev { transform: rotate(180deg); }
+.fsel.open .fsel-btn { border-color: var(--fuji); }
+
+.fsel-panel { position: absolute; z-index: 40; left: 0; right: 0; top: calc(100% + 8px); min-width: 200px; max-height: 320px;
+  display: flex; flex-direction: column; overflow: hidden; border-radius: 16px; padding: 6px;
+  background: color-mix(in srgb, var(--panel) 94%, var(--fuji) 6%);
+  border: 1.5px solid color-mix(in srgb, var(--fuji) 40%, transparent);
+  box-shadow: 0 24px 60px -18px rgba(0, 0, 0, .7), 0 0 0 1px rgba(255, 255, 255, .03), 0 10px 40px -20px var(--fuji);
+  transform-origin: top center; }
+.fsel-panel[hidden] { display: none; }
+.fsel-panel.up { top: auto; bottom: calc(100% + 8px); transform-origin: bottom center; }
+.fsel-list { overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--fuji) transparent; }
+.fsel-search { margin: 0 0 6px; padding: 10px 12px; border-radius: 10px; font-size: .95rem; }
+.fsel-group { padding: 10px 10px 4px; font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--fuji); }
+.fsel-opt { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 8px 10px 8px 12px; border-radius: 10px;
+  cursor: pointer; font-weight: 700; font-size: .95rem; color: var(--ink); transition: background .15s, color .15s, padding .2s var(--ease); }
+.fsel-opt span { flex: 1; }
+.fsel-opt i { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; opacity: 0; transform: scale(.4);
+  background: var(--on-fuji); color: var(--fuji); transition: opacity .2s, transform .3s var(--spring); }
+.fsel-opt.act { background: color-mix(in srgb, var(--fuji) 16%, transparent); padding-left: 16px; }
+.fsel-opt.on { background: var(--fuji); color: var(--on-fuji); }
+.fsel-opt.on i { opacity: 1; transform: scale(1); }
+.fsel-opt.off { opacity: .4; cursor: default; }
+.fsel-opt[hidden], .fsel-group[hidden] { display: none; }
+
+/* phones: a sheet from the bottom */
+.fsel-shade { position: fixed; inset: 0; z-index: 39; background: rgba(0, 0, 0, .55); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+.fsel-panel.sheet { position: fixed; left: 8px; right: 8px; top: auto; bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  max-height: 70vh; border-radius: 22px; padding: 8px 8px 10px; transform-origin: bottom center; }
+.fsel-panel.sheet::before { content: ""; width: 42px; height: 5px; border-radius: 9px; background: var(--line); margin: 2px auto 6px; flex: none; }
+.fsel-title { padding: 4px 12px 10px; font: 400 1.05rem var(--head); }
+.fsel-panel.sheet .fsel-opt { min-height: 52px; font-size: 1rem; }
+body.fsel-lock { overflow: hidden; }
+
+/* layouts that held a bare select */
+.act-row .fsel { flex: 1 1 9em; width: auto; margin: 0; }
+.swap-pair .fsel { margin: 4px 0 0; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .fsel-panel:not([hidden]) { animation: fsel-in .26s var(--spring) both; }
+  .fsel-panel.sheet:not([hidden]) { animation: sheet-in .38s var(--ease) both; }
+  .fsel-panel.closing { animation: fsel-out .16s ease-in both !important; }
+  .fsel-panel .fsel-opt { animation: opt-in .3s var(--ease) both; animation-delay: calc(var(--n) * 18ms); }
+  .fsel-shade { animation: fade-in .25s ease both; }
+  .fsel-btn.picked .fsel-val { animation: val-in .4s var(--spring) both; }
+  .fsel-opt.on i svg { animation: draw .35s var(--ease) both .05s; stroke-dasharray: 24; }
+  @keyframes fsel-in { from { opacity: 0; transform: translateY(-6px) scale(.96); } }
+  @keyframes sheet-in { from { transform: translateY(105%); } }
+  @keyframes fsel-out { to { opacity: 0; transform: translateY(-4px) scale(.97); } }
+  @keyframes opt-in { from { opacity: 0; transform: translateX(-8px); } }
+  @keyframes val-in { from { opacity: 0; transform: translateY(8px); } }
+  @keyframes draw { from { stroke-dashoffset: 24; } }
+}
+
+/* ---- setup ---- */
+.wizard-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 8px; }
+.wizard-dots { display: flex; gap: 6px; }
+.wdot { width: 10px; height: 10px; padding: 0; border: 0; border-radius: 99px; background: var(--key); cursor: default;
+  transition: width .4s var(--spring), background .3s; }
+.wdot.done { background: var(--fuji-light); cursor: pointer; }
+.wdot.here { width: 28px; background: var(--fuji); }
+.wizard-count { font-size: .75rem; font-weight: 700; color: var(--muted); white-space: nowrap; }
+
+.step-head { display: flex; align-items: center; gap: 14px; margin: 10px 0 14px; }
+.step-head h1 { margin: 0; }
+.step-badge { display: grid; place-items: center; width: 56px; height: 56px; flex: none; border-radius: 18px;
+  background: linear-gradient(140deg, var(--fuji-light), var(--fuji) 55%, var(--fuji-deep)); color: var(--on-fuji);
+  box-shadow: 0 10px 30px -12px var(--fuji), inset 0 -4px 0 rgba(0, 0, 0, .15); }
+.step-badge .ico { width: 28px; height: 28px; stroke-width: 2.1; }
+
+.opt.iconed span { grid-template-columns: 44px 1fr; grid-template-rows: auto auto; column-gap: 12px; align-items: center; align-content: center; }
+.opt.iconed span b { grid-column: 2; align-self: end; }
+.opt.iconed span small { grid-column: 2; align-self: start; }
+.opt.iconed span:not(:has(small)) b { grid-row: 1 / span 2; align-self: center; }
+.opt-ico { grid-row: 1 / span 2; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px;
+  background: var(--panel); color: var(--fuji); transition: background .25s, color .25s, transform .35s var(--spring); }
+.opt.iconed input:checked + span .opt-ico { background: var(--on-fuji); color: var(--fuji); transform: rotate(-8deg) scale(1.05); }
+.opts.two .opt.iconed span { grid-template-columns: 40px 1fr; }
+
+.tag-picks.kitchen { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.tag-picks label.with-ico { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding: 14px; min-height: 96px; }
+.tag-picks label.with-ico .ico { width: 30px; height: 30px; color: var(--fuji); transition: transform .35s var(--spring), color .2s; }
+.tag-picks input:checked + label.with-ico .ico { color: var(--on-fuji-light); transform: scale(1.12) rotate(-6deg); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .wizard.js .step.on .step-badge { animation: badge-in .6s var(--spring) both; }
+  .wizard.js .step.on .opt, .wizard.js .step.on .tag-picks > label { animation: rise .45s var(--ease) both; }
+  .wizard.js .step.on .opt:nth-child(2), .wizard.js .step.on .tag-picks > label:nth-of-type(2) { animation-delay: .04s; }
+  .wizard.js .step.on .opt:nth-child(3), .wizard.js .step.on .tag-picks > label:nth-of-type(3) { animation-delay: .08s; }
+  .wizard.js .step.on .opt:nth-child(4), .wizard.js .step.on .tag-picks > label:nth-of-type(4) { animation-delay: .12s; }
+  .wizard.js .step.on .opt:nth-child(n+5), .wizard.js .step.on .tag-picks > label:nth-of-type(n+5) { animation-delay: .16s; }
+  @keyframes badge-in { from { opacity: 0; transform: scale(.5) rotate(-25deg); } }
+  .opt.iconed input:checked + span .opt-ico .ico { animation: wiggle .5s var(--spring); }
+}

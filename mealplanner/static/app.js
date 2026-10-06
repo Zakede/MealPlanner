@@ -118,7 +118,9 @@ document.querySelectorAll("[data-act-open]").forEach((btn) => {
   // sensible effort for the kind picked
   const effort = { work: "desk", school: "desk", parttime: "standing", club: "standing", gym: "physical", other: "desk" };
   form.querySelectorAll("input[name=kind]").forEach((r) => r.addEventListener("change", () => {
-    form.querySelector("select[name=intensity]").value = effort[r.value] || "desk";
+    const sel = form.querySelector("select[name=intensity]");
+    sel.value = effort[r.value] || "desk";
+    sel.dispatchEvent(new Event("change"));
   }));
 });
 

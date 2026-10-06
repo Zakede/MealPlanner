@@ -3,11 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="{{ '#efe7d4' if ui.mode == 'light' else '#1c1b20' }}">
+  <meta name="theme-color" content="{{ '#f8f5fd' if ui.mode == 'light' else '#000000' }}">
   <title>{% block title %}Meal Planner{% endblock %}</title>
   <link rel="preload" href="{{ url_for('static', filename='fonts/dela-gothic-one-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='motion.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='ui.css') }}">
   <script>if (!matchMedia("(prefers-reduced-motion: reduce)").matches) document.documentElement.classList.add("motion");</script>
 </head>
 <body>
@@ -18,6 +19,7 @@
   <header class="top">
     <a class="brand" href="{{ url_for('main.home') }}">食券<small>Meal Planner</small></a>
     <span style="display:flex;gap:8px">
+      <button type="button" class="top-link theme-btn" data-theme-toggle data-url="{{ url_for('settings.mode') }}" aria-label="Switch light or dark">{{ icon('moon', 'i-moon') }}{{ icon('sun', 'i-sun') }}</button>
       {% if request.endpoint not in ('auth.login', 'people.pick') %}
       <a class="top-link avatar-link" href="{{ url_for('people.pick') }}" aria-label="Profile: {{ me.name }}">{{ me.name[:1]|upper }}</a>
       <a class="top-link" href="{{ url_for('settings.edit') }}" aria-label="Settings">{{ icon('settings') }}</a>
@@ -33,7 +35,7 @@
     <p class="safety-note">Plans are suggestions. Check allergens and food safety yourself.</p>
   </main>
 
-  {% if request.endpoint not in ('auth.login', 'people.pick') %}
+  {% if request.endpoint not in ('auth.login', 'people.pick') and request.blueprint != 'setup' %}
   <nav class="bottom" aria-label="Main">
     {% for endpoint, jp, label in [('main.home', '今日', 'Today'), ('plan.week', '献立', 'Plan'),
                                    ('plan.shopping', '買物', 'Shop'), ('pantry.index', '冷蔵庫', 'Pantry'),
@@ -45,6 +47,7 @@
   </nav>
   {% endif %}
   <script src="{{ url_for('static', filename='app.js') }}"></script>
+  <script src="{{ url_for('static', filename='ui.js') }}"></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

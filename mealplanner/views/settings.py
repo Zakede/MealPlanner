@@ -158,3 +158,13 @@ def edit():
         has_key=bool(s.get("gemini_key")),
         max_pace=MAX_PACE_KG_WEEK,
     )
+
+
+@bp.route("/mode", methods=["POST"])
+def mode():
+    """The moon/sun button in the header: remember dark or light."""
+    value = request.form.get("mode")
+    if value not in MODES:
+        return {"error": "unknown mode"}, 400
+    execute("UPDATE settings SET mode = ? WHERE id = 1", (value,))
+    return {"mode": value}
