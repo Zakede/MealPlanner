@@ -42,6 +42,10 @@ MIGRATIONS = [
     ("settings", "prep_days", "INTEGER NOT NULL DEFAULT 2"),
     ("settings", "appliances", "TEXT NOT NULL DEFAULT 'stove,microwave,rice_cooker,freezer'"),
     ("settings", "about_me", "TEXT NOT NULL DEFAULT ''"),
+    ("settings", "gemini_key", "TEXT NOT NULL DEFAULT ''"),
+    ("settings", "country", "TEXT NOT NULL DEFAULT 'JP'"),
+    ("settings", "area", "TEXT NOT NULL DEFAULT 'city'"),
+    ("settings", "shop", "TEXT NOT NULL DEFAULT 'supermarket'"),
 ]
 
 

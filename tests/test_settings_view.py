@@ -54,17 +54,17 @@ def test_theme_change_applies_without_replanning(profile, client):
     with profile.app_context():
         plans.generate_week(date(2026, 10, 5))
         ids = {m["id"] for m in plans.meals_between(date(2026, 10, 7), date(2026, 10, 11))}
-    client.post("/settings/", data=form(theme="apothecary", mode="dark"))
+    client.post("/settings/", data=form(mode="light"))
     page = client.get("/").data
-    assert b'data-palette="apothecary"' in page and b'data-mode="dark"' in page
+    assert b'data-mode="light"' in page
     with profile.app_context():
         assert {m["id"] for m in plans.meals_between(date(2026, 10, 7), date(2026, 10, 11))} == ids
 
 
-def test_home_shows_widgets_and_day_list(profile, client):
+def test_home_shows_plate_ticket_and_meal_keys(profile, client):
     client.post("/plan/generate")
     page = client.get("/").data
-    assert b'class="tiles"' in page and b'class="day-list"' in page
+    assert b'class="plate' in page and b'class="ticket"' in page and b'class="keys' in page
 
 
 def test_more_page(client):

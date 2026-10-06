@@ -42,7 +42,7 @@ def create_app(config=None):
         s = settings()
         return {
             "has_endpoint": lambda name: name in app.view_functions,
-            "ui": {"theme": s.get("theme") or "apothecary", "mode": s.get("mode") or "dark"},
+            "ui": {"theme": "shokken", "mode": s.get("mode") or "dark"},
         }
 
     return app

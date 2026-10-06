@@ -2,9 +2,9 @@
 {% block title %}Plan · Meal Planner{% endblock %}
 {% block content %}
 {% set wk = 'next' if is_next else None %}
-<div class="line" style="margin-bottom:12px">
-  <h1 style="margin:0">{{ 'Next week' if is_next else 'This week' }}</h1>
-  {% if has_plan %}<span class="status-pill {{ 'approved' if not drafts }}">{{ 'Draft' if drafts else 'Approved' }}</span>{% endif %}
+<div class="line rise" style="margin-bottom:12px">
+  <h1 style="margin:0">{{ 'Next week' if is_next else 'This week' }}<span class="jp">献立</span></h1>
+  {% if has_plan %}<span class="status-pill {{ 'approved' if not drafts }}">{{ '下書き Draft' if drafts else '承認 Approved' }}</span>{% endif %}
 </div>
 <div class="actions">
   <a class="chip {{ 'ok' if not is_next }}" href="{{ url_for('plan.week') }}">This week</a>
@@ -12,20 +12,24 @@
 </div>
 
 {% if needs_profile %}
-  <div class="card empty"><p>Finish setup first so the planner knows your targets.</p><a class="btn" href="{{ url_for('setup.start') if has_endpoint('setup.start') else url_for('settings.edit') }}">Set up</a></div>
+  <div class="card empty"><p>Finish setup first so the planner knows your targets.</p><a class="btn" href="{{ url_for('setup.start') }}">Set up</a></div>
 {% elif not has_plan %}
+  <div class="plate"><div><span class="lbl">Budget left</span><span class="num-big">¥{{ '{:,}'.format(budget.remaining) }}</span></div></div>
   <div class="card empty">
     <h2>Nothing planned yet</h2>
-    <p>Uses your pantry first and stays under ¥{{ '{:,}'.format(budget.remaining) }}.</p>
-    <form method="post" action="{{ url_for('plan.generate', week=wk) }}"><button class="btn">Plan my week</button></form>
+    <p>Uses your pantry first and stays inside your budget.</p>
+    <form method="post" action="{{ url_for('plan.generate', week=wk) }}"><button class="btn">献立 Plan my week</button></form>
   </div>
 {% else %}
-  {% include "_budget.html" %}
+  <div class="plate rise" style="--i:1">
+    <div><span class="lbl">Still to buy</span><span class="num-big" style="font-size:2rem">¥{{ '{:,}'.format(budget.planned) }}</span></div>
+    <a class="stamp {{ 'over' if budget.over }}" href="{{ url_for('extras.spending') }}">残高<b>¥{{ '{:,}'.format(budget.remaining) }}</b></a>
+  </div>
 
   <div class="actions">
-    {% if drafts %}<form method="post" action="{{ url_for('plan.approve', week=wk) }}"><button class="btn">Approve{% if flagged %} + swap {{ flagged }}{% endif %}</button></form>
-    {% else %}<a class="btn" href="{{ url_for('plan.shopping', week=wk) }}">Shopping list</a>{% endif %}
-    {% if flagged %}<form method="post" action="{{ url_for('plan.replace', week=wk) }}"><button class="btn secondary">Swap {{ flagged }} now</button></form>{% endif %}
+    {% if drafts %}<form method="post" action="{{ url_for('plan.approve', week=wk) }}"><button class="btn">承認 Approve{% if flagged %} + swap {{ flagged }}{% endif %}</button></form>
+    {% else %}<a class="btn sky" href="{{ url_for('plan.shopping', week=wk) }}">買い物 Shopping list</a>{% endif %}
+    {% if flagged %}<form method="post" action="{{ url_for('plan.replace', week=wk) }}"><button class="btn butter">Swap {{ flagged }} now</button></form>{% endif %}
     <form method="post" action="{{ url_for('plan.generate', week=wk) }}"><button class="btn secondary" data-confirm="Re-plan the rest of the week?">Re-plan</button></form>
   </div>
   {% if not is_next %}
@@ -41,51 +45,21 @@
       <h2>{{ 'Today' if d.date == today else d.date.strftime('%a') ~ ' ' ~ d.date.day }}</h2>
       {% if d.target %}<span class="{{ 'warn' if d.protein < d.target.protein_target * 0.9 }}">{{ d.kcal }} kcal · {{ d.protein }} g</span>{% endif %}
     </div>
-    <div class="day-list">
+    <div class="keys three">
       {% for m in d.meals %}
-      {% set done = m.status in ('cooked', 'eaten', 'eaten_out', 'skipped') %}
-      {% set editable = m.status in ('draft', 'approved') %}
-      <details class="meal {{ 'done' if done }} {{ 'flagged' if m.replace_flag }}">
-        <summary class="lp">
-          <span class="t">{{ m.eat_time or m.slot }}</span>
-          <div>
-            <b>{{ m.title }}</b>
-            <small>{{ m.kcal|round|int }} kcal · {{ m.protein|round|int }} g
-              {%- if m.kind == 'leftover' %}<span class="tag">leftover</span>{% endif %}
-              {%- if m.kind in ('eat_out', 'konbini') %}<span class="tag out">{{ 'eat out' if m.kind == 'eat_out' else 'konbini' }}</span>{% endif %}
-              {%- if m.cook_portions > m.portion and m.kind == 'cook' %}<span class="tag">batch ×{{ '%g'|format(m.cook_portions / m.portion) }}</span>{% endif %}
-              {%- if m.replace_flag %}<span class="tag out">swapping</span>{% endif %}
-              {%- if m.status == 'skipped' %}<span class="tag out">skipped</span>{% endif %}
-            </small>
-          </div>
-          <span class="dot chev" aria-hidden="true">{{ '✓' if done and m.status != 'skipped' else '⌄' }}</span>
-        </summary>
-        <div class="meal-body">
-          {% if m.recipe and m.kind != 'leftover' %}
-            {% set f = (m.cook_portions or m.portion) / m.recipe.servings %}
-            <ul class="ing-mini">
-              {% for i in m.recipe.ingredients %}<li><span>{{ i.name }}</span><b>{{ (i.grams * f)|round|int }} g</b></li>{% endfor %}
-            </ul>
-            <p class="muted small">{{ m.recipe.active_min }} min active{% if m.recipe.total_min > m.recipe.active_min %}, {{ m.recipe.total_min }} total{% endif %}{% if m.note %} · {{ m.note }}{% endif %}</p>
-          {% elif m.note %}<p class="muted small">{{ m.note }}</p>{% endif %}
-          <div class="actions" style="margin:8px 0 0">
-            {% if m.recipe_id and editable %}<a class="btn small" href="{{ url_for('cook.cook', meal_id=m.id) }}">{{ 'Cook' if m.kind == 'cook' else 'Eat' }}</a>{% endif %}
-            {% if editable and m.kind != 'eat_out' %}
-            <form method="post" action="{{ url_for('plan.toggle_replace', meal_id=m.id, week=wk) }}">
-              <input type="hidden" name="flag" value="{{ 0 if m.replace_flag else 1 }}">
-              <button class="btn small secondary">{{ 'Keep it' if m.replace_flag else 'Swap' }}</button>
-            </form>
-            <form method="post" action="{{ url_for('cook.skip', meal_id=m.id) }}"><button class="btn small secondary">Remove</button></form>
-            {% endif %}
-            {% if m.recipe_id %}
-            <form method="post" action="{{ url_for('recipes.pref', recipe_id=m.recipe_id) }}"><input type="hidden" name="status" value="favorite"><button class="btn small secondary" aria-label="Favourite">♥</button></form>
-            <form method="post" action="{{ url_for('recipes.pref', recipe_id=m.recipe_id) }}"><input type="hidden" name="status" value="never"><button class="btn small secondary" data-confirm="Never plan {{ m.title }} again?">Not for me</button></form>
-            {% endif %}
-          </div>
-        </div>
-      </details>
+        {% set done = m.status in ('cooked', 'eaten', 'eaten_out', 'skipped') %}
+        {% set tagname = 'a' if m.recipe_id else 'div' %}
+        <{{ tagname }} class="key {{ m.slot }} {{ 'done' if done }} {{ 'flagged' if m.replace_flag }}"{% if m.recipe_id %} href="{{ url_for('cook.cook', meal_id=m.id) }}"{% endif %}>
+          <span class="t">{{ {'breakfast': '朝', 'lunch': '昼', 'dinner': '夜', 'snack': '間食'}[m.slot] }} {{ m.eat_time or '' }}</span>
+          <span class="n">{{ m.title }}</span>
+          <span class="k">{{ m.kcal|round|int }} kcal</span>
+          {% if m.replace_flag %}<span class="badge">替</span>
+          {% elif m.kind == 'leftover' %}<span class="badge">残</span>
+          {% elif m.kind in ('eat_out', 'konbini') %}<span class="badge">外</span>
+          {% elif m.cook_portions > m.portion and m.kind == 'cook' %}<span class="badge">×{{ '%g'|format(m.cook_portions / m.portion) }}</span>{% endif %}
+        </{{ tagname }}>
       {% endfor %}
-      <a class="add-row" href="{{ url_for('plan.add', date=d.date.isoformat(), slot='dinner') }}">+ Add a meal</a>
+      <a class="key add" href="{{ url_for('plan.add', date=d.date.isoformat(), slot='dinner') }}">+ Add</a>
     </div>
   {% endfor %}
 {% endif %}

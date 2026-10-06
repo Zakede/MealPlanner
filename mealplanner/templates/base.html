@@ -3,8 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="{{ '#131915' if ui.theme == 'apothecary' else '#101713' }}" media="(prefers-color-scheme: dark)">
-  <meta name="theme-color" content="{{ '#f2eee3' if ui.theme == 'apothecary' else '#f7faf7' }}" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="{{ '#efe7d4' if ui.mode == 'light' else '#1c1b20' }}">
   <title>{% block title %}Meal Planner{% endblock %}</title>
   <link rel="preload" href="{{ url_for('static', filename='fonts/dela-gothic-one-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
@@ -13,7 +12,7 @@
   {% from "_icons.html" import icon %}
 
   <header class="top">
-    <a class="brand" href="{{ url_for('main.home') }}">Meal Planner</a>
+    <a class="brand" href="{{ url_for('main.home') }}">食券<small>Meal Planner</small></a>
     <a class="top-link" href="{{ url_for('settings.edit') }}" aria-label="Settings">{{ icon('settings') }}</a>
   </header>
 
@@ -26,12 +25,12 @@
   </main>
 
   <nav class="bottom" aria-label="Main">
-    {% for endpoint, label, ico in [('main.home', 'Today', 'home'), ('plan.week', 'Plan', 'plan'),
-                                    ('pantry.index', 'Pantry', 'pantry'), ('recipes.index', 'Recipes', 'recipes'),
-                                    ('main.more', 'More', 'more')] if has_endpoint(endpoint) %}
-      <a href="{{ url_for(endpoint) }}" class="{{ 'active' if request.blueprint == endpoint.split('.')[0] and (endpoint != 'main.home' or request.endpoint == 'main.home') and (endpoint != 'main.more' or request.endpoint == 'main.more') }}">
-        {{ icon(ico) }}<span>{{ label }}</span>
-      </a>
+    {% for endpoint, jp, label in [('main.home', '今日', 'Today'), ('plan.week', '献立', 'Plan'),
+                                   ('pantry.index', '冷蔵庫', 'Pantry'), ('recipes.index', 'レシピ', 'Recipes'),
+                                   ('main.more', '他', 'More')] if has_endpoint(endpoint) %}
+      {% set bp = endpoint.split('.')[0] %}
+      {% set on = request.endpoint == endpoint or (bp not in ('main',) and request.blueprint == bp) %}
+      <a href="{{ url_for(endpoint) }}" class="{{ 'active' if on }}" {% if on %}aria-current="page"{% endif %}><b>{{ jp }}</b><span>{{ label }}</span></a>
     {% endfor %}
   </nav>
   <script src="{{ url_for('static', filename='app.js') }}"></script>

@@ -32,7 +32,11 @@ CREATE TABLE IF NOT EXISTS settings (
     schedule_mode      TEXT    NOT NULL DEFAULT 'fixed',
     prep_days          INTEGER NOT NULL DEFAULT 2,
     appliances         TEXT    NOT NULL DEFAULT 'stove,microwave,rice_cooker,freezer',
-    about_me           TEXT    NOT NULL DEFAULT ''
+    about_me           TEXT    NOT NULL DEFAULT '',
+    gemini_key         TEXT    NOT NULL DEFAULT '',
+    country            TEXT    NOT NULL DEFAULT 'JP',
+    area               TEXT    NOT NULL DEFAULT 'city',
+    shop               TEXT    NOT NULL DEFAULT 'supermarket'
 );
 
 -- One row per weekday (0 = Monday).

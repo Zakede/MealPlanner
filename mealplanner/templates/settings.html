@@ -25,14 +25,9 @@
 
 <form method="post" class="card form">
   <h2>Look</h2>
-  <div class="row">
-    <label>Theme
-      <select name="theme">{% for k, label in themes.items() %}<option value="{{ k }}" {{ 'selected' if s.theme == k }}>{{ label }}</option>{% endfor %}</select>
-    </label>
-    <label>Mode
-      <select name="mode">{% for k, label in modes.items() %}<option value="{{ k }}" {{ 'selected' if s.mode == k }}>{{ label }}</option>{% endfor %}</select>
-    </label>
-  </div>
+  <label>Mode
+    <select name="mode">{% for k, label in modes.items() %}<option value="{{ k }}" {{ 'selected' if s.mode == k }}>{{ label }}</option>{% endfor %}</select>
+  </label>
 
   <h2>Body</h2>
   <label>Units

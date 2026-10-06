@@ -15,6 +15,7 @@ from flask import current_app
 
 DEFAULT_MODEL = "opencode-go/deepseek-v4-flash"
 DEFAULT_VISION_MODEL = "opencode-go/deepseek-v4-flash-vision-exp"
+DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
 
 
 class LLMError(Exception):
@@ -119,12 +120,77 @@ def extract_json(text):
     raise LLMError("the reply's JSON was cut off")
 
 
+class GeminiProvider:
+    """Google's Gemini API over plain HTTPS. Reads text and photos."""
+    name = "gemini"
+    API = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+
+    def __init__(self, key, model=None, timeout=90):
+        self.key = key
+        self.model = model or DEFAULT_GEMINI_MODEL
+        self.timeout = timeout
+
+    def complete(self, prompt, images=(), model=None):
+        import base64
+        import mimetypes
+        from urllib.error import HTTPError, URLError
+        from urllib.request import Request, urlopen
+
+        parts = [{"text": prompt}]
+        for path in images:
+            mime = mimetypes.guess_type(path)[0] or "image/jpeg"
+            with open(path, "rb") as f:
+                parts.append({"inline_data": {"mime_type": mime, "data": base64.b64encode(f.read()).decode()}})
+        # "vision" model names belong to opencode; Gemini reads images with the same model
+        use = model if model and model.startswith("gemini") else self.model
+        body = json.dumps({"contents": [{"parts": parts}],
+                           "generationConfig": {"responseMimeType": "application/json", "temperature": 0.4}})
+        req = Request(self.API.format(model=use), data=body.encode(), method="POST",
+                      headers={"Content-Type": "application/json", "x-goog-api-key": self.key})
+        try:
+            with urlopen(req, timeout=self.timeout) as resp:
+                data = json.loads(resp.read().decode())
+        except HTTPError as e:
+            detail = e.read().decode(errors="replace")[:300]
+            if e.code in (400, 403) and "API key" in detail:
+                raise LLMError("the Gemini key was rejected. Check it in Settings")
+            if e.code == 429:
+                raise LLMError("Gemini's free limit is used up for now. Try again in a minute")
+            raise LLMError(f"Gemini error {e.code}")
+        except (URLError, TimeoutError) as e:
+            raise LLMError(f"couldn't reach Gemini ({e.__class__.__name__})")
+        try:
+            return "".join(p.get("text", "") for p in data["candidates"][0]["content"]["parts"]).strip()
+        except (KeyError, IndexError):
+            raise LLMError("Gemini sent an empty answer")
+
+
+def gemini_key():
+    key = os.environ.get("GEMINI_API_KEY")
+    if key:
+        return key
+    try:
+        from .store import settings
+        return settings().get("gemini_key") or None
+    except Exception:
+        return None
+
+
 def provider():
-    """The configured provider. Tests put a fake one in app.config["LLM_PROVIDER"]."""
+    """The configured provider: Gemini when a key is set, otherwise opencode.
+
+    Tests put a fake one in app.config["LLM_PROVIDER"]; MEALPLANNER_LLM=none turns models off.
+    """
     injected = current_app.config.get("LLM_PROVIDER")
     if injected is not None:
         return injected
-    if os.environ.get("MEALPLANNER_LLM", "opencode") == "none":
+    choice = os.environ.get("MEALPLANNER_LLM", "auto")
+    if choice == "none":
+        return None
+    key = gemini_key()
+    if key and choice in ("auto", "gemini"):
+        return GeminiProvider(key, model=os.environ.get("MEALPLANNER_GEMINI_MODEL"))
+    if choice == "gemini":
         return None
     p = OpencodeProvider(model=os.environ.get("MEALPLANNER_LLM_MODEL"))
     return p if p.available() else None

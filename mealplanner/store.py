@@ -35,25 +35,39 @@ def split_list(text):
 # Latest recorded purchase price wins over the catalogue's reference price.
 FOOD_SELECT = """
     SELECT f.*,
-           COALESCE((SELECT ph.price_per_100g FROM price_history ph
-                     WHERE ph.food_id = f.id ORDER BY ph.recorded_on DESC, ph.id DESC LIMIT 1),
-                    f.price_per_100g) AS current_price
+           (SELECT ph.price_per_100g FROM price_history ph
+            WHERE ph.food_id = f.id ORDER BY ph.recorded_on DESC, ph.id DESC LIMIT 1) AS paid_price
     FROM foods f
 """
 
 
+def _priced(row, price_factor):
+    """Add current_price: what you paid last, else the reference price adjusted for where you shop."""
+    food = dict(row)
+    ref = food["price_per_100g"] * price_factor if food["price_per_100g"] is not None else None
+    food["estimated"] = food["paid_price"] is None
+    food["current_price"] = food["paid_price"] if food["paid_price"] is not None else ref
+    return food
+
+
+def price_factor():
+    from .pricing import factor
+    return factor(settings())
+
+
 def foods():
-    return [dict(r) for r in query(FOOD_SELECT + " ORDER BY f.name")]
+    f = price_factor()
+    return [_priced(r, f) for r in query(FOOD_SELECT + " ORDER BY f.name")]
 
 
 def food(food_id):
     row = query(FOOD_SELECT + " WHERE f.id = ?", (food_id,), one=True)
-    return dict(row) if row else None
+    return _priced(row, price_factor()) if row else None
 
 
 def food_by_name(name):
     row = query(FOOD_SELECT + " WHERE f.name = ? COLLATE NOCASE", (name.strip(),), one=True)
-    return dict(row) if row else None
+    return _priced(row, price_factor()) if row else None
 
 
 def pantry_items(today):
@@ -87,8 +101,9 @@ def recipe_ingredients(recipe_id=None):
         ORDER BY ri.id
     """
     grouped = {}
+    f = price_factor()
     for r in query(sql, (recipe_id,) if recipe_id else ()):
-        row = dict(r)
+        row = _priced(r, f)
         row["price_per_100g"] = row["current_price"]
         grouped.setdefault(row["recipe_id"], []).append(row)
     return grouped

@@ -23,6 +23,9 @@ def back(first):
 def week():
     first = selected_week()
     days = plans.day_summaries(first)
+    grid_order = {"breakfast": 0, "lunch": 1, "dinner": 2, "snack": 3}
+    for d in days:
+        d["meals"] = sorted(d["meals"], key=lambda m: (grid_order[m["slot"]], m["id"]))
     meals = [m for d in days for m in d["meals"]]
     return render_template(
         "plan/week.html",
