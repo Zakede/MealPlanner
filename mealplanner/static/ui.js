@@ -233,3 +233,78 @@
   addEventListener("resize", () => open?.close(false));
   document.querySelectorAll("select").forEach(enhance);
 })();
+
+// Mini notifications: the page asks every minute what's worth knowing (cook soon, thaw tonight, drink water...).
+// New ones pop up as a toast; all of today's live under the bell. Dismissed ones stay dismissed for the day.
+(() => {
+  const bell = document.querySelector("[data-bell]");
+  if (!bell) return;
+  const panel = document.getElementById("nudge-panel"), list = panel.querySelector(".nudge-list");
+  const count = bell.querySelector(".bell-count"), toasts = document.getElementById("toasts");
+  const store = {
+    get(k) { try { return JSON.parse(localStorage.getItem(k) || "{}"); } catch { return {}; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+  };
+  let day = "", items = [];
+  const key = () => "nudges-" + day;
+  const state = () => store.get(key());   // id -> "seen" | "gone"
+
+  function card(n, inToast) {
+    const el = document.createElement(n.url ? "a" : "div");
+    el.className = "nudge" + (n.urgent ? " urgent" : "") + (inToast ? " toast" : "");
+    if (n.url) el.href = n.url;
+    el.innerHTML = `<span class="nudge-ico">${n.svg}</span><span class="nudge-text"><b></b><small></small></span>`;
+    el.querySelector("b").textContent = n.title;
+    el.querySelector("small").textContent = n.body || "";
+    const x = document.createElement("button");
+    x.type = "button"; x.className = "nudge-x"; x.setAttribute("aria-label", "Dismiss"); x.textContent = "×";
+    x.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); dismiss(n.id, el); });
+    el.append(x);
+    return el;
+  }
+  function dismiss(id, el) {
+    const s = state(); s[id] = "gone"; store.set(key(), s);
+    el.classList.add("leaving");
+    setTimeout(() => { el.remove(); render(); }, 250);
+  }
+  function render() {
+    const s = state();
+    const live = items.filter((n) => s[n.id] !== "gone");
+    list.replaceChildren(...(live.length ? live.map((n) => card(n, false)) : [Object.assign(document.createElement("p"), { className: "muted small nudge-none", textContent: "All caught up." })]));
+    count.hidden = !live.length;
+    count.textContent = live.length;
+    bell.classList.toggle("has", live.length > 0);
+  }
+  function toast(n) {
+    const el = card(n, true);
+    toasts.append(el);
+    burst(el.querySelector(".nudge-ico"), 6);
+    setTimeout(() => { el.classList.add("leaving"); setTimeout(() => el.remove(), 300); }, n.urgent ? 12000 : 7000);
+  }
+  async function poll() {
+    try {
+      const r = await fetch(bell.dataset.url, { headers: { Accept: "application/json" } });
+      if (!r.ok) return;
+      const d = await r.json();
+      day = d.day; items = d.nudges;
+      const s = state();
+      items.filter((n) => !s[n.id]).slice(0, 3).forEach((n, i) => setTimeout(() => toast(n), 600 + i * 450));
+      items.forEach((n) => { if (!s[n.id]) s[n.id] = "seen"; });
+      store.set(key(), s);
+      render();
+    } catch {}
+  }
+  bell.addEventListener("click", () => {
+    panel.hidden = !panel.hidden;
+    bell.setAttribute("aria-expanded", !panel.hidden);
+  });
+  panel.querySelector("[data-nudge-clear]").addEventListener("click", () => {
+    const s = state(); items.forEach((n) => { s[n.id] = "gone"; }); store.set(key(), s); render();
+  });
+  document.addEventListener("pointerdown", (e) => {
+    if (!panel.hidden && !panel.contains(e.target) && !bell.contains(e.target)) { panel.hidden = true; bell.setAttribute("aria-expanded", "false"); }
+  });
+  poll();
+  setInterval(() => { if (document.visibilityState === "visible") poll(); }, 60000);
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") poll(); });
+})();

@@ -53,3 +53,11 @@ def test_add_konbini_pick_and_custom_meal(profile, client):
         assert titles["Friend's curry"]["kcal"] == 650 and titles["Friend's curry"]["slot"] == "dinner"
     r = client.get("/plan/add/guess?text=famichiki").get_json()
     assert r["kcal"] == 252 and r["source"] == "list"
+
+
+def test_nudges_api(profile, client):
+    client.post("/plan/generate")
+    r = client.get("/api/nudges").get_json()
+    ids = [n["id"] for n in r["nudges"]]
+    assert any(i.startswith("draft-") for i in ids)          # the drafted week waits for approval
+    assert all(n["svg"].startswith("<svg") and n["title"] for n in r["nudges"])

@@ -154,3 +154,17 @@ def today_toggle(what):
 @bp.route("/more")
 def more():
     return render_template("more.html")
+
+
+@bp.route("/api/nudges")
+def api_nudges():
+    """In-app notifications for right now (the page polls this)."""
+    from flask import jsonify, render_template_string
+    from .. import nudges
+    if store.targets() is None:
+        return jsonify({"nudges": []})
+    items = nudges.build(today(), plans.now_minutes())
+    draw = '{% from "_icons.html" import icon %}{{ icon(name) }}'
+    for n in items:
+        n["svg"] = render_template_string(draw, name=n["icon"])
+    return jsonify({"nudges": items, "day": today().isoformat()})

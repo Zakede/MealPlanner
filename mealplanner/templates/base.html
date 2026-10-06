@@ -20,6 +20,9 @@
   <header class="top">
     <a class="brand" href="{{ url_for('main.home') }}" aria-label="Meal Planner home">{% include "_logo.html" %}<span class="word">Meal<em>Planner</em></span></a>
     <span style="display:flex;gap:8px">
+      {% if request.endpoint not in ('auth.login', 'people.pick') and request.blueprint != 'setup' %}
+      <button type="button" class="top-link bell" data-bell data-url="{{ url_for('main.api_nudges') }}" aria-label="Notifications" aria-expanded="false">{{ icon('bell') }}<span class="bell-count" hidden></span></button>
+      {% endif %}
       <button type="button" class="top-link theme-btn" data-theme-toggle data-url="{{ url_for('settings.mode') }}" aria-label="Switch light or dark">{{ icon('moon', 'i-moon') }}{{ icon('sun', 'i-sun') }}</button>
       {% if request.endpoint not in ('auth.login', 'people.pick') %}
       <a class="top-link avatar-link" href="{{ url_for('people.pick') }}" aria-label="Profile: {{ me.name }}">{{ me.name[:1]|upper }}</a>
@@ -28,6 +31,8 @@
     </span>
   </header>
 
+  <div class="nudge-panel" id="nudge-panel" hidden><div class="nudge-head"><b>Notifications</b><button type="button" class="chip" data-nudge-clear>Clear all</button></div><div class="nudge-list"></div></div>
+  <div class="toasts" id="toasts" aria-live="polite"></div>
   <main>
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% for cat, msg in messages %}<div class="flash flash-{{ cat }}" role="status">{{ msg }}</div>{% endfor %}
