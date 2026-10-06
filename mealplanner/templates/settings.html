@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Settings · Zettai{% endblock %}
 {% block content %}
+{% from "_prep.html" import prep_picker %}
 <datalist id="food-suggest">{% for f in food_names %}<option value="{{ f }}">{% endfor %}</datalist>
 
 {% set imp = s.units == 'imperial' %}
@@ -82,6 +83,8 @@
     </label>
   </div>
   <p class="muted small">Activity multiplier ×{{ multiplier }}</p>
+
+  {{ prep_picker(s) }}
 
   <h2>Money (<span class="cur-label">{{ cur }}</span>)</h2>
   <label>Weekly food budget, including eating out<input name="weekly_budget_yen" data-money type="number" value="{{ s.weekly_budget_yen }}" required></label>

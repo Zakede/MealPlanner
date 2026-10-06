@@ -94,6 +94,8 @@ def parse_form(form):
     theme, mode = form.get("theme"), form.get("mode")
     values["theme"] = "shokken"
     values["mode"] = mode if mode in MODES else "dark"
+    from .setup import prep_from_form
+    values.update(prep_from_form(form))
     return values, errors
 
 

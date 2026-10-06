@@ -3,6 +3,15 @@ from .db import query
 from .nutrition import activity_multiplier, compute_targets
 
 
+def week_start():
+    """Weeks start on the meal prep day (Sunday if that's one of them), else Monday."""
+    try:
+        days = {int(x) for x in split_list(settings().get("prep_weekdays")) if x.isdigit()}
+    except RuntimeError:  # no app context
+        return 0
+    return 6 if 6 in days else min(days, default=0)
+
+
 def settings():
     return dict(query("SELECT * FROM settings WHERE id = 1", one=True))
 

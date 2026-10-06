@@ -60,6 +60,8 @@ MIGRATIONS = [
     ("day_overrides", "work_kind", "TEXT"),
     ("settings", "food_rules", "TEXT NOT NULL DEFAULT ''"),
     ("settings", "staples", "TEXT NOT NULL DEFAULT ''"),
+    ("settings", "prep_weekdays", "TEXT NOT NULL DEFAULT ''"),
+    ("settings", "prep_covers", "TEXT NOT NULL DEFAULT 'lunch'"),
 ]
 
 

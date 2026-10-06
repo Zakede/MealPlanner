@@ -1,5 +1,5 @@
 /* Portfolio look, laid over the base styles: near-black page, hairline rules, square edges,
-   condensed Archivo headings, IBM Plex Mono text, Miku teal accent. Loaded last so it wins. */
+   condensed Archivo headings, IBM Plex Mono text, apothecary jade/gold/cinnabar accents. Loaded last so it wins. */
 @font-face { font-family: "Archivo"; src: url("fonts/archivo-latin-wdth.woff2") format("woff2-variations");
   font-weight: 100 900; font-stretch: 62% 125%; font-display: swap; }
 @font-face { font-family: "IBM Plex Mono"; font-weight: 400; src: url("fonts/ibm-plex-mono-400-latin.woff2") format("woff2"); font-display: swap; }
@@ -9,10 +9,10 @@
 :root, [data-mode="dark"] {
   --body: #0B0C0D; --panel: #121415; --key: #16191A; --ink: #E4E6E2; --muted: #979C98;
   --plate: #121415; --plate-ink: #E4E6E2; --plate-muted: #979C98; --plate-edge: color-mix(in srgb, #E4E6E2 30%, transparent);
-  --fuji: #5BC2B5; --on-fuji: #0B0C0D;            /* accent: Miku teal */
-  --fuji-light: #A8F25C; --on-fuji-light: #0B0C0D; /* second accent: dev lime */
-  --fuji-deep: #3A9E90; --on-fuji-deep: #0B0C0D;
-  --seal: #5BC2B5; --ok: #A8F25C; --warn: #E8C170; --bad: #FF6B6B;
+  --fuji: #5CCDA8; --on-fuji: #0B0C0D;            /* accent: apothecary jade */
+  --fuji-light: #F4C96A; --on-fuji-light: #0B0C0D; /* second accent: brass gold */
+  --fuji-deep: #E5566E; --on-fuji-deep: #0B0C0D; /* cinnabar seal */
+  --seal: #E5566E; --ok: #5CCDA8; --warn: #F4C96A; --bad: #FF6B6B;
   --line: color-mix(in srgb, var(--ink) 13%, transparent);
   --line-strong: color-mix(in srgb, var(--ink) 30%, transparent);
   --glow: none; --press: none; --press-down: none;
@@ -26,16 +26,16 @@
 [data-mode="light"] {
   --body: #F1F1EC; --panel: #E8E8E2; --key: #E1E1DA; --ink: #0E1010; --muted: #555B57;
   --plate: #E8E8E2; --plate-ink: #0E1010; --plate-muted: #555B57; --plate-edge: color-mix(in srgb, #0E1010 30%, transparent);
-  --fuji: #1C7A70; --on-fuji: #F1F1EC; --fuji-light: #3D6B0E; --on-fuji-light: #F1F1EC;
-  --fuji-deep: #15645B; --on-fuji-deep: #F1F1EC; --seal: #1C7A70; --ok: #3D6B0E; --warn: #8A5A00; --bad: #C0392B;
+  --fuji: #1D7A5C; --on-fuji: #F1F1EC; --fuji-light: #8A6410; --on-fuji-light: #F1F1EC;
+  --fuji-deep: #B8323F; --on-fuji-deep: #F1F1EC; --seal: #B8323F; --ok: #1D7A5C; --warn: #8A5A00; --bad: #C0392B;
   --glow: none; color-scheme: light;
 }
 @media (prefers-color-scheme: light) {
   [data-mode="system"] {
     --body: #F1F1EC; --panel: #E8E8E2; --key: #E1E1DA; --ink: #0E1010; --muted: #555B57;
     --plate: #E8E8E2; --plate-ink: #0E1010; --plate-muted: #555B57;
-    --fuji: #1C7A70; --on-fuji: #F1F1EC; --fuji-light: #3D6B0E; --on-fuji-light: #F1F1EC;
-    --fuji-deep: #15645B; --on-fuji-deep: #F1F1EC; --seal: #1C7A70; --ok: #3D6B0E; --warn: #8A5A00; --bad: #C0392B;
+    --fuji: #1D7A5C; --on-fuji: #F1F1EC; --fuji-light: #8A6410; --on-fuji-light: #F1F1EC;
+    --fuji-deep: #B8323F; --on-fuji-deep: #F1F1EC; --seal: #B8323F; --ok: #1D7A5C; --warn: #8A5A00; --bad: #C0392B;
     --glow: none; color-scheme: light;
   }
 }

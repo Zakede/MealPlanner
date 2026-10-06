@@ -2,8 +2,15 @@
 from datetime import timedelta
 
 
-def week_bounds(day, week_start=0):
+# Which weekday a week starts on (0 = Monday). The app swaps this for one that reads the settings,
+# so a week starts on the meal prep day; plain callers and tests get Monday.
+week_start_of = lambda: 0  # noqa: E731
+
+
+def week_bounds(day, week_start=None):
     """Return (first, last) date of the week containing `day`. week_start 0 = Monday."""
+    if week_start is None:
+        week_start = week_start_of()
     offset = (day.weekday() - week_start) % 7
     first = day - timedelta(days=offset)
     return first, first + timedelta(days=6)

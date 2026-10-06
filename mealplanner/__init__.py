@@ -53,6 +53,8 @@ def create_app(config=None):
         from .profiles import migrate_all
         migrate_all()
     app.teardown_appcontext(db.close_db)
+    from . import budget, store
+    budget.week_start_of = store.week_start
 
     from .views import auth, cook, foodlog, people, extras, main, pantry, plan, receipts, recipes, schedule, settings, setup, taste, track
     for module in (main, settings, pantry, recipes, schedule, plan, cook, taste, extras, setup, receipts, track, auth, people, foodlog):

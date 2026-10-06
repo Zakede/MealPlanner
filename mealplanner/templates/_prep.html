@@ -1,0 +1,13 @@
+{# Meal prep day picker, shared by setup and settings. #}
+{% macro prep_picker(s) %}
+{% set on = (s.prep_weekdays or '').split(',') %}
+<h2>Meal prep day</h2>
+<p class="muted small">Cook once, eat all week. On these days the plan has you cook big batches and box them up for the days after, up to the next prep day. Boxes past their fridge life go in the freezer.</p>
+<div class="tag-picks left">
+  {% for d in range(7) %}<input type="checkbox" name="prep_{{ d }}" id="prep{{ d }}" {{ 'checked' if d|string in on }}><label for="prep{{ d }}">{{ ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][d] }}</label>{% endfor %}
+</div>
+<div class="opts two">
+  <label class="opt"><input type="radio" name="prep_covers" value="lunch" {{ 'checked' if s.prep_covers != 'lunch_dinner' }}><span><b>Lunches</b><small>Fresh dinners</small></span></label>
+  <label class="opt"><input type="radio" name="prep_covers" value="lunch_dinner" {{ 'checked' if s.prep_covers == 'lunch_dinner' }}><span><b>Lunch + dinner</b><small>Barely cook all week</small></span></label>
+</div>
+{% endmacro %}

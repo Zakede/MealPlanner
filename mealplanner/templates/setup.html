@@ -2,6 +2,7 @@
 {% block title %}Setup · Zettai{% endblock %}
 {% block content %}
 {% from "_icons.html" import icon %}
+{% from "_prep.html" import prep_picker %}
 <datalist id="food-suggest">{% for f in food_names %}<option value="{{ f }}">{% endfor %}</datalist>
 <div class="wizard-head" aria-hidden="true">
   <div class="wizard-dots" id="dots"></div>
@@ -9,6 +10,13 @@
 </div>
 <div class="wizard-progress" aria-hidden="true"><i id="prog"></i></div>
 <form method="post" id="wizard" class="wizard">
+
+  <section class="step" data-title="Your name">
+    <div class="step-head"><span class="step-badge">{{ icon('user') }}</span><h1>What should we call you?</h1></div>
+    <div class="form">
+      <label>Your name<input name="profile_name" maxlength="30" value="{{ me.name if me.name != 'Me' }}" placeholder="e.g. Zake" autocomplete="given-name" required></label>
+    </div>
+  </section>
 
   <section class="step" data-title="About you">
     <div class="step-head"><span class="step-badge">{{ icon('user') }}</span><h1>About you</h1></div>
@@ -94,6 +102,12 @@
     <div class="opts">{% for k, label in efforts %}<label class="opt iconed"><input type="radio" name="weekend_effort" value="{{ k }}" {{ 'checked' if k == 'full' }}><span><i class="opt-ico">{{ icon({'none': 'nocook', 'low': 'bolt', 'full': 'chef'}[k]) }}</i><b>{{ label }}</b></span></label>{% endfor %}</div>
   </section>
 
+  <section class="step" data-title="Meal prep">
+    <div class="step-head"><span class="step-badge">{{ icon('calendar') }}</span><h1>Meal prep?</h1></div>
+    {{ prep_picker(s) }}
+    <p class="muted small">Leave every day off if you'd rather cook as you go.</p>
+  </section>
+
   <section class="step" data-title="What you eat">
     <div class="step-head"><span class="step-badge">{{ icon('plate') }}</span><h1>What you eat</h1></div>
     <div class="opts">
@@ -156,10 +170,9 @@
     </div>
   </section>
 
-  <section class="step" data-title="You">
-    <div class="step-head"><span class="step-badge">{{ icon('lock') }}</span><h1>Your profile</h1></div>
+  <section class="step" data-title="Lock">
+    <div class="step-head"><span class="step-badge">{{ icon('lock') }}</span><h1>Lock it?</h1></div>
     <div class="form">
-      <label>Your name<input name="profile_name" maxlength="30" value="{{ me.name }}" required></label>
       <label>Password (optional)<input name="password" type="password" autocomplete="new-password" minlength="6" placeholder="Leave empty for no lock"></label>
       <label>Password again<input name="again" type="password" autocomplete="new-password" minlength="6"></label>
     </div>
@@ -211,6 +224,10 @@
     i = Math.min(i + 1, steps.length - 1); show();
   });
   back.addEventListener("click", () => { i = Math.max(i - 1, 0); show(); });
+  // Enter in a field goes to the next step instead of submitting the half-filled form
+  form.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && e.target.matches("input") && i < steps.length - 1) { e.preventDefault(); next.click(); }
+  });
   show();
 })();
 </script>

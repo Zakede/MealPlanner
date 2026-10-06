@@ -25,6 +25,7 @@ EXPIRING_DAYS = 2
 COOLDOWN_DAYS = 4
 FAVORITE_COOLDOWN_DAYS = 2
 MAX_BATCH_MEALS = 4
+PREP_MAX_DAYS = 6       # a meal prep day covers at most the next six days
 EAT_OUT_PROTEIN_GUESS = 30
 PACKABLE_MAX_ACTIVE = 10
 
@@ -374,12 +375,14 @@ def plan(ctx, dates):
                     if r["id"] in excluded or not fits_slot(r, slot, limits, d, today):
                         continue
                     portion = best_portion(r["per_serving"]["kcal"], target)
-                    batch = (r["batch_ok"] and slot != "breakfast" and not busy(day)
+                    prep = day.get("prep_day") and (slot == "lunch" or s.get("prep_covers") == "lunch_dinner")
+                    batch = (r["batch_ok"] and slot != "breakfast" and (prep or not busy(day))
                              and not limits[slot]["away"])
                     cook_portions = portion
                     slots_for_batch = []
                     if batch:
-                        slots_for_batch = batch_slots(ctx, dates, d, r, taken, reserved, chosen)
+                        slots_for_batch = (prep_slots(ctx, dates, d, slot, r, taken, reserved) if prep
+                                           else batch_slots(ctx, dates, d, r, taken, reserved, chosen))
                         cook_portions = portion * (1 + len(slots_for_batch))
                     check = purchase_check(r, cook_portions, pantry, d)
                     if check["buy"] > budget_left:
@@ -387,12 +390,12 @@ def plan(ctx, dates):
                     sc = score(r, portion, target, check, ctx, d, chosen, day["gym"], budget_left,
                                meals_left + 1, protein_gap)
                     if slots_for_batch:
-                        sc += 0.1
+                        sc += 0.6 if prep else 0.1   # on a prep day, batching is the point
                     if best is None or sc > best[0]:
-                        best = (sc, r, portion, cook_portions, check, slots_for_batch)
+                        best = (sc, r, portion, cook_portions, check, slots_for_batch, prep)
 
                 if best:
-                    _, r, portion, cook_portions, check, slots_for_batch = best
+                    _, r, portion, cook_portions, check, slots_for_batch, prep = best
                     key = f"g{next_key}"
                     next_key += 1
                     for ing, grams in scaled_ingredients(r, cook_portions):
@@ -408,7 +411,8 @@ def plan(ctx, dates):
                         meal["note"] = f"Thaw {r['thaw_hours']} h ahead: move to the fridge the night before"
                     if len(slots_for_batch):
                         meal["note"] = (meal["note"] + " · " if meal["note"] else "") + \
-                            f"Batch cook {cook_portions:g} portions"
+                            (f"Meal prep: cook {cook_portions:g} portions, box up the rest" if prep
+                             else f"Batch cook {cook_portions:g} portions")
                     booster = pick_booster(r, ctx, target - meal["kcal"])
                     if booster:
                         meal["booster_id"] = booster["id"]
@@ -419,7 +423,10 @@ def plan(ctx, dates):
                         lmeal = {"date": ld, "slot": lslot, "kind": "leftover", "recipe_id": r["id"],
                                  "recipe": r, "portion": portion, "cook_portions": 0, "cook_key": key,
                                  "title": r["name"], "cost": 0, "buy_cost": 0,
-                                 "note": f"From the {d.strftime('%a')} batch", **macros_for(r, portion)}
+                                 "note": f"From the {d.strftime('%a')} {'prep' if prep else 'batch'}",
+                                 **macros_for(r, portion)}
+                        if (ld - d).days > r["fridge_days"]:
+                            lmeal["note"] += " · freeze this box, thaw it in the fridge the night before"
                         reserved[(ld, lslot)] = lmeal
 
             if meal is None and limits[slot]["away"]:
@@ -484,6 +491,26 @@ def batch_slots(ctx, dates, cook_date, recipe, taken, reserved, chosen):
             out.append((d, slot))
             if len(out) >= MAX_BATCH_MEALS - 1:
                 return out
+    return out
+
+
+def prep_slots(ctx, dates, cook_date, slot, recipe, taken, reserved):
+    """The same slot on the days after a meal prep day, up to the next prep day. Boxes past the
+    recipe's fridge life go in the freezer, so without one the run stops there."""
+    freezer = "freezer" in ctx.get("appliances", ())
+    out = []
+    for d in dates:
+        gap = (d - cook_date).days
+        if gap <= 0:
+            continue
+        day = day_info(ctx, d)
+        if gap > PREP_MAX_DAYS or day.get("prep_day") or (gap > recipe["fridge_days"] and not freezer):
+            break
+        if (d, slot) in taken or (d, slot) in reserved or (d, slot) in ctx["skip"] or day.get("away"):
+            continue
+        if slot_limits(day)[slot]["away"] and not recipe["portable"]:
+            continue
+        out.append((d, slot))
     return out
 
 

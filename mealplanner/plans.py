@@ -138,12 +138,16 @@ def build_days(dates, s=None):
         count = max(0, min(len(dates), s.get("prep_days") or 0))
         # spread prep days out so each batch covers the days after it
         prep = {dates[round(i * len(dates) / count)] for i in range(count)} if count else set()
+    # chosen meal prep days (e.g. Sunday) are a big cook in either mode
+    prep_weekdays = {int(x) for x in store.split_list(s.get("prep_weekdays")) if x.isdigit()}
     days = {}
     for d in dates:
         day = dict(sched[d.weekday()])
         if flexible:
             day.update(work_start=None, work_end=None, commute_min=0, gym=0, away=0,
                        effort="full" if d in prep else "low")
+        if d.weekday() in prep_weekdays:
+            day["effort"] = "full"
         o = overrides.get(d)
         if o:
             for key in ("effort", "gym", "away"):
@@ -176,6 +180,9 @@ def build_days(dates, s=None):
                     day["gym"] = 1
         day["blocks"] = sorted(blocks, key=lambda b: b["start"])
         day["prep"] = d in prep or (o is not None and o["effort"] == "full")
+        # a meal prep day cooks for the days up to the next one, unless that date was changed by hand
+        day["prep_day"] = d.weekday() in prep_weekdays and not (o is not None and o["effort"] not in (None, "full"))
+        day["prep"] = day["prep"] or day["prep_day"]
         days[d] = day
     return days
 

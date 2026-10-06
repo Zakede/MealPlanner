@@ -31,6 +31,12 @@ def _num(form, key, lo, hi, cast=float):
     return value
 
 
+def prep_from_form(form):
+    """Meal prep days (weekday numbers) and what they cover, from the shared picker."""
+    return {"prep_weekdays": ",".join(str(d) for d in range(7) if form.get(f"prep_{d}")),
+            "prep_covers": "lunch_dinner" if form.get("prep_covers") == "lunch_dinner" else "lunch"}
+
+
 def parse(form):
     v = {
         "age": _num(form, "age", 16, 100, int),
@@ -59,6 +65,7 @@ def parse(form):
     v["setup_done"] = 1
     v["schedule_mode"] = "flexible" if form.get("schedule_mode") == "flexible" else "fixed"
     v["prep_days"] = int(_num(form, "prep_days", 0, 4)) if form.get("prep_days") else 2
+    v.update(prep_from_form(form))
     v["appliances"] = ",".join(k for k in APPLIANCES if form.get(f"app_{k}"))
     rules = food_rules.from_form(form)
     v["food_rules"] = food_rules.dump(rules)
