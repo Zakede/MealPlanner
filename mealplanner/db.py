@@ -27,8 +27,8 @@ def close_db(_exc=None):
 
 # Columns added after the first release: (table, column, definition)
 MIGRATIONS = [
-    ("settings", "theme", "TEXT NOT NULL DEFAULT 'wakatake'"),
-    ("settings", "mode", "TEXT NOT NULL DEFAULT 'system'"),
+    ("settings", "theme", "TEXT NOT NULL DEFAULT 'apothecary'"),
+    ("settings", "mode", "TEXT NOT NULL DEFAULT 'dark'"),
 ]
 
 

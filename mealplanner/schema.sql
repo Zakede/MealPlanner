@@ -21,8 +21,8 @@ CREATE TABLE IF NOT EXISTS settings (
     flavor_likes       TEXT    NOT NULL DEFAULT '',
     cuisines_liked     TEXT    NOT NULL DEFAULT '',
     cuisines_tired     TEXT    NOT NULL DEFAULT '',
-    theme              TEXT    NOT NULL DEFAULT 'wakatake',
-    mode               TEXT    NOT NULL DEFAULT 'system'
+    theme              TEXT    NOT NULL DEFAULT 'apothecary',
+    mode               TEXT    NOT NULL DEFAULT 'dark'
 );
 
 -- One row per weekday (0 = Monday).

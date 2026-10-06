@@ -23,8 +23,8 @@ NUMBER_RANGES = {
 INT_FIELDS = {"age", "weekly_budget_yen", "eat_out_slots", "eat_out_budget_yen",
               "eat_out_kcal", "snack_kcal", "spice_tolerance"}
 TEXT_FIELDS = ["allergies", "dislikes", "flavor_likes", "cuisines_liked", "cuisines_tired"]
-THEMES = {"wakatake": "Wakatake + Momo", "apothecary": "Apothecary"}
-MODES = {"system": "Follow phone", "dark": "Dark", "light": "Light"}
+THEMES = {"apothecary": "Apothecary", "wakatake": "Wakatake + Momo"}
+MODES = {"dark": "Dark", "light": "Light", "system": "Follow phone"}
 LOOK_FIELDS = {"theme", "mode", "units"}
 
 
@@ -64,8 +64,8 @@ def parse_form(form):
     for field in TEXT_FIELDS:
         values[field] = form.get(field, "").strip()
     theme, mode = form.get("theme"), form.get("mode")
-    values["theme"] = theme if theme in THEMES else "wakatake"
-    values["mode"] = mode if mode in MODES else "system"
+    values["theme"] = theme if theme in THEMES else "apothecary"
+    values["mode"] = mode if mode in MODES else "dark"
     return values, errors
 
 

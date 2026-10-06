@@ -9,6 +9,7 @@
   --a: #4e9f7c; --on-a: #ffffff;
   --b: #f2848e; --on-b: #ffffff;
   --ok: #3f8f5f; --warn: #b8862b; --bad: #c9474f;
+  --gold: #b8954d;
 
   --head: "Dela Gothic One", "Hiragino Sans", "Yu Gothic", sans-serif;
   --body: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
@@ -18,7 +19,7 @@
 [data-palette="apothecary"] {
   --bg: #f2eee3; --surface: #fbf8f0; --ink: #2c3830;
   --a: #55775c; --on-a: #fbf8f0;
-  --b: #b5443a; --on-b: #fbf8f0;
+  --b: #b5443a; --on-b: #fbf8f0; --gold: #a07f3c;
 }
 
 /* dark values, applied by explicit choice or by the phone setting */
@@ -28,8 +29,8 @@
   --ok: #6cc39c; --warn: #e0b45c; --bad: #f07a83; color-scheme: dark;
 }
 [data-mode="dark"][data-palette="apothecary"] {
-  --bg: #131915; --surface: #1c241e; --ink: #e8e5d8;
-  --a: #8fb394; --on-a: #142017; --b: #d9675a; --on-b: #fff6ef;
+  --bg: #0b0f0c; --surface: #141a16; --ink: #ebe4d2;
+  --a: #9dc0a0; --on-a: #0f1a12; --b: #d4574a; --on-b: #fff4ec; --gold: #c8a560;
 }
 @media (prefers-color-scheme: dark) {
   [data-mode="system"] {
@@ -38,8 +39,8 @@
     --ok: #6cc39c; --warn: #e0b45c; --bad: #f07a83; color-scheme: dark;
   }
   [data-mode="system"][data-palette="apothecary"] {
-    --bg: #131915; --surface: #1c241e; --ink: #e8e5d8;
-    --a: #8fb394; --on-a: #142017; --b: #d9675a; --on-b: #fff6ef;
+    --bg: #0b0f0c; --surface: #141a16; --ink: #ebe4d2;
+    --a: #9dc0a0; --on-a: #0f1a12; --b: #d4574a; --on-b: #fff4ec; --gold: #c8a560;
   }
 }
 
@@ -70,7 +71,9 @@ b, strong { font-weight: 700; }
 header.top {
   position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
   display: flex; justify-content: space-between; align-items: center;
-  padding: 12px 16px; background: var(--bg);
+  padding: 12px 16px;
+  background: color-mix(in srgb, var(--bg) 78%, transparent);
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
 }
 .brand { font: 400 1.05rem var(--head); color: var(--ink); }
 .top-link { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--surface); color: var(--soft); }
@@ -246,3 +249,59 @@ tr:last-child td { border-bottom: 0; }
 .seg-mini input:checked + label { background: var(--surface); color: var(--ink); }
 .seg-mini input[value="like"]:checked + label { background: var(--a); color: var(--on-a); }
 .seg-mini input[value="dislike"]:checked + label { background: var(--b); color: var(--on-b); }
+
+/* Apothecary details: brass trim like medicine-drawer fronts, a 薬 seal, herb pattern on the hero tile. */
+[data-palette="apothecary"] body {
+  background:
+    radial-gradient(120% 60% at 50% -10%, color-mix(in srgb, var(--a) 9%, transparent), transparent 70%),
+    var(--bg);
+  background-attachment: fixed;
+}
+[data-palette="apothecary"] .brand { display: inline-flex; align-items: center; gap: 10px; }
+[data-palette="apothecary"] .brand::before {
+  content: "薬"; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px;
+  background: var(--b); color: var(--on-b); font: 700 1rem "Hiragino Mincho ProN", "Yu Mincho", serif;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--on-b) 25%, transparent);
+  transform: rotate(-4deg);
+}
+[data-palette="apothecary"] h1::after {
+  content: ""; display: block; width: 42px; height: 3px; margin-top: 10px; border-radius: 3px;
+  background: linear-gradient(90deg, var(--gold), transparent);
+}
+[data-palette="apothecary"] .card,
+[data-palette="apothecary"] .tile,
+[data-palette="apothecary"] .lp,
+[data-palette="apothecary"] .menu a,
+[data-palette="apothecary"] nav.bottom {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 20%, transparent);
+}
+[data-palette="apothecary"] nav.bottom {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 24%, transparent), 0 10px 30px -12px #000;
+}
+[data-palette="apothecary"] .tile.wide {
+  position: relative; overflow: hidden; isolation: isolate;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Cg fill='none' stroke='%23000' stroke-opacity='.10' stroke-width='1.4'%3E%3Cpath d='M8 40c8-14 22-20 34-18-4 12-18 22-34 18z'/%3E%3Cpath d='M8 40l26-14'/%3E%3Cpath d='M40 60c4-8 12-12 20-11-2 7-10 13-20 11z'/%3E%3C/g%3E%3C/svg%3E"),
+    linear-gradient(150deg, color-mix(in srgb, var(--a) 100%, #fff 6%), color-mix(in srgb, var(--a) 82%, #000));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 45%, transparent);
+}
+[data-palette="apothecary"] .tile.wide::before,
+[data-palette="apothecary"] .tile.wide::after {
+  content: ""; position: absolute; width: 18px; height: 18px; z-index: -1;
+  border: 2px solid color-mix(in srgb, var(--on-a) 35%, transparent);
+}
+[data-palette="apothecary"] .tile.wide::before { top: 9px; right: 9px; border-left: 0; border-bottom: 0; border-radius: 0 8px 0 0; }
+[data-palette="apothecary"] .tile.wide::after { bottom: 9px; left: 9px; border-right: 0; border-top: 0; border-radius: 0 0 0 8px; }
+[data-palette="apothecary"] .lp.now {
+  background: linear-gradient(135deg, var(--b), color-mix(in srgb, var(--b) 80%, #000));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 55%, transparent);
+}
+[data-palette="apothecary"] .status-pill.approved {
+  background: transparent; color: var(--b-ink); border: 2px solid var(--b); transform: rotate(-3deg);
+}
+[data-palette="apothecary"] .btn:not(.secondary):not(.danger) {
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, #000 22%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--gold) 35%, transparent);
+}
+[data-palette="apothecary"] .day-head h2::before { content: "❖ "; color: var(--gold); font-size: .8em; }
+[data-palette="apothecary"] .tile small,
+[data-palette="apothecary"] .lp .t { letter-spacing: .02em; }
