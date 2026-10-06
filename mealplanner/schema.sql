@@ -261,3 +261,13 @@ CREATE TABLE IF NOT EXISTS day_overrides (
     gym    INTEGER,
     away   INTEGER
 );
+
+CREATE TABLE IF NOT EXISTS water_log (
+    date TEXT PRIMARY KEY,
+    ml   INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS weight_log (
+    date TEXT PRIMARY KEY,
+    kg   REAL NOT NULL
+);

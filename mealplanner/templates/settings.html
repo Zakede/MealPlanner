@@ -1,5 +1,16 @@
 {% extends "base.html" %}
-{% block title %}Settings · Meal Planner{% endblock %}
+{% block title %}Settings · Meal Planner<div class="card" id="reset">
+  <h2>Backup &amp; reset</h2>
+  <p class="muted small">Download everything first if you might want it back. The backup leaves out your AI key.</p>
+  <a class="btn secondary wide" href="{{ url_for('track.backup') }}">Download backup</a>
+  <form method="post" action="{{ url_for('track.reset') }}" class="form" style="margin-top:14px">
+    <label>Type RESET to delete all plans, pantry, recipes you added, ratings and settings
+      <input name="confirm" autocomplete="off" placeholder="RESET"></label>
+    <label class="small" style="color:var(--ink)"><input type="checkbox" name="keep_key" checked>Keep my AI key</label>
+    <button class="btn danger wide">Reset everything</button>
+  </form>
+</div>
+{% endblock %}
 {% block content %}
 {% set imp = s.units == 'imperial' %}
 <h1>Settings</h1>
@@ -119,4 +130,15 @@
 
   <button class="btn wide" type="submit">Save</button>
 </form>
+<div class="card" id="reset">
+  <h2>Backup &amp; reset</h2>
+  <p class="muted small">Download everything first if you might want it back. The backup leaves out your AI key.</p>
+  <a class="btn secondary wide" href="{{ url_for('track.backup') }}">Download backup</a>
+  <form method="post" action="{{ url_for('track.reset') }}" class="form" style="margin-top:14px">
+    <label>Type RESET to delete all plans, pantry, recipes you added, ratings and settings
+      <input name="confirm" autocomplete="off" placeholder="RESET"></label>
+    <label class="small" style="color:var(--ink)"><input type="checkbox" name="keep_key" checked>Keep my AI key</label>
+    <button class="btn danger wide">Reset everything</button>
+  </form>
+</div>
 {% endblock %}

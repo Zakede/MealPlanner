@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Cook now · Meal Planner{% endblock %}
+{% block content %}
+<h1 class="rise">What can I make now?<span class="jp">今すぐ</span></h1>
+<p class="muted">Recipes your pantry covers for one serving. Ones that use food expiring soon come first.</p>
+{% if options %}
+<div class="keys">
+  {% for r, expiring in options %}
+  {% set slot = r.type_list[0] if r.type_list else 'dinner' %}
+  <a class="key {{ slot }}" href="{{ url_for('recipes.view', recipe_id=r.id) }}">
+    <span class="t">{{ r.active_min }} min{% if expiring %} · uses expiring{% endif %}</span>
+    <span class="n">{{ r.name }}</span>
+    <span class="k">{{ r.per_serving.kcal|round|int }} kcal · {{ r.per_serving.protein|round|int }} g</span>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card empty">
+  <p>Nothing can be made from the pantry alone yet. Scan a receipt or add what's in your fridge.</p>
+  <a class="btn" href="{{ url_for('receipts.upload') }}">Scan receipt</a>
+</div>
+{% endif %}
+{% endblock %}

@@ -10,12 +10,16 @@ import os
 import shutil
 import subprocess
 import tempfile
+import time
 
 from flask import current_app
 
 DEFAULT_MODEL = "opencode-go/deepseek-v4-flash"
 DEFAULT_VISION_MODEL = "opencode-go/deepseek-v4-flash-vision-exp"
-DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
+DEFAULT_GEMINI_MODEL = "gemini-3.8-flash"
+# tried in order when Google retires a model name
+GEMINI_FALLBACKS = ("gemini-3.8-flash", "gemini-flash-latest")
+RETRY_WAITS = (2, 5)
 
 
 class LLMError(Exception):
@@ -142,27 +146,39 @@ class GeminiProvider:
             with open(path, "rb") as f:
                 parts.append({"inline_data": {"mime_type": mime, "data": base64.b64encode(f.read()).decode()}})
         # "vision" model names belong to opencode; Gemini reads images with the same model
-        use = model if model and model.startswith("gemini") else self.model
-        body = json.dumps({"contents": [{"parts": parts}],
-                           "generationConfig": {"responseMimeType": "application/json", "temperature": 0.4}})
-        req = Request(self.API.format(model=use), data=body.encode(), method="POST",
-                      headers={"Content-Type": "application/json", "x-goog-api-key": self.key})
-        try:
-            with urlopen(req, timeout=self.timeout) as resp:
-                data = json.loads(resp.read().decode())
-        except HTTPError as e:
-            detail = e.read().decode(errors="replace")[:300]
-            if e.code in (400, 403) and "API key" in detail:
-                raise LLMError("the Gemini key was rejected. Check it in Settings")
-            if e.code == 429:
-                raise LLMError("Gemini's free limit is used up for now. Try again in a minute")
-            raise LLMError(f"Gemini error {e.code}")
-        except (URLError, TimeoutError) as e:
-            raise LLMError(f"couldn't reach Gemini ({e.__class__.__name__})")
-        try:
-            return "".join(p.get("text", "") for p in data["candidates"][0]["content"]["parts"]).strip()
-        except (KeyError, IndexError):
-            raise LLMError("Gemini sent an empty answer")
+        first = model if model and model.startswith("gemini") else self.model
+        models = [first] + [m for m in GEMINI_FALLBACKS if m != first]
+        body = json.dumps({"contents": [{"role": "user", "parts": parts}],
+                           "generationConfig": {"responseMimeType": "application/json", "temperature": 0.4}}).encode()
+        last_error = "no Gemini model answered"
+        for use in models:
+            for attempt in range(len(RETRY_WAITS) + 1):
+                req = Request(self.API.format(model=use), data=body, method="POST",
+                              headers={"Content-Type": "application/json", "x-goog-api-key": self.key})
+                try:
+                    with urlopen(req, timeout=self.timeout) as resp:
+                        data = json.loads(resp.read().decode())
+                except HTTPError as e:
+                    detail = e.read().decode(errors="replace")[:400]
+                    if e.code in (400, 401, 403) and ("API key" in detail or "PERMISSION" in detail):
+                        raise LLMError("the Gemini key was rejected. Check it in Settings")
+                    if e.code == 429:
+                        raise LLMError("Gemini's free limit is used up for now. Try again in a minute")
+                    if e.code == 404:
+                        last_error = f"model {use} isn't available"
+                        break  # try the next model name
+                    if e.code in (500, 502, 503, 504) and attempt < len(RETRY_WAITS):
+                        time.sleep(RETRY_WAITS[attempt])
+                        continue
+                    raise LLMError(f"Gemini is busy right now (error {e.code}). Try again in a minute"
+                                   if e.code >= 500 else f"Gemini error {e.code}")
+                except (URLError, TimeoutError) as e:
+                    raise LLMError(f"couldn't reach Gemini ({e.__class__.__name__})")
+                try:
+                    return "".join(p.get("text", "") for p in data["candidates"][0]["content"]["parts"]).strip()
+                except (KeyError, IndexError):
+                    raise LLMError("Gemini sent an empty answer")
+        raise LLMError(last_error)
 
 
 def gemini_key():

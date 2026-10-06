@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Progress · Meal Planner{% endblock %}
+{% block content %}
+<h1 class="rise">Progress<span class="jp">記録</span></h1>
+
+<div class="plate rise" style="--i:1">
+  <div>
+    <span class="lbl">Now · goal {{ goal }} kg</span>
+    <span class="num-big">{{ latest }}<small style="font: 700 1rem var(--text)"> kg</small></span>
+  </div>
+  {% if change is not none %}
+  <div class="stamp" style="border-color: var(--jade); color: var(--jade)">7日<b>{{ '%+.1f'|format(change) }} kg</b></div>
+  {% endif %}
+  <form method="post" class="bars" style="grid-template-columns: minmax(0, 1fr) auto; align-items: end">
+    <label class="lbl" for="kg">Today's weight</label><span></span>
+    <input id="kg" name="kg" type="number" step="0.1" inputmode="decimal" placeholder="{{ latest }}" required style="margin:0; background:#fff; color:var(--paper-ink); border-color:rgba(0,0,0,.12)">
+    <button class="btn jade">Log</button>
+  </form>
+</div>
+
+{% if raw %}
+<div class="card rise" style="--i:2">
+  <div class="line"><h2 style="margin:0">Last 90 days</h2><span class="muted small"><span style="color:var(--peony)">●</span> weigh-ins <span style="color:var(--jade)">━</span> 7-day average</span></div>
+  <svg viewBox="0 0 320 120" style="width:100%;height:auto;margin-top:8px" role="img" aria-label="Weight from {{ hi }} to {{ lo }} kg">
+    <line x1="10" y1="10" x2="310" y2="10" stroke="var(--line)" stroke-width="1"></line>
+    <line x1="10" y1="110" x2="310" y2="110" stroke="var(--line)" stroke-width="1"></line>
+    <text x="12" y="22" fill="var(--muted)" font-size="9">{{ hi }}</text>
+    <text x="12" y="106" fill="var(--muted)" font-size="9">{{ lo }}</text>
+    <polyline points="{{ raw }}" fill="none" stroke="var(--peony)" stroke-width="1.5" stroke-dasharray="2 3" opacity=".8"></polyline>
+    <polyline points="{{ trend }}" fill="none" stroke="var(--jade)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></polyline>
+  </svg>
+  <p class="muted small" style="margin:6px 0 0">Daily weight jumps with water and salt. Watch the green line.</p>
+</div>
+{% else %}
+<div class="card empty"><p>Log your weight a few mornings a week and a trend line shows up here.</p></div>
+{% endif %}
+
+<div class="card rise" style="--i:3">
+  <h2>Water this week</h2>
+  <div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;align-items:end;height:90px">
+    {% for d, ml in water_week %}
+    {% set h = [100, (ml * 100 // water_target)]|min %}
+    <div style="display:grid;gap:4px;justify-items:center;height:100%;align-content:end">
+      <div style="width:100%;height:{{ [h, 4]|max }}%;border-radius:6px;background:{{ 'var(--jade)' if ml >= water_target else 'var(--key)' }}" title="{{ ml }} ml"></div>
+      <span class="muted" style="font-size:.7rem">{{ d.strftime('%a')[:2] }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  <p class="muted small" style="margin:8px 0 0">Target {{ '%.1f'|format(water_target / 1000) }} L a day.</p>
+</div>
+
+{% if entries %}
+<div class="card">
+  <h2>Recent weigh-ins</h2>
+  <table>{% for d, kg in entries %}<tr><td>{{ d.strftime('%a %d %b') }}</td><td class="num">{{ kg }} kg</td></tr>{% endfor %}</table>
+</div>
+{% endif %}
+{% endblock %}

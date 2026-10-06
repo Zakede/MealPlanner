@@ -51,8 +51,24 @@
   {% endfor %}
 </div>
 
+<div class="tiles rise" style="--i:3">
+  <div class="tile">
+    <small>水 Water · {{ '%.1f'|format(water_ml / 1000) }} / {{ '%.1f'|format(water_target / 1000) }} L</small>
+    <div class="meter jade-fill"><i style="width: {{ [100, water_ml * 100 // water_target]|min }}%"></i></div>
+    <div style="display:flex;gap:6px">
+      <form method="post" action="{{ url_for('track.water') }}"><input type="hidden" name="change" value="minus"><button class="icon-btn" aria-label="Remove a glass">−</button></form>
+      <form method="post" action="{{ url_for('track.water') }}" style="flex:1"><button class="btn jade small" style="width:100%">+ Glass</button></form>
+    </div>
+  </div>
+  <a class="tile" href="{{ url_for('track.progress') }}">
+    <small>体重 Weight</small>
+    <span class="num-big">{{ last_weigh.kg if last_weigh else '—' }}<small> kg</small></span>
+    <small>{% if last_weigh %}{{ 'Weigh in today' if last_weigh.date != on.isoformat() else 'Logged today' }}{% else %}Tap to log{% endif %}</small>
+  </a>
+</div>
+
 {% if meals %}
-<div class="keys rise" style="--i:3">
+<div class="keys rise" style="--i:4">
   {% for m in meals %}
     {% set done = m.status in ('cooked', 'eaten', 'eaten_out', 'skipped') %}
     {% set tagname = 'a' if m.recipe_id else 'div' %}
@@ -67,7 +83,7 @@
 {% endif %}
 
 {% if reminders %}
-<div class="card rise" style="--i:4">
+<div class="card rise" style="--i:5">
   <h2>Heads up</h2>
   <ul class="list">{% for r in reminders %}<li class="small">{{ r }}</li>{% endfor %}</ul>
 </div>

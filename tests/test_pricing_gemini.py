@@ -88,7 +88,7 @@ def test_gemini_request_shape(tmp_path, monkeypatch):
     img.write_bytes(b"\xff\xd8jpeg")
     out = llm.GeminiProvider("secret").complete("read this", images=[str(img)], model="opencode-go/vision")
     assert out == '{"ok": true}'
-    assert "gemini-2.5-flash:generateContent" in sent["url"] and "secret" not in sent["url"]
+    assert "gemini-3.8-flash:generateContent" in sent["url"] and "secret" not in sent["url"]
     assert sent["headers"]["X-goog-api-key"] == "secret"
     parts = sent["body"]["contents"][0]["parts"]
     assert parts[0]["text"] == "read this" and parts[1]["inline_data"]["mime_type"] == "image/jpeg"

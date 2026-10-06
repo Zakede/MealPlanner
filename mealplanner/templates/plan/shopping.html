@@ -1,5 +1,18 @@
 {% extends "base.html" %}
 {% block title %}Shopping list · Meal Planner{% endblock %}
+{% block scripts %}
+<script>
+// Share to LINE etc. where the phone supports it, otherwise copy.
+document.getElementById("share").addEventListener("click", async (e) => {
+  const text = document.getElementById("share-text").value.trim();
+  try {
+    if (navigator.share) { await navigator.share({ text }); return; }
+    await navigator.clipboard.writeText(text);
+    e.target.textContent = "Copied";
+  } catch (err) { /* cancelled */ }
+});
+</script>
+{% endblock %}
 {% block content %}
 {% set wk = 'next' if is_next else None %}
 <h1>Shopping list</h1>
@@ -27,5 +40,11 @@
     {% endfor %}
   </ul>
 </div>
-<a class="btn secondary" href="{{ url_for('plan.week', week=wk) }}">Back to plan</a>
+<div class="actions">
+  <button class="btn jade" id="share" type="button">Share list</button>
+  <a class="btn secondary" href="{{ url_for('plan.week', week=wk) }}">Back to plan</a>
+</div>
+<textarea id="share-text" hidden>買い物リスト
+{% for i in items if not i.checked %}- {{ i.name }} {{ i.grams|int }} g
+{% endfor %}</textarea>
 {% endblock %}

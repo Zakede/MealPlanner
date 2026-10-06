@@ -322,3 +322,6 @@ details.meal > summary::-webkit-details-marker { display: none; }
   @keyframes fill { from { transform: scaleX(0); } }
   @keyframes print { from { opacity: 0; transform: translateY(-18px) rotate(-1deg); } }
 }
+
+.meter.jade-fill > i { background: var(--jade); }
+.tile .icon-btn { width: 38px; height: 38px; }

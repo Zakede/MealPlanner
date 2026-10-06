@@ -75,3 +75,22 @@ def execute(sql, args=()):
     cur = db.execute(sql, args)
     db.commit()
     return cur.lastrowid
+
+
+def reset_all(conn, keep_key=True):
+    """Wipe every table and start fresh with the built-in library. Optionally keep the AI key."""
+    key = ""
+    if keep_key:
+        row = conn.execute("SELECT gemini_key FROM settings WHERE id = 1").fetchone()
+        key = row[0] if row else ""
+    conn.execute("PRAGMA foreign_keys = OFF")
+    tables = [r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")]
+    for t in tables:
+        conn.execute(f"DROP TABLE IF EXISTS {t}")
+    conn.execute("PRAGMA user_version = 0")
+    conn.commit()
+    conn.execute("PRAGMA foreign_keys = ON")
+    init_db(conn)
+    if key:
+        conn.execute("UPDATE settings SET gemini_key = ? WHERE id = 1", (key,))
+        conn.commit()

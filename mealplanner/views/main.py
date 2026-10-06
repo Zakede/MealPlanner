@@ -6,6 +6,12 @@ from .. import plans, planner, store, today
 from ..db import query
 from ..nutrition import day_targets
 from ..schedule import minutes
+from .. import tracking
+
+
+def track_water(on):
+    row = query("SELECT ml FROM water_log WHERE date = ?", (on.isoformat(),), one=True)
+    return row["ml"] if row else 0
 
 bp = Blueprint("main", __name__)
 
@@ -73,6 +79,9 @@ def home():
         reminders=reminders(on, recipes_by_id),
         has_plan=plans.week_has_plan(first),
         today_override=plans.override(on),
+        water_ml=track_water(on),
+        water_target=tracking.water_target_ml(s["weight_kg"]),
+        last_weigh=query("SELECT * FROM weight_log ORDER BY date DESC LIMIT 1", one=True),
         day=plans.build_days([on])[on],
     )
 
