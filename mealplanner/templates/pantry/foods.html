@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Foods · Meal Planner{% endblock %}
+{% block content %}
+<h1>Food catalogue</h1>
+<p class="muted">Macros per 100 g. Price is the latest price paid, or the reference price if you haven't bought it yet.</p>
+<div class="actions"><a class="btn" href="{{ url_for('pantry.food_edit') }}">+ New food</a></div>
+<div class="card">
+  <table>
+    <tr><th>Food</th><th class="num">kcal</th><th class="num">P</th><th class="num">¥/100 g</th></tr>
+    {% for f in foods %}
+    <tr>
+      <td><a href="{{ url_for('pantry.food_edit', food_id=f.id) }}">{{ f.name }}</a></td>
+      <td class="num">{{ f.kcal|round|int }}</td>
+      <td class="num">{{ f.protein }}</td>
+      <td class="num">{{ f.current_price|round|int if f.current_price is not none else '—' }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

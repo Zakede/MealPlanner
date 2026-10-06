@@ -30,9 +30,9 @@ def create_app(config=None):
         conn.close()
     app.teardown_appcontext(db.close_db)
 
-    from .views import main, settings
-    app.register_blueprint(main.bp)
-    app.register_blueprint(settings.bp)
+    from .views import main, pantry, settings
+    for module in (main, settings, pantry):
+        app.register_blueprint(module.bp)
 
     @app.context_processor
     def nav():

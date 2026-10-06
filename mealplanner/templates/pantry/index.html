@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Pantry · Meal Planner{% endblock %}
+{% block content %}
+<h1>Pantry</h1>
+<div class="actions">
+  <a class="btn" href="{{ url_for('pantry.edit') }}">+ Add item</a>
+  <a class="btn secondary" href="{{ url_for('pantry.foods') }}">Food catalogue</a>
+</div>
+
+{% for loc, items in grouped.items() %}
+<div class="card">
+  <h2>{{ loc|capitalize }} <span class="muted">({{ items|length }})</span></h2>
+  {% if not items %}<p class="muted">Empty.</p>{% endif %}
+  <ul class="list">
+    {% for i in items %}
+    <li>
+      <div class="line">
+        <a href="{{ url_for('pantry.edit', item_id=i.id) }}"><b>{{ i.name }}</b></a>
+        <span>{{ '%g'|format(i.quantity) }} {{ i.unit }}</span>
+      </div>
+      <div>
+        {% if i.days_left is not none %}
+          {% if i.days_left < 0 %}<span class="chip hot">expired</span>
+          {% elif i.days_left <= 2 %}<span class="chip soon">{{ 'today' if i.days_left == 0 else i.days_left ~ 'd left' }}</span>
+          {% else %}<span class="chip">{{ i.expiry }}</span>{% endif %}
+        {% endif %}
+        <span class="chip">{{ i.kcal|round|int }} kcal · {{ i.protein }} g P /100 g</span>
+        {% if i.price_paid %}<span class="chip">¥{{ i.price_paid }}</span>{% endif %}
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endfor %}
+{% endblock %}

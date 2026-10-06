@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Pantry item · Meal Planner{% endblock %}
+{% block content %}
+<h1>{{ 'Edit item' if editing else 'Add to pantry' }}</h1>
+<form method="post" class="card form" id="pantry-form">
+  <label>Food
+    <input name="name" list="food-names" value="{{ item.name or '' }}" required autocomplete="off">
+    <datalist id="food-names">{% for f in foods %}<option value="{{ f.name }}">{% endfor %}</datalist>
+  </label>
+  <div class="row3">
+    <label>Quantity<input name="quantity" type="number" step="any" value="{{ item.quantity or '' }}" required></label>
+    <label>Unit
+      <select name="unit">{% for u in units %}<option {{ 'selected' if item.unit == u }}>{{ u }}</option>{% endfor %}</select>
+    </label>
+    <label>Price paid ¥<input name="price_paid" type="number" value="{{ item.price_paid or '' }}"></label>
+  </div>
+  <div class="row">
+    <label>Expiry<input name="expiry" type="date" value="{{ item.expiry or '' }}"></label>
+    <label>Location
+      <select name="location">{% for l in locations %}<option {{ 'selected' if item.location == l }}>{{ l }}</option>{% endfor %}</select>
+    </label>
+  </div>
+
+  <h2>Per 100 g</h2>
+  <p class="muted small">Filled in automatically for known foods. Check against the label.</p>
+  <div class="row4">
+    <label>kcal<input name="kcal" type="number" step="any" value="{{ item.kcal or '' }}"></label>
+    <label>Protein<input name="protein" type="number" step="any" value="{{ item.protein or '' }}"></label>
+    <label>Carbs<input name="carbs" type="number" step="any" value="{{ item.carbs or '' }}"></label>
+    <label>Fat<input name="fat" type="number" step="any" value="{{ item.fat or '' }}"></label>
+  </div>
+  <div class="row">
+    <label>Grams per piece<input name="piece_g" type="number" step="any" value="{{ item.piece_g or '' }}" placeholder="needed for pcs"></label>
+    <label>Allergens<input name="allergens" value="{{ item.allergens or '' }}" placeholder="egg, milk…"></label>
+  </div>
+  <button class="btn wide">Save</button>
+</form>
+{% if editing %}
+<form method="post" action="{{ url_for('pantry.delete', item_id=item.id) }}">
+  <button class="btn danger wide" data-confirm="Remove this item?">Remove</button>
+</form>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script>
+// Fill macros from the catalogue when a known food name is picked.
+(async () => {
+  const form = document.getElementById("pantry-form");
+  const foods = await (await fetch("{{ url_for('pantry.api_foods') }}")).json();
+  const byName = Object.fromEntries(foods.map(f => [f.name.toLowerCase(), f]));
+  form.name.addEventListener("change", () => {
+    const f = byName[form.name.value.trim().toLowerCase()];
+    if (!f) return;
+    for (const k of ["kcal", "protein", "carbs", "fat", "piece_g", "allergens"]) {
+      form[k].value = f[k] ?? "";
+    }
+  });
+})();
+</script>
+{% endblock %}

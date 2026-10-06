@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS settings (
     allergies          TEXT    NOT NULL DEFAULT '',
     dislikes           TEXT    NOT NULL DEFAULT '',
     units              TEXT    NOT NULL DEFAULT 'metric',
-    spice_tolerance    INTEGER NOT NULL DEFAULT 3,
+    spice_tolerance    INTEGER NOT NULL DEFAULT 4,
     flavor_likes       TEXT    NOT NULL DEFAULT '',
     cuisines_liked     TEXT    NOT NULL DEFAULT '',
     cuisines_tired     TEXT    NOT NULL DEFAULT ''
