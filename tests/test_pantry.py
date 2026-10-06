@@ -15,7 +15,8 @@ def test_add_item_records_price(app, client):
     assert b"Chicken breast" in resp.data
     with app.app_context():
         f = store.food_by_name("chicken breast")
-        assert round(f["current_price"], 1) == 79.6
+        # one purchase at 79.6/100 g pulls the 85 reference most of the way
+        assert 79.6 < f["current_price"] < 82 and f["price_source"] == "learned"
         items = store.pantry_items(store_today(app))
         assert items[0]["grams"] == 500 and items[0]["days_left"] == 2
 

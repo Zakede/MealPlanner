@@ -106,7 +106,15 @@ def eat_out():
 @bp.route("/spending")
 def spending():
     first, _ = budget.week_bounds(today())
-    return render_template("spending.html", sp=logbook.spending(first), changes=logbook.price_changes())
+    model = store.price_model()
+    from ..pricing import factor
+    prior = factor(store.settings())
+    names = {f["id"]: f for f in store.foods()}
+    learned = sorted(((names[fid], est) for fid, est in model["foods"].items()
+                      if est["source"] == "learned" and fid in names),
+                     key=lambda x: -x[1]["n_eff"])[:12]
+    return render_template("spending.html", sp=logbook.spending(first), changes=logbook.price_changes(),
+                           model=model, learned=learned, prior=prior)
 
 
 @bp.route("/workouts", methods=["GET", "POST"])

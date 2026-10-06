@@ -24,7 +24,8 @@ def test_reference_prices_follow_shop_but_paid_prices_win(app, client):
                                      "location": "fridge", "kcal": "105", "protein": "23.3", "carbs": "0", "fat": "1.9"})
     with app.app_context():
         paid = store.food_by_name("Chicken breast")
-        assert paid["current_price"] == pytest.approx(100) and not paid["estimated"]
+        # paid 100/100 g against a gyomu-adjusted 69.7: the estimate moves well past halfway toward 100
+        assert 85 < paid["current_price"] < 100 and not paid["estimated"]
 
 
 def test_currency_shows_in_pages(app, client):

@@ -58,7 +58,7 @@ def test_upload_review_and_save(app, client):
     with app.app_context():
         items = query("SELECT * FROM pantry_items")
         assert len(items) == 1 and items[0]["price_paid"] == 398 and items[0]["quantity"] == 520
-        assert round(store.food_by_name("Chicken breast")["current_price"], 1) == 76.5
+        assert 76.5 < store.food_by_name("Chicken breast")["current_price"] < 80
 
 
 def test_save_rejects_unknown_food(app, client):

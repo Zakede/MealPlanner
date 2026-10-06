@@ -44,33 +44,53 @@ FOOD_SELECT = """
 """
 
 
-def _priced(row, price_factor):
-    """Add current_price: what you paid last, else the reference price adjusted for where you shop."""
+def price_model():
+    """The fitted price model for this request (cached on flask.g)."""
+    from flask import g
+    s = settings()
+    sig = tuple(query("SELECT COUNT(*), MAX(id) FROM price_history", one=True)) +         (s.get("country"), s.get("area"), s.get("shop"), query("SELECT COUNT(*) FROM foods", one=True)[0])
+    if g.get("price_model_sig") != sig:
+        g.pop("price_model", None)
+        g.price_model_sig = sig
+    if "price_model" not in g:
+        from . import today as get_today
+        from .price_model import fit
+        from .pricing import COUNTRIES, country_code, factor
+        _, _, _, rate, level = COUNTRIES[country_code(s)]
+        scale = rate * level
+        foods_in = {r["id"]: {"base": r["price_per_100g"] * scale if r["price_per_100g"] is not None else None,
+                              "category": r["category"]}
+                    for r in query("SELECT id, price_per_100g, category FROM foods")}
+        obs = [(r["food_id"], r["price_per_100g"], r["recorded_on"]) for r in query(
+            "SELECT food_id, price_per_100g, recorded_on FROM price_history")]
+        g.price_model = fit(foods_in, obs, factor(s) / scale if scale else 1.0, get_today())
+    return g.price_model
+
+
+def _priced(row, model):
+    """Add current_price: the learned estimate for this food (receipts pull it toward what you pay)."""
     food = dict(row)
-    ref = food["price_per_100g"] * price_factor if food["price_per_100g"] is not None else None
-    food["estimated"] = food["paid_price"] is None
-    food["current_price"] = food["paid_price"] if food["paid_price"] is not None else ref
+    est = model["foods"].get(food["id"], {})
+    food["current_price"] = est.get("price")
+    food["price_source"] = est.get("source", "estimate")
+    food["estimated"] = est.get("source") != "learned"
+    food["price_trend"] = est.get("trend")
     return food
 
 
-def price_factor():
-    from .pricing import factor
-    return factor(settings())
-
-
 def foods():
-    f = price_factor()
-    return [_priced(r, f) for r in query(FOOD_SELECT + " ORDER BY f.name")]
+    m = price_model()
+    return [_priced(r, m) for r in query(FOOD_SELECT + " ORDER BY f.name")]
 
 
 def food(food_id):
     row = query(FOOD_SELECT + " WHERE f.id = ?", (food_id,), one=True)
-    return _priced(row, price_factor()) if row else None
+    return _priced(row, price_model()) if row else None
 
 
 def food_by_name(name):
     row = query(FOOD_SELECT + " WHERE f.name = ? COLLATE NOCASE", (name.strip(),), one=True)
-    return _priced(row, price_factor()) if row else None
+    return _priced(row, price_model()) if row else None
 
 
 def pantry_items(today):
@@ -104,9 +124,9 @@ def recipe_ingredients(recipe_id=None):
         ORDER BY ri.id
     """
     grouped = {}
-    f = price_factor()
+    m = price_model()
     for r in query(sql, (recipe_id,) if recipe_id else ()):
-        row = _priced(r, f)
+        row = _priced(r, m)
         row["price_per_100g"] = row["current_price"]
         grouped.setdefault(row["recipe_id"], []).append(row)
     return grouped

@@ -30,6 +30,25 @@
 <div class="card empty"><p>Nothing bought yet this week. Tap "Bought" on the shopping list to track it.</p></div>
 {% endif %}
 
+<div class="card">
+  <h2>What the app learned<span class="jp">学習</span></h2>
+  {% if model.observations %}
+  <p class="muted small">From {{ model.observations }} price{{ 's' if model.observations != 1 }} you paid. Recent ones count more.</p>
+  <div class="line" style="margin:8px 0"><span>Your prices overall</span>
+    {% set lvl = (model.global / prior - 1) * 100 if prior else 0 %}
+    <b class="{{ 'good' if lvl < 0 else 'bad' if lvl > 2 else '' }}">{{ '%+.0f'|format(lvl) }}% vs. expected</b></div>
+  <table>
+    <tr><th>Food</th><th class="num">Now</th><th class="num">Seen</th><th class="num">Trend</th></tr>
+    {% for f, est in learned %}
+    <tr><td>{{ f.name }}</td><td class="num">{{ cur }}{{ est.price|round|int }}/100 g</td><td class="num">{{ est.n }}×</td>
+      <td class="num {{ 'bad' if est.trend and est.trend > 0.02 else 'good' if est.trend and est.trend < -0.02 else 'muted' }}">{{ '%+.0f%%/mo'|format(est.trend * 100) if est.trend is not none else '—' }}</td></tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">Scan receipts or tap "Bought" on the shopping list. Each price you pay teaches the app what food really costs where you shop, including foods you haven't bought yet.</p>
+  {% endif %}
+</div>
+
 {% if changes %}
 <div class="card">
   <h2>Price changes</h2>
