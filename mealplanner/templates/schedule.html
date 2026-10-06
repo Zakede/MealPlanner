@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Schedule · Meal Planner{% endblock %}
+{% block content %}
+<h1>Weekly schedule</h1>
+<p class="muted">Used to pick quick meals on busy days and bigger cooks on free days.</p>
+<form method="post" class="form">
+  {% for d in days %}{% set p = 'd' ~ d.weekday ~ '_' %}
+  <details class="card" {{ 'open' if loop.first }}>
+    <summary><b>{{ names[d.weekday] }}</b>
+      <span class="chip">{{ d.effort }} effort</span>
+      {% if d.gym %}<span class="chip ok">gym</span>{% endif %}
+      {% if d.away %}<span class="chip soon">away</span>{% endif %}
+      <span class="chip">dinner within {{ d.limits.dinner.max_total }} min</span>
+    </summary>
+    <div class="row3" style="margin-top:10px">
+      <label>Wake<input type="time" name="{{ p }}wake" value="{{ d.wake }}"></label>
+      <label>Work from<input type="time" name="{{ p }}work_start" value="{{ d.work_start or '' }}"></label>
+      <label>Work until<input type="time" name="{{ p }}work_end" value="{{ d.work_end or '' }}"></label>
+    </div>
+    <div class="row3">
+      <label>Breakfast<input type="time" name="{{ p }}breakfast_time" value="{{ d.breakfast_time }}"></label>
+      <label>Lunch<input type="time" name="{{ p }}lunch_time" value="{{ d.lunch_time }}"></label>
+      <label>Dinner<input type="time" name="{{ p }}dinner_time" value="{{ d.dinner_time }}"></label>
+    </div>
+    <div class="row">
+      <label>Commute (min each way)<input type="number" name="{{ p }}commute_min" value="{{ d.commute_min }}"></label>
+      <label>Cooking effort
+        <select name="{{ p }}effort">
+          {% for value, label in efforts %}<option value="{{ value }}" {{ 'selected' if d.effort == value }}>{{ label }}</option>{% endfor %}
+        </select>
+      </label>
+    </div>
+    <p class="small">
+      <label style="display:inline"><input type="checkbox" name="{{ p }}gym" {{ 'checked' if d.gym }}>Gym day</label>
+      <label style="display:inline"><input type="checkbox" name="{{ p }}away" {{ 'checked' if d.away }}>Away all day</label>
+    </p>
+  </details>
+  {% endfor %}
+  <button class="btn wide">Save schedule</button>
+</form>
+{% endblock %}
