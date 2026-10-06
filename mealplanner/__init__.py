@@ -20,6 +20,7 @@ def create_app(config=None):
         SECRET_KEY=os.environ.get("MEALPLANNER_SECRET", "dev-only-change-me"),
         DATABASE=os.environ.get("MEALPLANNER_DB", str(Path(app.instance_path) / "mealplanner.db")),
         TODAY=os.environ.get("MEALPLANNER_TODAY"),
+        NOW=os.environ.get("MEALPLANNER_NOW"),
     )
     if config:
         app.config.update(config)
@@ -30,8 +31,8 @@ def create_app(config=None):
         conn.close()
     app.teardown_appcontext(db.close_db)
 
-    from .views import main, pantry, recipes, schedule, settings
-    for module in (main, settings, pantry, recipes, schedule):
+    from .views import main, pantry, plan, recipes, schedule, settings
+    for module in (main, settings, pantry, recipes, schedule, plan):
         app.register_blueprint(module.bp)
 
     @app.context_processor

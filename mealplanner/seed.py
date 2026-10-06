@@ -103,6 +103,21 @@ RECIPES = [
      [("Canned mackerel", 100), ("Cooked rice", 150), ("Cabbage", 80), ("Soy sauce", 5)],
      "Shred the cabbage.\n"
      "Flake the mackerel over warm rice with the cabbage and a splash of soy sauce."),
+    ("Salad chicken kimchi rice", 3, 3, 1, "spicy,quick", 1, 0,
+     "lunch", "korean", 0, 1,
+     [("Salad chicken", 110), ("Cooked rice", 180), ("Kimchi", 50), ("Lettuce", 30)],
+     "Pack rice in a container, slice the salad chicken on top, kimchi and lettuce in a separate cup."),
+    ("Tuna onigiri & boiled eggs", 10, 10, 1, "savory", 0, 0,
+     "lunch", "japanese", 0, 1,
+     [("Cooked rice", 200), ("Canned tuna", 70), ("Egg", 120), ("Soy sauce", 5)],
+     "Mix drained tuna with soy sauce.\n"
+     "Shape two onigiri around the tuna with wet, salted hands.\n"
+     "Pack with two boiled eggs (boil a batch ahead)."),
+    ("Tofu & cabbage protein box", 5, 5, 1, "savory,crunchy", 0, 0,
+     "lunch", "japanese", 0, 1,
+     [("Firm tofu", 200), ("Cooked rice", 150), ("Cabbage", 80), ("Soy sauce", 10), ("Sesame oil", 3)],
+     "Cube the tofu, shred the cabbage.\n"
+     "Pack over rice, dress with soy sauce and sesame oil just before eating."),
     ("Greek yogurt oat bowl", 2, 2, 1, "sweet", 0, 0,
      "breakfast", "", 0, 1,
      [("Greek yogurt", 200), ("Oats", 40), ("Banana", 100)],
@@ -175,6 +190,38 @@ BOOSTERS = [
 ]
 
 
+# chain, item, kcal, protein, yen (approximate, check the label in store)
+QUICK_PICKS = [
+    ("Konbini", "Salad chicken (plain)", 115, 24.0, 298),
+    ("Konbini", "Salad chicken bar", 70, 12.0, 168),
+    ("Konbini", "Boiled egg", 80, 6.5, 98),
+    ("Konbini", "Greek yogurt cup", 92, 10.3, 170),
+    ("Konbini", "Milk protein drink", 102, 15.0, 160),
+    ("Konbini", "Tofu bar", 120, 12.0, 150),
+    ("Konbini", "Salmon onigiri", 180, 4.5, 180),
+    ("Konbini", "Cold soba with chicken", 320, 15.0, 450),
+    ("Konbini", "Edamame cup", 130, 11.0, 200),
+    ("Konbini", "Green salad", 30, 1.5, 250),
+    ("McDonald's", "Hamburger", 256, 12.8, 200),
+    ("McDonald's", "Cheeseburger", 307, 15.8, 230),
+    ("McDonald's", "Double cheeseburger", 457, 26.5, 430),
+    ("McDonald's", "Chicken McNuggets (5)", 270, 15.9, 290),
+    ("McDonald's", "Egg McMuffin", 311, 19.2, 250),
+    ("McDonald's", "Side salad", 10, 0.7, 310),
+]
+
+# craving, swap, kcal before, kcal after, note
+CRAVING_SWAPS = [
+    ("Potato chips", "Light popcorn or rice crackers", 336, 100, "Same crunch, a third of the calories"),
+    ("Ice cream", "Frozen Greek yogurt with banana", 250, 140, "Freeze the cup for an hour"),
+    ("Chocolate", "Cocoa protein shake", 280, 130, "Protein powder + cocoa + milk"),
+    ("Karaage", "Air-fried chicken breast with chili crisp", 450, 260, ""),
+    ("Instant ramen", "Half buldak, half shirataki", 530, 290, "Keeps the sauce, halves the noodles"),
+    ("Soda", "Zero cola or sparkling water", 140, 0, ""),
+    ("Pizza", "Cheese toast with vegetables", 700, 330, ""),
+]
+
+
 def _empty(conn, table):
     return conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] == 0
 
@@ -207,6 +254,12 @@ def seed(conn):
                 "INSERT INTO recipe_ingredients (recipe_id, food_id, grams) VALUES (?, ?, ?)",
                 [(cur.lastrowid, food_ids[f.lower()], g) for f, g in ingredients],
             )
+    if _empty(conn, "quick_picks"):
+        conn.executemany("INSERT INTO quick_picks (chain, item, kcal, protein, yen) VALUES (?, ?, ?, ?, ?)",
+                         QUICK_PICKS)
+    if _empty(conn, "craving_swaps"):
+        conn.executemany("INSERT INTO craving_swaps (craving, swap, kcal_from, kcal_to, note) VALUES (?, ?, ?, ?, ?)",
+                         CRAVING_SWAPS)
     if _empty(conn, "flavor_boosters"):
         food_ids = {r[1].lower(): r[0] for r in conn.execute("SELECT id, name FROM foods")}
         conn.executemany(

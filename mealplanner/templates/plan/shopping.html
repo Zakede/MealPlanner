@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Shopping list · Meal Planner{% endblock %}
+{% block content %}
+{% set wk = 'next' if is_next else None %}
+<h1>Shopping list</h1>
+{% include "_budget.html" %}
+<div class="card">
+  <div class="line"><b>Estimated ¥{{ '{:,}'.format(total|int) }}</b>
+    <span class="{{ 'bad' if total > budget.remaining else 'good' }} small">
+      {{ 'more than' if total > budget.remaining else 'within' }} the ¥{{ '{:,}'.format(budget.remaining) }} left</span></div>
+  <p class="muted small">Tap "Bought" to move an item into the pantry. Enter what you actually paid to keep prices accurate.</p>
+  {% if not items %}<p class="muted">Nothing to buy. Approve a plan, or everything is already in the pantry.</p>{% endif %}
+  <ul class="list">
+    {% for i in items %}
+    <li>
+      <div class="line">
+        <span>{% if i.checked %}<s class="muted">{{ i.name }}</s>{% else %}<b>{{ i.name }}</b>{% endif %}<br>
+          <span class="muted small">{{ i.grams|int }} g{% if i.piece_g %} (about {{ ((i.grams / i.piece_g) + 0.49)|round|int }} pcs){% endif %} · est. ¥{{ i.est_cost|int }}</span></span>
+        {% if not i.checked %}
+        <form class="inline" method="post" action="{{ url_for('plan.bought', item_id=i.id, week=wk) }}" style="display:flex;gap:6px;align-items:center">
+          <input name="price" inputmode="numeric" placeholder="¥{{ i.est_cost|int }}" style="width:80px;margin:0">
+          <button class="btn small">Bought</button>
+        </form>
+        {% else %}<span class="chip ok">in pantry</span>{% endif %}
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+<a class="btn secondary" href="{{ url_for('plan.week', week=wk) }}">Back to plan</a>
+{% endblock %}

@@ -75,7 +75,10 @@ def display_values(s):
 
 
 def on_settings_changed():
-    """Hook for re-planning the current week; filled in once the planner exists."""
+    """Changing any setting re-plans the rest of the current week."""
+    from ..plans import replan_if_planned
+    if replan_if_planned():
+        flash("This week's plan was updated to match.", "ok")
 
 
 @bp.route("/", methods=["GET", "POST"])
