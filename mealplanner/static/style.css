@@ -5,7 +5,7 @@
 @font-face { font-family: "Zen Maru Gothic"; font-weight: 700; src: url("fonts/zen-maru-gothic-700-latin.woff2") format("woff2"); font-display: swap; }
 
 :root {
-  /* dark: OLED black with wisteria (藤色) */
+  /* dark: OLED black with wisteria */
   --body: #000;
   --glow: radial-gradient(70% 40% at 15% 0%, rgba(184, 161, 238, .10), transparent 65%);
   --panel: #0c0b10;

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Taste boosters · Meal Planner{% endblock %}
 {% block content %}
-<h1>Taste boosters<span class="jp">味変</span></h1>
+<h1>Taste boosters</h1>
 <p class="muted">Big flavour, few calories. Tap + to put one on this week's shopping list.</p>
 
 <div class="actions boost-jump">
@@ -11,13 +11,13 @@
 
 {% for sec in guide if sec['items'] %}
 <section class="card boost-sec" id="{{ sec.key }}">
-  <h2>{{ sec.title }}<span class="jp">{{ sec.jp }}</span></h2>
+  <h2>{{ sec.title }}</h2>
   <p class="muted small">{{ sec.blurb }}</p>
   <ul class="boost-list">
     {% for b in sec['items'] %}
     <li class="boost">
       <div class="boost-main">
-        <b>{{ b.name }}</b> <span class="jp-name">{{ b.jp }}</span>
+        <b>{{ b.name }}</b>
         <span class="boost-use">{{ b.use }}</span>
         <span class="boost-meta"><span class="tag">{{ b.kcal }} kcal / {{ b.serving }}</span><span class="tag soft">{{ b.where }}</span></span>
       </div>
@@ -38,7 +38,7 @@
 {% if hidden %}<p class="muted small">{{ hidden }} hidden because of your allergies.</p>{% endif %}
 
 <section class="card" id="planner">
-  <h2>Added by the planner<span class="jp">自動</span></h2>
+  <h2>Added by the planner</h2>
   <p class="muted small">Put on plain or bland-rated meals automatically.</p>
   <ul class="list">
     {% for b in boosters %}

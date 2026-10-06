@@ -79,4 +79,4 @@ def test_shopping_preview_from_draft(profile, client):
 
 def test_shop_in_bottom_bar(profile, client):
     client.post("/plan/generate")
-    assert "買物" in client.get("/").data.decode()
+    assert "<span>Shop</span>" in client.get("/").data.decode()

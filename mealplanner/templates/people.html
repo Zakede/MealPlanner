@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Who's eating? · Meal Planner{% endblock %}
 {% block content %}
-<h1 class="rise" style="margin-top:6vh">Who's eating?<span class="jp">誰の献立</span></h1>
+<h1 class="rise" style="margin-top:6vh">Who's eating?</h1>
 <div class="keys">
   {% for p in everyone %}
   <form method="post" action="{{ url_for('people.use', pid=p.id) }}" style="display:contents">

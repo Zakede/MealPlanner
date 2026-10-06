@@ -3,7 +3,7 @@
 {% block content %}
 <h1>{{ food.name or 'New food' }}</h1>
 <form method="post" class="card form" id="food-form">
-  <label>Name<input name="name" value="{{ food.name or request.args.get('name', '') }}" required placeholder="e.g. ground beef, 豚ひき肉"></label>
+  <label>Name<input name="name" value="{{ food.name or request.args.get('name', '') }}" required placeholder="e.g. ground beef"></label>
   <div class="guess-row">
     <button type="button" class="btn secondary small" data-guess>✦ Fill in for me</button>
     <span class="muted small" data-guess-status>No idea of the numbers? Tap this, or just save: blanks get estimated.</span>

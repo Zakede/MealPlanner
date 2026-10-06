@@ -2,7 +2,7 @@
 {% block title %}Shopping list · Meal Planner{% endblock %}
 {% block content %}
 {% set wk = 'next' if is_next else None %}
-<h1 class="rise">Shopping list<span class="jp">買い物</span></h1>
+<h1 class="rise">Shopping list</h1>
 <div class="actions">
   <a class="chip {{ 'ok' if not is_next }}" href="{{ url_for('plan.shopping') }}">This week</a>
   <a class="chip {{ 'ok' if is_next }}" href="{{ url_for('plan.shopping', week='next') }}">Next week</a>
@@ -10,7 +10,7 @@
 
 {% if not has_plan %}
 <div class="card empty"><p>Plan the week and this fills in with exactly what to buy, inside your budget.</p>
-  <form method="post" action="{{ url_for('plan.generate', week=wk) }}"><button class="btn">献立 Plan my week</button></form></div>
+  <form method="post" action="{{ url_for('plan.generate', week=wk) }}"><button class="btn">Plan my week</button></form></div>
 {% else %}
 {% set left = budget.remaining - budget.reserved %}
 <div class="plate rise" style="--i:1">
@@ -18,7 +18,7 @@
     <span class="lbl">{{ count }} item{{ 's' if count != 1 }} to buy · estimated</span>
     <span class="num-big" style="font-size:2.4rem">{{ cur }}{{ '{:,}'.format(total|int) }}</span>
   </div>
-  <div class="stamp {{ 'over' if total > left }}">{{ '予算内' if total <= left else '予算超' }}<b>{{ 'fits' if total <= left else 'over' }}</b></div>
+  <div class="stamp {{ 'over' if total > left }}">Budget<b>{{ 'fits' if total <= left else 'over' }}</b></div>
   <div class="bars">
     <div class="bar-row">
       <div class="line"><span>Budget left for food</span><span>{{ cur }}{{ '{:,}'.format(left) }}</span></div>
@@ -30,7 +30,7 @@
 {% if preview %}
 <div class="card callout">
   <b>From your draft plan.</b> <span class="muted small">Approve the week to lock it in, then tick things off as you buy them.</span>
-  <form method="post" action="{{ url_for('plan.approve', week=wk) }}" style="margin-top:10px"><button class="btn wide">承認 Approve week</button></form>
+  <form method="post" action="{{ url_for('plan.approve', week=wk) }}" style="margin-top:10px"><button class="btn wide">Approve week</button></form>
 </div>
 {% endif %}
 
@@ -101,7 +101,7 @@
   <button class="btn" id="share" type="button">Share list</button>
   <a class="btn secondary" href="{{ url_for('plan.week', week=wk) }}">Back to plan</a>
 </div>
-<textarea id="share-text" hidden>買い物リスト
+<textarea id="share-text" hidden>Shopping list
 {% for title, rows in sections %}{% for i in rows if not i.checked %}- {{ i.name }} {{ i.buy }}
 {% endfor %}{% endfor %}{% for e in extras if not e.checked %}- {{ e.name }} {{ e.amount }}
 {% endfor %}</textarea>

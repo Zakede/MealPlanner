@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ on.strftime('%A') }} · Meal Planner{% endblock %}
 {% block content %}
-<h1>{{ on.strftime('%A') }}<span class="jp">{{ on.month }}月{{ on.day }}日</span></h1>
+<h1>{{ on.strftime('%A') }}</h1>
 <p class="muted">Tell the app what this day looks like. This day and the rest of the week re-plan around it.</p>
 {% if target %}<div class="plate"><div><span class="lbl">Target for this day</span><span class="num-big" style="font-size:2.2rem">{{ target.kcal_target }}<small style="font: 700 .9rem var(--text)"> kcal · {{ target.protein_target }} g protein</small></span></div></div>{% endif %}
 

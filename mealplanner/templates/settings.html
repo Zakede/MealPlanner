@@ -1,6 +1,8 @@
 {% extends "base.html" %}
-{% block title %}Settings · Meal Planner<div class="card" id="profile">
-  <h2>Profile<span class="jp">{{ me.name }}</span></h2>
+{% block title %}Settings · Meal Planner{% endblock %}
+{% block content %}
+<div class="card" id="profile">
+  <h2>Profile</h2>
   <form method="post" action="{{ url_for('people.rename', pid=me.id) }}" class="form chip-entry">
     <input name="name" value="{{ me.name }}" maxlength="30" aria-label="Profile name">
     <button class="btn small secondary">Rename</button>
@@ -49,8 +51,7 @@
   </form>
 </div>
 <datalist id="food-suggest">{% for f in food_names %}<option value="{{ f }}">{% endfor %}</datalist>
-{% endblock %}
-{% block content %}
+
 {% set imp = s.units == 'imperial' %}
 <h1>Settings</h1>
 
@@ -184,7 +185,7 @@
   <button class="btn wide" type="submit">Save</button>
 </form>
 <div class="card" id="profile">
-  <h2>Profile<span class="jp">{{ me.name }}</span></h2>
+  <h2>Profile</h2>
   <form method="post" action="{{ url_for('people.rename', pid=me.id) }}" class="form chip-entry">
     <input name="name" value="{{ me.name }}" maxlength="30" aria-label="Profile name">
     <button class="btn small secondary">Rename</button>

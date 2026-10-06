@@ -5,7 +5,7 @@
 {% set k_left = kcal_target - kcal_eaten %}
 {% set p_left = protein_target - protein_eaten %}
 <div class="line rise">
-  <h1 style="margin:0">{{ on.strftime('%A') }}<span class="jp">{{ on.month }}月{{ on.day }}日</span></h1>
+  <h1 style="margin:0">{{ on.strftime('%A') }}</h1>
   <a class="btn" href="{{ url_for('foodlog.page') }}">+ Log food</a>
 </div>
 
@@ -20,10 +20,10 @@
 
 <div class="plate rise" style="--i:2">
   <div>
-    <span class="lbl">残り · kcal left</span>
+    <span class="lbl">kcal left</span>
     <span class="num-big {{ 'bad' if k_left < 0 }}">{{ k_left }}</span>
   </div>
-  <a class="stamp {{ 'over' if budget.over }}" href="{{ url_for('extras.spending') }}" aria-label="Budget left this week">残高<b>{{ cur }}{{ '{:,}'.format(budget.remaining) }}</b></a>
+  <a class="stamp {{ 'over' if budget.over }}" href="{{ url_for('extras.spending') }}" aria-label="Budget left this week">Left<b>{{ cur }}{{ '{:,}'.format(budget.remaining) }}</b></a>
   <div class="bars">
     <div class="bar-row">
       <div class="line"><span>Protein</span><span>{{ protein_eaten }} / {{ protein_target }} g{% if p_left > 0 %} · {{ p_left }} to go{% endif %}</span></div>
@@ -38,11 +38,11 @@
 
 {% if next_meal %}
 <div class="ticket">
-  <div class="top-row"><span>次 · {{ next_meal.slot|capitalize }}</span><span>{{ next_meal.eat_time or '' }}{% if start_at %} · start {{ start_at }}{% endif %}</span></div>
+  <div class="top-row"><span>Next · {{ next_meal.slot|capitalize }}</span><span>{{ next_meal.eat_time or '' }}{% if start_at %} · start {{ start_at }}{% endif %}</span></div>
   <span class="meal-name">{{ next_meal.title }}</span>
   <div class="row-end">
     <span>{{ next_meal.kcal|round|int }} kcal · {{ next_meal.protein|round|int }} g</span>
-    {% if next_meal.recipe_id %}<a class="btn" href="{{ url_for('cook.cook', meal_id=next_meal.id) }}">{{ '作る Cook' if next_meal.kind == 'cook' else '食べる Eat' }}</a>{% endif %}
+    {% if next_meal.recipe_id %}<a class="btn" href="{{ url_for('cook.cook', meal_id=next_meal.id) }}">{{ 'Cook' if next_meal.kind == 'cook' else 'Eat' }}</a>{% endif %}
   </div>
 </div>
 {% elif not has_plan %}
@@ -50,7 +50,7 @@
   <div class="top-row"><span>No plan yet</span></div>
   <span class="meal-name">Plan your week</span>
   <div class="row-end"><span>Takes a second</span>
-    <form method="post" action="{{ url_for('plan.generate') }}"><button class="btn">献立 Plan</button></form></div>
+    <form method="post" action="{{ url_for('plan.generate') }}"><button class="btn">Plan my week</button></form></div>
 </div>
 {% else %}
 <div class="ticket"><div class="top-row"><span>All done</span></div><span class="meal-name">Nothing left today</span></div>
@@ -75,7 +75,7 @@
       <span class="t">{{ m.eat_time or m.slot }}{{ ' ✓' if done and m.status != 'skipped' }}{{ ' · skipped' if m.status == 'skipped' }}</span>
       <span class="n">{{ m.title }}</span>
       <span class="k">{{ m.kcal|round|int }} kcal · {{ m.protein|round|int }} g</span>
-      {% if m.kind == 'leftover' %}<span class="badge">残り物</span>{% endif %}
+      {% if m.kind == 'leftover' %}<span class="badge">leftover</span>{% endif %}
     </{{ tagname }}>
   {% endfor %}
   {% for e in extras %}
@@ -103,7 +103,7 @@
 
 <div class="tiles rise" style="--i:6">
   <div class="tile">
-    <small>水 Water · {{ '%.1f'|format(water_ml / 1000) }} / {{ '%.1f'|format(water_target / 1000) }} L</small>
+    <small>Water · {{ '%.1f'|format(water_ml / 1000) }} / {{ '%.1f'|format(water_target / 1000) }} L</small>
     <div class="meter jade-fill"><i style="width: {{ [100, water_ml * 100 // water_target]|min }}%"></i></div>
     <div style="display:flex;gap:6px">
       <form method="post" action="{{ url_for('track.water') }}"><input type="hidden" name="change" value="minus"><button class="icon-btn" aria-label="Remove a glass">−</button></form>
@@ -111,7 +111,7 @@
     </div>
   </div>
   <a class="tile" href="{{ url_for('track.progress') }}">
-    <small>体重 Weight</small>
+    <small>Weight</small>
     <span class="num-big">{{ last_weigh.kg if last_weigh else '—' }}<small> kg</small></span>
     <small>{% if last_weigh %}{{ 'Weigh in today' if last_weigh.date != on.isoformat() else 'Logged today' }}{% else %}Tap to log{% endif %}</small>
   </a>

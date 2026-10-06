@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Progress · Meal Planner{% endblock %}
 {% block content %}
-<h1 class="rise">Progress<span class="jp">記録</span></h1>
+<h1 class="rise">Progress</h1>
 
 <div class="plate rise" style="--i:1">
   <div>
@@ -9,7 +9,7 @@
     <span class="num-big">{{ latest }}<small style="font: 700 1rem var(--text)"> kg</small></span>
   </div>
   {% if change is not none %}
-  <div class="stamp" style="border-color: var(--jade); color: var(--jade)">7日<b>{{ '%+.1f'|format(change) }} kg</b></div>
+  <div class="stamp" style="border-color: var(--jade); color: var(--jade)">7 days<b>{{ '%+.1f'|format(change) }} kg</b></div>
   {% endif %}
   <form method="post" class="bars" style="grid-template-columns: minmax(0, 1fr) auto; align-items: end">
     <label class="lbl" for="kg">Today's weight</label><span></span>

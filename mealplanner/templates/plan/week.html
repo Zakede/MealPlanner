@@ -1,10 +1,11 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 {% block title %}Plan · Meal Planner{% endblock %}
 {% block content %}
 {% set wk = 'next' if is_next else None %}
 <div class="line rise" style="margin-bottom:12px">
-  <h1 style="margin:0">{{ 'Next week' if is_next else 'This week' }}<span class="jp">献立</span></h1>
-  {% if has_plan %}<span class="status-pill {{ 'approved' if not drafts }}">{{ '下書き Draft' if drafts else '承認 Approved' }}</span>{% endif %}
+  <h1 style="margin:0">{{ 'Next week' if is_next else 'This week' }}</h1>
+  {% if has_plan %}<span class="status-pill {{ 'approved' if not drafts }}">{{ 'Draft' if drafts else 'Approved' }}</span>{% endif %}
 </div>
 <div class="actions">
   <a class="chip {{ 'ok' if not is_next }}" href="{{ url_for('plan.week') }}">This week</a>
@@ -18,17 +19,17 @@
   <div class="card empty">
     <h2>Nothing planned yet</h2>
     <p>Uses your pantry first and stays inside your budget.</p>
-    <form method="post" action="{{ url_for('plan.generate', week=wk) }}"><button class="btn">献立 Plan my week</button></form>
+    <form method="post" action="{{ url_for('plan.generate', week=wk) }}"><button class="btn">Plan my week</button></form>
   </div>
 {% else %}
   <div class="plate rise" style="--i:1">
     <div><span class="lbl">Still to buy</span><span class="num-big" style="font-size:2rem">{{ cur }}{{ '{:,}'.format(budget.planned) }}</span></div>
-    <a class="stamp {{ 'over' if budget.over }}" href="{{ url_for('extras.spending') }}">残高<b>{{ cur }}{{ '{:,}'.format(budget.remaining) }}</b></a>
+    <a class="stamp {{ 'over' if budget.over }}" href="{{ url_for('extras.spending') }}">Left<b>{{ cur }}{{ '{:,}'.format(budget.remaining) }}</b></a>
   </div>
 
   <div class="actions">
-    {% if drafts %}<form method="post" action="{{ url_for('plan.approve', week=wk) }}"><button class="btn">承認 Approve{% if flagged %} + swap {{ flagged }}{% endif %}</button></form>
-    {% else %}<a class="btn jade" href="{{ url_for('plan.shopping', week=wk) }}">買い物 Shopping list</a>{% endif %}
+    {% if drafts %}<form method="post" action="{{ url_for('plan.approve', week=wk) }}"><button class="btn">Approve{% if flagged %} + swap {{ flagged }}{% endif %}</button></form>
+    {% else %}<a class="btn jade" href="{{ url_for('plan.shopping', week=wk) }}">Shopping list</a>{% endif %}
     {% if flagged %}<form method="post" action="{{ url_for('plan.replace', week=wk) }}"><button class="btn gold">Swap {{ flagged }} now</button></form>{% endif %}
     <form method="post" action="{{ url_for('plan.generate', week=wk) }}"><button class="btn secondary" data-confirm="Re-plan the rest of the week?">Re-plan</button></form>
   </div>
@@ -48,10 +49,10 @@
     </div>
     <div class="day-info">
       {% set i = d.info %}
-      {% set marks = {'work': '仕', 'school': '学', 'parttime': 'バ', 'club': '部', 'gym': '運', 'other': '他'} %}
+      {% set marks = {'work': 'desk', 'school': 'school', 'parttime': 'store', 'club': 'star', 'gym': 'dumbbell', 'other': 'spark'} %}
       {% for b in i.blocks %}
       <span class="act k-{{ b.kind }}">
-        <i class="act-mark">{{ marks.get(b.kind, '他') }}</i>
+        <i class="act-mark">{{ icon(marks.get(b.kind, 'spark')) }}</i>
         <span><b>{{ b.label }}</b> {{ b.start }}–{{ b.end }}{% if b.intensity != 'desk' and b.kind != 'gym' %} · {{ {'standing': 'on feet', 'physical': 'physical'}[b.intensity] }}{% endif %}{% if b.weekly %} <span class="act-rep" title="Every week">↻</span>{% endif %}</span>
         {% if b.id %}
         <form method="post" action="{{ url_for('plan.remove_activity', activity_id=b.id) }}"><input type="hidden" name="date" value="{{ d.date.isoformat() }}"><button class="act-x" aria-label="Remove {{ b.label }}{{ ' this day' if b.weekly }}">×</button></form>
@@ -69,7 +70,7 @@
       <input type="hidden" name="week" value="{{ wk or '' }}">
       <div class="act-kinds">
         {% for k, label in kinds.items() %}
-        <label><input type="radio" name="kind" value="{{ k }}" {{ 'checked' if loop.first }}><span><i>{{ marks[k] }}</i>{{ label }}</span></label>
+        <label><input type="radio" name="kind" value="{{ k }}" {{ 'checked' if loop.first }}><span><i>{{ icon(marks[k]) }}</i>{{ label }}</span></label>
         {% endfor %}
       </div>
       <input name="label" maxlength="40" placeholder="Name it (optional): Calculus, konbini shift, band practice…" aria-label="Name">
@@ -94,12 +95,12 @@
         {% set done = m.status in ('cooked', 'eaten', 'eaten_out', 'skipped') %}
         {% set tagname = 'a' if m.recipe_id else 'div' %}
         <{{ tagname }} class="key {{ m.slot }} {{ 'done' if done }} {{ 'flagged' if m.replace_flag }}"{% if m.recipe_id %} href="{{ url_for('cook.cook', meal_id=m.id) }}"{% endif %}>
-          <span class="t">{{ {'breakfast': '朝', 'lunch': '昼', 'dinner': '夜', 'snack': '間食'}[m.slot] }} {{ m.eat_time or '' }}</span>
+          <span class="t">{{ {'breakfast': 'Breakfast', 'lunch': 'Lunch', 'dinner': 'Dinner', 'snack': 'Snack'}[m.slot] }} {{ m.eat_time or '' }}</span>
           <span class="n">{{ m.title }}</span>
           <span class="k">{{ m.kcal|round|int }} kcal</span>
-          {% if m.replace_flag %}<span class="badge">替</span>
-          {% elif m.kind == 'leftover' %}<span class="badge">残</span>
-          {% elif m.kind in ('eat_out', 'konbini') %}<span class="badge">外</span>
+          {% if m.replace_flag %}<span class="badge">swap</span>
+          {% elif m.kind == 'leftover' %}<span class="badge">leftover</span>
+          {% elif m.kind in ('eat_out', 'konbini') %}<span class="badge">out</span>
           {% elif m.cook_portions > m.portion and m.kind == 'cook' %}<span class="badge">×{{ '%g'|format(m.cook_portions / m.portion) }}</span>{% endif %}
         </{{ tagname }}>
       {% endfor %}

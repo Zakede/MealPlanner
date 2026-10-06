@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <link rel="icon" href="{{ url_for('static', filename='logo.svg') }}" type="image/svg+xml">
   <meta name="theme-color" content="{{ '#f8f5fd' if ui.mode == 'light' else '#000000' }}">
   <title>{% block title %}Meal Planner{% endblock %}</title>
   <link rel="preload" href="{{ url_for('static', filename='fonts/dela-gothic-one-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
@@ -17,7 +18,7 @@
   <div class="loadbar" aria-hidden="true"></div>
 
   <header class="top">
-    <a class="brand" href="{{ url_for('main.home') }}">食券<small>Meal Planner</small></a>
+    <a class="brand" href="{{ url_for('main.home') }}" aria-label="Meal Planner home">{% include "_logo.html" %}<span class="word">Meal<em>Planner</em></span></a>
     <span style="display:flex;gap:8px">
       <button type="button" class="top-link theme-btn" data-theme-toggle data-url="{{ url_for('settings.mode') }}" aria-label="Switch light or dark">{{ icon('moon', 'i-moon') }}{{ icon('sun', 'i-sun') }}</button>
       {% if request.endpoint not in ('auth.login', 'people.pick') %}
@@ -37,12 +38,12 @@
 
   {% if request.endpoint not in ('auth.login', 'people.pick') and request.blueprint != 'setup' %}
   <nav class="bottom" aria-label="Main">
-    {% for endpoint, jp, label in [('main.home', '今日', 'Today'), ('plan.week', '献立', 'Plan'),
-                                   ('plan.shopping', '買物', 'Shop'), ('pantry.index', '冷蔵庫', 'Pantry'),
-                                   ('main.more', '他', 'More')] if has_endpoint(endpoint) %}
+    {% for endpoint, ico, label in [('main.home', 'home', 'Today'), ('plan.week', 'plan', 'Plan'),
+                                   ('plan.shopping', 'cart', 'Shop'), ('pantry.index', 'pantry', 'Pantry'),
+                                   ('main.more', 'more', 'More')] if has_endpoint(endpoint) %}
       {% set bp = endpoint.split('.')[0] %}
       {% set on = request.endpoint == endpoint or (bp not in ('main', 'plan') and request.blueprint == bp) or (endpoint == 'plan.week' and request.endpoint in ('plan.week', 'plan.add')) %}
-      <a href="{{ url_for(endpoint) }}" class="{{ 'active' if on }}" {% if on %}aria-current="page"{% endif %}><b>{{ jp }}</b><span>{{ label }}</span></a>
+      <a href="{{ url_for(endpoint) }}" class="{{ 'active' if on }}" {% if on %}aria-current="page"{% endif %}>{{ icon(ico) }}<span>{{ label }}</span></a>
     {% endfor %}
   </nav>
   {% endif %}
