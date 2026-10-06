@@ -234,7 +234,7 @@ def ai():
         data = llm.extract_json(p.complete(recipe_ai.build_prompt(request_text, store.foods(), s,
                                                                    kcal_hint, protein_hint, expiring)))
     except llm.LLMError as e:
-        flash(f"Couldn't get a recipe: {e}. Try again.", "error")
+        flash(f"Couldn't get a recipe: {e}" + ("" if "Try again" in str(e) else ". Try again."), "error")
         return redirect(url_for("recipes.ai"))
     recipe, problems, warnings = recipe_ai.validate(data, s)
     return render_template("recipes/ai_preview.html", r=recipe, problems=problems, warnings=warnings,
@@ -270,7 +270,7 @@ def ai_import():
         improve = bool(request.form.get("improve"))
         data = llm.extract_json(p.complete(recipe_ai.build_import_prompt(text, store.foods(), s, improve)))
     except llm.LLMError as e:
-        flash(f"Couldn't read that recipe: {e}. Try again.", "error")
+        flash(f"Couldn't read that recipe: {e}" + ("" if "Try again" in str(e) else ". Try again."), "error")
         return redirect(url_for("recipes.ai_import"))
     recipe, problems, warnings = recipe_ai.validate(data, s)
     return render_template("recipes/ai_preview.html", r=recipe, problems=problems, warnings=warnings,
