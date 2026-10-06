@@ -49,8 +49,8 @@ def create_app(config=None):
         migrate_all()
     app.teardown_appcontext(db.close_db)
 
-    from .views import auth, cook, people, extras, main, pantry, plan, receipts, recipes, schedule, settings, setup, taste, track
-    for module in (main, settings, pantry, recipes, schedule, plan, cook, taste, extras, setup, receipts, track, auth, people):
+    from .views import auth, cook, foodlog, people, extras, main, pantry, plan, receipts, recipes, schedule, settings, setup, taste, track
+    for module in (main, settings, pantry, recipes, schedule, plan, cook, taste, extras, setup, receipts, track, auth, people, foodlog):
         app.register_blueprint(module.bp)
 
     app.before_request(auth.require_login)

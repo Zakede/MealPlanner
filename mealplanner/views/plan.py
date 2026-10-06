@@ -4,6 +4,7 @@ from datetime import date as date_cls, timedelta
 from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
 
 from .. import plans, store, today
+from ..db import execute
 
 bp = Blueprint("plan", __name__, url_prefix="/plan")
 
@@ -163,6 +164,26 @@ def day(day):
     return render_template("plan/day.html", on=on, info=info, o=o)
 
 
+SECTIONS = [
+    ("Meat & fish", {"poultry", "meat", "fish", "seafood"}),
+    ("Vegetables & fruit", {"veg", "fruit"}),
+    ("Dairy & eggs", {"dairy", "egg"}),
+    ("Tofu & beans", {"soy", "legume"}),
+    ("Rice, bread & noodles", {"grain"}),
+    ("Sauces & staples", {"sauce", "fat", "snack", ""}),
+]
+
+
+def buy_amount(item):
+    """What to actually pick up: pieces when we know them, else grams rounded up to a pack-ish size."""
+    g = item["grams"]
+    if item.get("piece_g"):
+        pcs = max(1, -(-g // item["piece_g"]))
+        return f"{int(pcs)} pc{'s' if pcs > 1 else ''}"
+    step = 50 if g <= 300 else 100 if g <= 1000 else 250
+    return f"{int(-(-g // step) * step)} g"
+
+
 @bp.route("/shopping")
 def shopping():
     first = selected_week()
@@ -172,11 +193,52 @@ def shopping():
     preview = not items and bool(drafts)
     if preview:
         items = plans.shopping_preview(first)
-    return render_template("plan/shopping.html", items=items, first=first, preview=preview,
-                           has_plan=bool(plans.meals_between(first, last)),
-                           is_next=request.args.get("week") == "next",
-                           total=sum(i["est_cost"] for i in items if not i["checked"]),
-                           budget=plans.week_budget(first))
+    for i in items:
+        i["buy"] = buy_amount(i)
+    sections = []
+    for title, cats in SECTIONS:
+        rows = [i for i in items if (i.get("category") or "") in cats]
+        if rows:
+            sections.append((title, sorted(rows, key=lambda r: (r["checked"], r["name"]))))
+    extras = plans.shopping_extras(first)
+    skipped_ids = plans.skipped_foods(first)
+    skipped = [store.food(fid) for fid in skipped_ids]
+    total = sum(i["est_cost"] for i in items if not i["checked"]) + sum(e["est_cost"] for e in extras if not e["checked"])
+    return render_template("plan/shopping.html", sections=sections, extras=extras, skipped=[f for f in skipped if f],
+                           first=first, preview=preview, has_plan=bool(plans.meals_between(first, last)),
+                           is_next=request.args.get("week") == "next", total=total, budget=plans.week_budget(first),
+                           count=sum(1 for i in items if not i["checked"]) + sum(1 for e in extras if not e["checked"]))
+
+
+@bp.route("/shopping/skip/<int:food_id>", methods=["POST"])
+def skip(food_id):
+    plans.skip_food(selected_week(), food_id, skip=request.form.get("undo") != "1")
+    return redirect(url_for("plan.shopping", week=request.values.get("week")))
+
+
+@bp.route("/shopping/extra", methods=["POST"])
+def extra():
+    first = selected_week()
+    name = (request.form.get("name") or "").strip()[:60]
+    if not name:
+        flash("Type what you want to buy.", "error")
+    else:
+        try:
+            cost = max(0, int(float(request.form.get("cost") or 0)))
+        except ValueError:
+            cost = 0
+        execute("INSERT INTO shopping_extra (week_start, name, amount, est_cost) VALUES (?, ?, ?, ?)",
+                      (first.isoformat(), name, (request.form.get("amount") or "").strip()[:30], cost))
+    return redirect(url_for("plan.shopping", week=request.values.get("week")))
+
+
+@bp.route("/shopping/extra/<int:extra_id>/<action>", methods=["POST"])
+def extra_action(extra_id, action):
+    if action == "toggle":
+        execute("UPDATE shopping_extra SET checked = 1 - checked WHERE id = ?", (extra_id,))
+    elif action == "delete":
+        execute("DELETE FROM shopping_extra WHERE id = ?", (extra_id,))
+    return redirect(url_for("plan.shopping", week=request.values.get("week")))
 
 
 @bp.route("/shopping/<int:item_id>/bought", methods=["POST"])

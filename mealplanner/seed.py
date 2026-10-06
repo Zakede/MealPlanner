@@ -74,6 +74,14 @@ def add_boosters(conn):
                          (fid, grams, tags, note))
 
 
+def add_quick_picks(conn):
+    have = {r[0] for r in conn.execute("SELECT item FROM quick_picks")}
+    for chain, item, kcal, protein, yen in QUICK_PICKS:
+        if item not in have:
+            conn.execute("INSERT INTO quick_picks (chain, item, kcal, protein, yen) VALUES (?, ?, ?, ?, ?)",
+                         (chain, item, kcal, protein, yen))
+
+
 def seed(conn):
     if _empty(conn, "settings"):
         conn.execute("INSERT INTO settings (id) VALUES (1)")
@@ -96,4 +104,5 @@ def seed(conn):
         remove_retired_recipes(conn)
         add_recipes(conn)
         add_boosters(conn)
+        add_quick_picks(conn)
         conn.execute(f"PRAGMA user_version = {LIBRARY_VERSION}")

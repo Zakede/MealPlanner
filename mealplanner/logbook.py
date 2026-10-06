@@ -143,3 +143,39 @@ def price_changes(limit=8):
 def workouts_between(first, last):
     return [dict(r) for r in query("SELECT * FROM workouts WHERE date BETWEEN ? AND ? ORDER BY date DESC, id DESC",
                                    (first.isoformat(), last.isoformat()))]
+
+
+def log_food(on, name, kcal, protein=0, carbs=0, fat=0, yen=0, slot="snack", source="manual", time=None):
+    """Record something eaten outside the plan. Returns messages about what changed."""
+    db = get_db()
+    db.execute("INSERT INTO food_log (date, time, slot, name, kcal, protein, carbs, fat, yen, source)"
+               " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+               (on.isoformat(), time, slot, name[:80], int(kcal), protein, carbs, fat, int(yen), source))
+    notes = []
+    # an unplanned snack stands in for the planned one
+    if slot == "snack":
+        planned = query("SELECT id, title FROM plan_meals WHERE date = ? AND slot = 'snack'"
+                        " AND status IN ('draft', 'approved')", (on.isoformat(),), one=True)
+        if planned:
+            db.execute("UPDATE plan_meals SET status = 'skipped', note = 'Swapped for something you ate' WHERE id = ?",
+                       (planned["id"],))
+            notes.append(f"Skipped the planned {planned['title']}.")
+    db.commit()
+
+    # over today's target? spread the rest over the coming days like an unplanned meal out
+    row = query("SELECT kcal_target FROM plan_days WHERE date = ?", (on.isoformat(),), one=True)
+    if row:
+        planned_today = sum(m["kcal"] for m in plans.meals_between(on, on)
+                            if m["status"] not in ("skipped",))
+        extra = sum(r["kcal"] for r in query("SELECT kcal FROM food_log WHERE date = ?", (on.isoformat(),)))
+        out = sum(r["kcal"] for r in query("SELECT kcal FROM eating_out_log WHERE date = ?", (on.isoformat(),)))
+        over = planned_today + extra + out - row["kcal_target"]
+        new_over = min(over, int(kcal)) if over > 0 else 0
+        if new_over > 50:
+            first, last = budget.week_bounds(on)
+            notes += rebalance(on, last, new_over)
+    return notes
+
+
+def food_today(on):
+    return [dict(r) for r in query("SELECT * FROM food_log WHERE date = ? ORDER BY id", (on.isoformat(),))]

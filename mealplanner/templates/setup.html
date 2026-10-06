@@ -144,6 +144,16 @@
         <label><span class="cur-label">{{ cur }}</span> per meal out<input name="eat_out_budget_yen" data-money type="number" value="{{ s.eat_out_budget_yen }}"></label>
       </div>
     </div>
+  </section>
+
+  <section class="step" data-title="You">
+    <h1>Your profile</h1>
+    <div class="form">
+      <label>Your name<input name="profile_name" maxlength="30" value="{{ me.name }}" required></label>
+      <label>Password (optional)<input name="password" type="password" autocomplete="new-password" minlength="6" placeholder="Leave empty for no lock"></label>
+      <label>Password again<input name="again" type="password" autocomplete="new-password" minlength="6"></label>
+    </div>
+    <p class="muted small">With a password, only you can open your plan, even if friends use the same app. You can change it later in Settings.</p>
     <button class="btn wide" type="submit">Plan my week</button>
   </section>
 

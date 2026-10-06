@@ -86,9 +86,19 @@ def start():
     if request.method == "POST":
         try:
             values, schedule = parse(request.form)
+            password, again = request.form.get("password", ""), request.form.get("again", "")
+            if password and (len(password) < 6 or password != again):
+                raise ValueError("passwords need 6+ characters and must match")
         except ValueError as e:
             flash(str(e).capitalize() + ".", "error")
             return redirect(url_for("setup.start"))
+        from .. import profiles
+        from .auth import mark_unlocked, set_password
+        if (request.form.get("profile_name") or "").strip():
+            profiles.rename(profiles.current_id(), request.form["profile_name"])
+        if password:
+            set_password(password)
+            mark_unlocked()
         db = get_db()
         cols = ", ".join(f"{k} = ?" for k in values)
         db.execute(f"UPDATE settings SET {cols} WHERE id = 1", tuple(values.values()))

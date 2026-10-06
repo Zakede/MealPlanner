@@ -5,7 +5,7 @@ from datetime import date, datetime, timedelta
 from flask import current_app
 
 from . import budget, planner, store, today as get_today
-from .db import get_db, query
+from .db import execute, get_db, query
 from .nutrition import day_targets
 from .schedule import minutes
 from .taste import is_favorite, recipe_score, tag_affinity
@@ -50,7 +50,9 @@ def spent_between(first, last):
                       (first.isoformat(), last.isoformat()), one=True)["s"]
     eaten_out = query("SELECT COALESCE(SUM(yen), 0) s FROM eating_out_log WHERE date BETWEEN ? AND ?",
                       (first.isoformat(), last.isoformat()), one=True)["s"]
-    return groceries + eaten_out
+    snacks = query("SELECT COALESCE(SUM(yen), 0) s FROM food_log WHERE date BETWEEN ? AND ?",
+                   (first.isoformat(), last.isoformat()), one=True)["s"]
+    return groceries + eaten_out + snacks
 
 
 def eat_out_used(first, last):
@@ -67,6 +69,8 @@ def week_budget(first):
     last = first + timedelta(days=6)
     shopping = query("SELECT COALESCE(SUM(est_cost), 0) s FROM shopping_list WHERE week_start = ? AND checked = 0",
                      (first.isoformat(),), one=True)["s"]
+    shopping += query("SELECT COALESCE(SUM(est_cost), 0) s FROM shopping_extra WHERE week_start = ? AND checked = 0",
+                      (first.isoformat(),), one=True)["s"]
     konbini = sum(m["buy_cost"] for m in meals_between(first, last)
                   if m["kind"] == "konbini" and m["status"] in EDITABLE)
     return budget.status(s["weekly_budget_yen"], spent_between(first, last), shopping + konbini,
@@ -375,19 +379,21 @@ def approve_week(first):
 
 
 def shopping_needs(first, statuses=("approved",)):
-    """What planned meals still need beyond the pantry: food_id -> {grams, price}."""
+    """What planned meals still need beyond the pantry: food_id -> {grams, price}. Skipped foods are left out."""
     last = first + timedelta(days=6)
     today = get_today()
     sim = planner.PantrySim(pantry_lots())
+    skipped = skipped_foods(first)
     need = {}
     for m in meals_between(max(first, today), last):
         if m["status"] not in statuses or m["kind"] not in ("cook", "nocook", "snack") or not m["recipe"]:
             continue
         for ing, grams in planner.scaled_ingredients(m["recipe"], m["cook_portions"]):
             missing = sim.take(ing["id"], grams, m["date"])
-            if missing > 0.5:
+            if missing > 0.5 and ing["id"] not in skipped:
                 entry = need.setdefault(ing["id"], {"grams": 0.0, "price": ing.get("price_per_100g") or 0,
-                                                    "name": ing["name"], "piece_g": ing.get("piece_g")})
+                                                    "name": ing["name"], "piece_g": ing.get("piece_g"),
+                                                    "category": ing.get("category") or ""})
                 entry["grams"] += missing
     return need
 
@@ -410,12 +416,35 @@ def shopping_preview(first):
     """The list a draft plan would need, without saving anything."""
     need = shopping_needs(first, statuses=("draft", "approved"))
     rows = [{"id": None, "food_id": fid, "name": e["name"], "piece_g": e["piece_g"], "grams": round(e["grams"]),
+             "category": e["category"],
              "est_cost": round(e["grams"] / 100 * e["price"]), "checked": 0} for fid, e in need.items()]
     return sorted(rows, key=lambda r: r["name"])
 
 
+def skipped_foods(first):
+    return {r["food_id"] for r in query("SELECT food_id FROM shopping_skip WHERE week_start = ?", (first.isoformat(),))}
+
+
+def skip_food(first, food_id, skip=True):
+    db = get_db()
+    if skip:
+        db.execute("INSERT OR IGNORE INTO shopping_skip (week_start, food_id) VALUES (?, ?)", (first.isoformat(), food_id))
+        db.execute("DELETE FROM shopping_list WHERE week_start = ? AND food_id = ?", (first.isoformat(), food_id))
+    else:
+        db.execute("DELETE FROM shopping_skip WHERE week_start = ? AND food_id = ?", (first.isoformat(), food_id))
+    db.commit()
+    if query("SELECT 1 FROM plan_meals WHERE status = 'approved' AND date BETWEEN ? AND ? LIMIT 1",
+             (first.isoformat(), (first + timedelta(days=6)).isoformat())):
+        build_shopping_list(first)
+
+
+def shopping_extras(first):
+    return [dict(r) for r in query("SELECT * FROM shopping_extra WHERE week_start = ? ORDER BY checked, id",
+                                   (first.isoformat(),))]
+
+
 def shopping_list(first):
-    rows = query("""SELECT s.*, f.name, f.piece_g FROM shopping_list s JOIN foods f ON f.id = s.food_id
+    rows = query("""SELECT s.*, f.name, f.piece_g, f.category FROM shopping_list s JOIN foods f ON f.id = s.food_id
                     WHERE s.week_start = ? ORDER BY s.checked, f.name""", (first.isoformat(),))
     return [dict(r) for r in rows]
 

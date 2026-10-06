@@ -281,3 +281,33 @@ CREATE TABLE IF NOT EXISTS weight_log (
     date TEXT PRIMARY KEY,
     kg   REAL NOT NULL
 );
+
+-- Anything eaten that wasn't a planned meal: konbini snacks, a bite at school, a typed-in guess.
+CREATE TABLE IF NOT EXISTS food_log (
+    id       INTEGER PRIMARY KEY,
+    date     TEXT    NOT NULL,
+    time     TEXT,
+    slot     TEXT    NOT NULL DEFAULT 'snack',
+    name     TEXT    NOT NULL,
+    kcal     INTEGER NOT NULL,
+    protein  REAL    NOT NULL DEFAULT 0,
+    carbs    REAL    NOT NULL DEFAULT 0,
+    fat      REAL    NOT NULL DEFAULT 0,
+    yen      INTEGER NOT NULL DEFAULT 0,
+    source   TEXT    NOT NULL DEFAULT 'manual'
+);
+
+-- Your own additions to a week's shopping list, and planned items you chose to skip.
+CREATE TABLE IF NOT EXISTS shopping_extra (
+    id         INTEGER PRIMARY KEY,
+    week_start TEXT    NOT NULL,
+    name       TEXT    NOT NULL,
+    amount     TEXT    NOT NULL DEFAULT '',
+    est_cost   INTEGER NOT NULL DEFAULT 0,
+    checked    INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS shopping_skip (
+    week_start TEXT    NOT NULL,
+    food_id    INTEGER NOT NULL,
+    PRIMARY KEY (week_start, food_id)
+);

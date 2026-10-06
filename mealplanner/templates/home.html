@@ -1,11 +1,24 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 {% block title %}Today · Meal Planner{% endblock %}
 {% block content %}
 {% set k_left = kcal_target - kcal_eaten %}
 {% set p_left = protein_target - protein_eaten %}
-<h1 class="rise">{{ on.strftime('%A') }}<span class="jp">{{ on.month }}月{{ on.day }}日</span></h1>
+<div class="line rise">
+  <h1 style="margin:0">{{ on.strftime('%A') }}<span class="jp">{{ on.month }}月{{ on.day }}日</span></h1>
+  <a class="btn" href="{{ url_for('foodlog.page') }}">+ Log food</a>
+</div>
 
-<div class="plate rise" style="--i:1">
+<div class="quick rise" style="--i:1">
+  <a href="{{ url_for('plan.shopping') }}" class="quick-key">
+    {{ icon('cart') }}<b>Shop</b><small>{% if shop.count %}{{ shop.count }} items · {{ cur }}{{ '{:,}'.format(shop.cost|int) }}{% else %}Nothing to buy{% endif %}</small>
+  </a>
+  <a href="{{ url_for('receipts.upload') }}" class="quick-key">{{ icon('leaf') }}<b>Receipt</b><small>Scan to pantry</small></a>
+  <a href="{{ url_for('track.cook_now') }}" class="quick-key">{{ icon('bowl') }}<b>Cook now</b><small>From the fridge</small></a>
+  <a href="{{ url_for('plan.week') }}" class="quick-key">{{ icon('plan') }}<b>Week</b><small>{{ 'Draft' if has_plan else 'Not planned' }}</small></a>
+</div>
+
+<div class="plate rise" style="--i:2">
   <div>
     <span class="lbl">残り · kcal left</span>
     <span class="num-big {{ 'bad' if k_left < 0 }}">{{ k_left }}</span>
@@ -43,21 +56,58 @@
 <div class="ticket"><div class="top-row"><span>All done</span></div><span class="meal-name">Nothing left today</span></div>
 {% endif %}
 
-<div class="actions today-switch rise" style="--i:2">
+<div class="actions today-switch rise" style="--i:3">
   {% for key, label, active in [('free', 'Free to cook', today_override.get('effort') == 'full'),
                                 ('gym', 'Gym today', day.gym),
                                 ('away', 'Out all day', day.away)] %}
   <form method="post" action="{{ url_for('main.today_toggle', what=key) }}"><button class="chip" aria-pressed="{{ 'true' if active else 'false' }}">{{ label }}</button></form>
   {% endfor %}
+  <a class="chip" href="{{ url_for('plan.day', day=on.isoformat()) }}">Edit today</a>
 </div>
 
-<div class="tiles rise" style="--i:3">
+{% if meals or extras %}
+<h2 class="section-title">Today's food</h2>
+<div class="keys rise" style="--i:4">
+  {% for m in meals %}
+    {% set done = m.status in ('cooked', 'eaten', 'eaten_out', 'skipped') %}
+    {% set tagname = 'a' if m.recipe_id else 'div' %}
+    <{{ tagname }} class="key {{ m.slot }} {{ 'done' if done }}"{% if m.recipe_id %} href="{{ url_for('cook.cook', meal_id=m.id) }}"{% endif %}>
+      <span class="t">{{ m.eat_time or m.slot }}{{ ' ✓' if done and m.status != 'skipped' }}{{ ' · skipped' if m.status == 'skipped' }}</span>
+      <span class="n">{{ m.title }}</span>
+      <span class="k">{{ m.kcal|round|int }} kcal · {{ m.protein|round|int }} g</span>
+      {% if m.kind == 'leftover' %}<span class="badge">残り物</span>{% endif %}
+    </{{ tagname }}>
+  {% endfor %}
+  {% for e in extras %}
+    <div class="key logged">
+      <span class="t">{{ e.slot }} · logged</span>
+      <span class="n">{{ e.name }}</span>
+      <span class="k">{{ e.kcal }} kcal · {{ e.protein|round|int }} g</span>
+      <form method="post" action="{{ url_for('foodlog.delete', entry_id=e.id) }}" class="badge-form"><button class="badge" aria-label="Remove {{ e.name }}">✕</button></form>
+    </div>
+  {% endfor %}
+  <a class="key add" href="{{ url_for('foodlog.page') }}">+ Log food</a>
+</div>
+{% endif %}
+
+<h2 class="section-title">This week</h2>
+<a class="week-strip rise" style="--i:5" href="{{ url_for('plan.week') }}" aria-label="Open the week plan">
+  {% for d in week %}
+  <span class="wd {{ 'today' if d.today }} {{ 'past' if d.past }}">
+    <small>{{ d.date.strftime('%a')[:2] }}</small>
+    <span class="wbar"><i style="height: {{ [d.pct, 6]|max if d.has else 0 }}%" class="{{ 'over' if d.over }}"></i></span>
+    <b>{{ d.date.day }}</b>
+  </span>
+  {% endfor %}
+</a>
+
+<div class="tiles rise" style="--i:6">
   <div class="tile">
     <small>水 Water · {{ '%.1f'|format(water_ml / 1000) }} / {{ '%.1f'|format(water_target / 1000) }} L</small>
     <div class="meter jade-fill"><i style="width: {{ [100, water_ml * 100 // water_target]|min }}%"></i></div>
     <div style="display:flex;gap:6px">
       <form method="post" action="{{ url_for('track.water') }}"><input type="hidden" name="change" value="minus"><button class="icon-btn" aria-label="Remove a glass">−</button></form>
-      <form method="post" action="{{ url_for('track.water') }}" style="flex:1"><button class="btn jade small" style="width:100%">+ Glass</button></form>
+      <form method="post" action="{{ url_for('track.water') }}" style="flex:1"><button class="btn small" style="width:100%">+ Glass</button></form>
     </div>
   </div>
   <a class="tile" href="{{ url_for('track.progress') }}">
@@ -67,23 +117,8 @@
   </a>
 </div>
 
-{% if meals %}
-<div class="keys rise" style="--i:4">
-  {% for m in meals %}
-    {% set done = m.status in ('cooked', 'eaten', 'eaten_out', 'skipped') %}
-    {% set tagname = 'a' if m.recipe_id else 'div' %}
-    <{{ tagname }} class="key {{ m.slot }} {{ 'done' if done }}"{% if m.recipe_id %} href="{{ url_for('cook.cook', meal_id=m.id) }}"{% endif %}>
-      <span class="t">{{ m.eat_time or m.slot }}{{ ' ✓' if done and m.status != 'skipped' }}</span>
-      <span class="n">{{ m.title }}</span>
-      <span class="k">{{ m.kcal|round|int }} kcal · {{ m.protein|round|int }} g</span>
-      {% if m.kind == 'leftover' %}<span class="badge">残り物</span>{% endif %}
-    </{{ tagname }}>
-  {% endfor %}
-</div>
-{% endif %}
-
 {% if reminders %}
-<div class="card rise" style="--i:5">
+<div class="card rise" style="--i:7">
   <h2>Heads up</h2>
   <ul class="list">{% for r in reminders %}<li class="small">{{ r }}</li>{% endfor %}</ul>
 </div>

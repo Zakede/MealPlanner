@@ -52,9 +52,12 @@ def home():
     recipes_by_id = {r["id"]: r for r in store.recipes()}
     meals = plans.meals_between(on, on)
     kcal_target, protein_target = today_targets(s, targets, on)
-    eaten = [m for m in meals if m["status"] in ("cooked", "eaten", "eaten_out")]
-    kcal_eaten = round(sum(m["kcal"] for m in eaten))
-    protein_eaten = round(sum(m["protein"] for m in eaten))
+    eaten = [m for m in meals if m["status"] in ("cooked", "eaten")]
+    extras = query("SELECT * FROM food_log WHERE date = ? ORDER BY id", (on.isoformat(),))
+    out = query("SELECT * FROM eating_out_log WHERE date = ?", (on.isoformat(),))
+    kcal_eaten = round(sum(m["kcal"] for m in eaten) + sum(e["kcal"] for e in extras) + sum(e["kcal"] for e in out))
+    protein_eaten = round(sum(m["protein"] for m in eaten) + sum(e["protein"] for e in extras)
+                          + sum(e["protein"] for e in out))
 
     now = plans.now_minutes()
     upcoming = [m for m in meals if m["status"] not in DONE and m["kind"] != "empty"]
@@ -79,11 +82,45 @@ def home():
         reminders=reminders(on, recipes_by_id),
         has_plan=plans.week_has_plan(first),
         today_override=plans.override(on),
+        extras=[dict(e) for e in extras],
+        week=week_strip(first, on),
+        shop=shop_summary(first),
         water_ml=track_water(on),
         water_target=tracking.water_target_ml(s["weight_kg"]),
         last_weigh=query("SELECT * FROM weight_log ORDER BY date DESC LIMIT 1", one=True),
         day=plans.build_days([on])[on],
     )
+
+
+def week_strip(first, on):
+    """One small column per day: how full the day is against its target."""
+    days = []
+    targets = {r["date"]: r["kcal_target"] for r in query("SELECT * FROM plan_days WHERE date BETWEEN ? AND ?",
+                                                          (first.isoformat(), (first + timedelta(days=6)).isoformat()))}
+    meals = plans.meals_between(first, first + timedelta(days=6))
+    logged = {}
+    for r in query("SELECT date, SUM(kcal) k FROM food_log WHERE date BETWEEN ? AND ? GROUP BY date",
+                   (first.isoformat(), (first + timedelta(days=6)).isoformat())):
+        logged[r["date"]] = r["k"]
+    for i in range(7):
+        d = first + timedelta(days=i)
+        ms = [m for m in meals if m["date"] == d and m["status"] != "skipped"]
+        planned = sum(m["kcal"] for m in ms) + (logged.get(d.isoformat()) or 0)
+        target = targets.get(d.isoformat())
+        days.append({"date": d, "today": d == on, "past": d < on, "has": bool(ms),
+                     "pct": min(100, round(planned / target * 100)) if target else 0,
+                     "over": bool(target and planned > target * 1.05)})
+    return days
+
+
+def shop_summary(first):
+    items = plans.shopping_list(first)
+    preview = False
+    if not items:
+        items = plans.shopping_preview(first)
+        preview = True
+    left = [i for i in items if not i["checked"]]
+    return {"count": len(left), "cost": sum(i["est_cost"] for i in left), "preview": preview}
 
 
 @bp.route("/today/<what>", methods=["POST"])

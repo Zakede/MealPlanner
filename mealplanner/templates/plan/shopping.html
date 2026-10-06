@@ -1,60 +1,121 @@
 {% extends "base.html" %}
 {% block title %}Shopping list · Meal Planner{% endblock %}
+{% block content %}
+{% set wk = 'next' if is_next else None %}
+<h1 class="rise">Shopping list<span class="jp">買い物</span></h1>
+<div class="actions">
+  <a class="chip {{ 'ok' if not is_next }}" href="{{ url_for('plan.shopping') }}">This week</a>
+  <a class="chip {{ 'ok' if is_next }}" href="{{ url_for('plan.shopping', week='next') }}">Next week</a>
+</div>
+
+{% if not has_plan %}
+<div class="card empty"><p>Plan the week and this fills in with exactly what to buy, inside your budget.</p>
+  <form method="post" action="{{ url_for('plan.generate', week=wk) }}"><button class="btn">献立 Plan my week</button></form></div>
+{% else %}
+{% set left = budget.remaining - budget.reserved %}
+<div class="plate rise" style="--i:1">
+  <div>
+    <span class="lbl">{{ count }} item{{ 's' if count != 1 }} to buy · estimated</span>
+    <span class="num-big" style="font-size:2.4rem">{{ cur }}{{ '{:,}'.format(total|int) }}</span>
+  </div>
+  <div class="stamp {{ 'over' if total > left }}">{{ '予算内' if total <= left else '予算超' }}<b>{{ 'fits' if total <= left else 'over' }}</b></div>
+  <div class="bars">
+    <div class="bar-row">
+      <div class="line"><span>Budget left for food</span><span>{{ cur }}{{ '{:,}'.format(left) }}</span></div>
+      <div class="meter {{ 'over' if total > left }}"><i style="width: {{ [100, (total * 100 // left) if left > 0 else 100]|min }}%"></i></div>
+    </div>
+  </div>
+</div>
+
+{% if preview %}
+<div class="card callout">
+  <b>From your draft plan.</b> <span class="muted small">Approve the week to lock it in, then tick things off as you buy them.</span>
+  <form method="post" action="{{ url_for('plan.approve', week=wk) }}" style="margin-top:10px"><button class="btn wide">承認 Approve week</button></form>
+</div>
+{% endif %}
+
+{% for title, rows in sections %}
+<h2 class="section-title">{{ title }}</h2>
+<div class="day-list">
+  {% for i in rows %}
+  <div class="lp shop-row {{ 'done' if i.checked }}">
+    <span class="t">{{ i.buy }}</span>
+    <div><b>{% if i.checked %}<s>{{ i.name }}</s>{% else %}{{ i.name }}{% endif %}</b><small>{{ i.grams|int }} g needed · about {{ cur }}{{ i.est_cost|int }}</small></div>
+    <span class="row-actions">
+      {% if i.checked %}<span class="tag">in pantry</span>
+      {% elif not preview and i.id %}
+      <form method="post" action="{{ url_for('plan.bought', item_id=i.id, week=wk) }}" class="bought-form">
+        <input name="price" inputmode="numeric" placeholder="{{ cur }}{{ i.est_cost|int }}" aria-label="Price paid for {{ i.name }}">
+        <button class="icon-btn" aria-label="Bought {{ i.name }}">✓</button>
+      </form>
+      {% endif %}
+      {% if not i.checked %}
+      <form method="post" action="{{ url_for('plan.skip', food_id=i.food_id, week=wk) }}"><button class="icon-btn" aria-label="Don't buy {{ i.name }}" title="Don't buy this">✕</button></form>
+      {% endif %}
+    </span>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card empty"><p>Nothing to buy. The pantry already covers the plan.</p></div>
+{% endfor %}
+{% endif %}
+
+<h2 class="section-title">Your own items</h2>
+<div class="day-list">
+  {% for e in extras %}
+  <div class="lp shop-row {{ 'done' if e.checked }}">
+    <span class="t">{{ e.amount or '' }}</span>
+    <div><b>{% if e.checked %}<s>{{ e.name }}</s>{% else %}{{ e.name }}{% endif %}</b>{% if e.est_cost %}<small>about {{ cur }}{{ e.est_cost }}</small>{% endif %}</div>
+    <span class="row-actions">
+      <form method="post" action="{{ url_for('plan.extra_action', extra_id=e.id, action='toggle', week=wk) }}"><button class="icon-btn" aria-label="{{ 'Untick' if e.checked else 'Got' }} {{ e.name }}">{{ '↺' if e.checked else '✓' }}</button></form>
+      <form method="post" action="{{ url_for('plan.extra_action', extra_id=e.id, action='delete', week=wk) }}"><button class="icon-btn" aria-label="Remove {{ e.name }}">✕</button></form>
+    </span>
+  </div>
+  {% endfor %}
+</div>
+<form method="post" action="{{ url_for('plan.extra', week=wk) }}" class="card form add-extra">
+  <div class="row3">
+    <label>Item<input name="name" required placeholder="Coffee beans"></label>
+    <label>Amount<input name="amount" placeholder="1 bag"></label>
+    <label>About {{ cur }}<input name="cost" type="number" inputmode="numeric" placeholder="0"></label>
+  </div>
+  <button class="btn secondary wide">+ Add to list</button>
+</form>
+
+{% if skipped %}
+<details class="card">
+  <summary><b>Not buying ({{ skipped|length }})</b></summary>
+  <div class="day-list" style="margin-top:10px">
+    {% for f in skipped %}
+    <div class="lp"><span class="t"></span><div><b>{{ f.name }}</b><small>Left off the list</small></div>
+      <form method="post" action="{{ url_for('plan.skip', food_id=f.id, week=wk) }}"><input type="hidden" name="undo" value="1"><button class="btn small secondary">Add back</button></form>
+    </div>
+    {% endfor %}
+  </div>
+</details>
+{% endif %}
+
+{% if has_plan %}
+<div class="actions">
+  <button class="btn" id="share" type="button">Share list</button>
+  <a class="btn secondary" href="{{ url_for('plan.week', week=wk) }}">Back to plan</a>
+</div>
+<textarea id="share-text" hidden>買い物リスト
+{% for title, rows in sections %}{% for i in rows if not i.checked %}- {{ i.name }} {{ i.buy }}
+{% endfor %}{% endfor %}{% for e in extras if not e.checked %}- {{ e.name }} {{ e.amount }}
+{% endfor %}</textarea>
+{% endif %}
+{% endblock %}
 {% block scripts %}
 <script>
-// Share to LINE etc. where the phone supports it, otherwise copy.
-document.getElementById("share").addEventListener("click", async (e) => {
+document.getElementById("share")?.addEventListener("click", async (e) => {
   const text = document.getElementById("share-text").value.trim();
   try {
     if (navigator.share) { await navigator.share({ text }); return; }
     await navigator.clipboard.writeText(text);
     e.target.textContent = "Copied";
-  } catch (err) { /* cancelled */ }
+  } catch (err) { /* share cancelled */ }
 });
 </script>
-{% endblock %}
-{% block content %}
-{% set wk = 'next' if is_next else None %}
-<h1>Shopping list<span class="jp">買い物</span></h1>
-{% if preview %}
-<div class="card callout">
-  <b>From your draft plan.</b> <span class="muted small">Approve the week to lock it in and tick things off as you buy them.</span>
-  <form method="post" action="{{ url_for('plan.approve', week=wk) }}" style="margin-top:10px"><button class="btn wide">承認 Approve week</button></form>
-</div>
-{% elif not has_plan %}
-<div class="card empty"><p>Plan your week first, then this shows exactly what to buy.</p>
-  <form method="post" action="{{ url_for('plan.generate') }}"><button class="btn">献立 Plan my week</button></form></div>
-{% endif %}
-{% include "_budget.html" %}
-<div class="card">
-  <div class="line"><b>Estimated {{ cur }}{{ '{:,}'.format(total|int) }}</b>
-    <span class="{{ 'bad' if total > budget.remaining else 'good' }} small">
-      {{ 'more than' if total > budget.remaining else 'within' }} the {{ cur }}{{ '{:,}'.format(budget.remaining) }} left</span></div>
-  <p class="muted small">Tap "Bought" to move an item into the pantry. Enter what you actually paid to keep prices accurate.</p>
-  {% if not items %}<p class="muted">Nothing to buy. Approve a plan, or everything is already in the pantry.</p>{% endif %}
-  <ul class="list">
-    {% for i in items %}
-    <li>
-      <div class="line">
-        <span>{% if i.checked %}<s class="muted">{{ i.name }}</s>{% else %}<b>{{ i.name }}</b>{% endif %}<br>
-          <span class="muted small">{{ i.grams|int }} g{% if i.piece_g %} (about {{ ((i.grams / i.piece_g) + 0.49)|round|int }} pcs){% endif %} · est. {{ cur }}{{ i.est_cost|int }}</span></span>
-        {% if preview %}<span class="chip">{{ cur }}{{ i.est_cost|int }}</span>
-        {% elif not i.checked %}
-        <form class="inline" method="post" action="{{ url_for('plan.bought', item_id=i.id, week=wk) }}" style="display:flex;gap:6px;align-items:center">
-          <input name="price" inputmode="numeric" placeholder="{{ cur }}{{ i.est_cost|int }}" style="width:80px;margin:0">
-          <button class="btn small">Bought</button>
-        </form>
-        {% else %}<span class="chip ok">in pantry</span>{% endif %}
-      </div>
-    </li>
-    {% endfor %}
-  </ul>
-</div>
-<div class="actions">
-  <button class="btn jade" id="share" type="button">Share list</button>
-  <a class="btn secondary" href="{{ url_for('plan.week', week=wk) }}">Back to plan</a>
-</div>
-<textarea id="share-text" hidden>買い物リスト
-{% for i in items if not i.checked %}- {{ i.name }} {{ i.grams|int }} g
-{% endfor %}</textarea>
 {% endblock %}

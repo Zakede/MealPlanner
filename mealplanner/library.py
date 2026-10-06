@@ -1,7 +1,7 @@
 """Built-in food and recipe library. Values are approximate Japanese food-table and supermarket
 figures; users edit them to match their labels and receipts."""
 
-LIBRARY_VERSION = 3
+LIBRARY_VERSION = 4
 
 # Category drives diet filters: poultry, meat, fish, seafood, egg, dairy, soy, legume, grain,
 # veg, fruit, sauce, fat, snack.
@@ -342,14 +342,28 @@ QUICK_PICKS = [
     ("Konbini", "Milk protein drink", 102, 15.0, 160),
     ("Konbini", "Tofu bar", 120, 12.0, 150),
     ("Konbini", "Salmon onigiri", 180, 4.5, 180),
+    ("Konbini", "Tuna mayo onigiri", 230, 5.0, 160),
+    ("Konbini", "Egg sandwich", 330, 12.0, 300),
+    ("Konbini", "Curry pan", 330, 6.5, 160),
+    ("Konbini", "Melon pan", 420, 7.5, 150),
+    ("Konbini", "Famichiki", 252, 13.0, 230),
+    ("Konbini", "Karaage-kun (5)", 220, 14.0, 250),
+    ("Konbini", "Nikuman", 230, 8.0, 180),
+    ("Konbini", "Cup noodle", 350, 9.0, 230),
+    ("Konbini", "Protein bar", 190, 15.0, 160),
+    ("Konbini", "Cafe latte (M)", 130, 6.5, 200),
+    ("Konbini", "Banana", 90, 1.0, 120),
     ("Konbini", "Cold soba with chicken", 320, 15.0, 450),
     ("Konbini", "Edamame cup", 130, 11.0, 200),
     ("Konbini", "Green salad", 30, 1.5, 250),
+    ("Konbini", "Chocolate bar", 280, 4.0, 130),
+    ("Konbini", "Potato chips (small)", 330, 3.5, 150),
     ("McDonald's", "Hamburger", 256, 12.8, 200),
     ("McDonald's", "Cheeseburger", 307, 15.8, 230),
     ("McDonald's", "Double cheeseburger", 457, 26.5, 430),
     ("McDonald's", "Chicken McNuggets (5)", 270, 15.9, 290),
     ("McDonald's", "Egg McMuffin", 311, 19.2, 250),
+    ("McDonald's", "Fries (M)", 409, 5.3, 330),
     ("McDonald's", "Side salad", 10, 0.7, 310),
 ]
 

@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}Log food · Meal Planner{% endblock %}
+{% block content %}
+<h1 class="rise">Log food<span class="jp">食べた</span></h1>
+<p class="muted">Anything you ate that wasn't in the plan. It counts toward today and your budget.</p>
+
+<div class="seg-tabs" role="tablist">
+  {% for key, label in [('picks', 'Konbini & chains'), ('mine', 'My foods'), ('type', 'Type it')] %}
+  <a role="tab" href="{{ url_for('foodlog.page', tab=key) }}" class="{{ 'on' if tab == key }}" aria-selected="{{ 'true' if tab == key else 'false' }}" data-tab="{{ key }}">{{ label }}</a>
+  {% endfor %}
+</div>
+
+<label class="slot-pick">Which meal?
+  <select id="slot-choice">{% for s in slots %}<option value="{{ s }}" {{ 'selected' if s == slot }}>{{ s|capitalize }}</option>{% endfor %}</select>
+</label>
+
+<section class="tab-panel" data-panel="picks" {% if tab != 'picks' %}hidden{% endif %}>
+  <input type="search" id="pick-search" placeholder="Search: curry pan, famichiki, onigiri…" aria-label="Search konbini items">
+  <div class="day-list" id="pick-list" style="margin-top:10px">
+    {% for p in picks %}
+    <form method="post" action="{{ url_for('foodlog.pick', pick_id=p.id) }}" class="lp pick-row" data-name="{{ (p.item ~ ' ' ~ p.chain)|lower }}">
+      <input type="hidden" name="slot" class="slot-field" value="{{ slot }}">
+      <span class="t">{{ p.kcal }}</span>
+      <div><b>{{ p.item }}</b><small>{{ p.chain }} · {{ p.protein|round|int }} g protein · {{ cur }}{{ p.yen }}</small></div>
+      <button class="icon-btn" aria-label="Log {{ p.item }}">+</button>
+    </form>
+    {% endfor %}
+  </div>
+  <p class="muted small">Numbers are typical values. Check the label if you want them exact.</p>
+</section>
+
+<section class="tab-panel" data-panel="mine" {% if tab != 'mine' %}hidden{% endif %}>
+  <form method="post" action="{{ url_for('foodlog.add') }}" class="card form">
+    <input type="hidden" name="mode" value="recipe"><input type="hidden" name="slot" class="slot-field" value="{{ slot }}">
+    <h2>A recipe</h2>
+    <div class="row">
+      <label>Recipe<select name="recipe_id">{% for r in recipes %}<option value="{{ r.id }}">{{ r.name }}</option>{% endfor %}</select></label>
+      <label>Portions<input name="portions" type="number" step="0.25" value="1" min="0.25"></label>
+    </div>
+    <button class="btn wide">Log it</button>
+  </form>
+  <form method="post" action="{{ url_for('foodlog.add') }}" class="card form">
+    <input type="hidden" name="mode" value="food"><input type="hidden" name="slot" class="slot-field" value="{{ slot }}">
+    <h2>A single food</h2>
+    <div class="row">
+      <label>Food<input name="food" list="log-foods" required placeholder="Banana"></label>
+      <label>Grams<input name="grams" type="number" value="100" min="1"></label>
+    </div>
+    <label class="small" style="color:var(--ink)"><input type="checkbox" name="bought">I bought it just now (count the money)</label>
+    <datalist id="log-foods">{% for f in foods %}<option value="{{ f.name }}">{% endfor %}</datalist>
+    <button class="btn wide">Log it</button>
+  </form>
+</section>
+
+<section class="tab-panel" data-panel="type" {% if tab != 'type' %}hidden{% endif %}>
+  {% if ai %}
+  <form method="post" action="{{ url_for('foodlog.estimate') }}" class="card form" id="ask">
+    <h2>Ask AI to estimate</h2>
+    <div class="chip-entry"><input name="text" value="{{ asked or '' }}" placeholder="7-11 curry pan" aria-label="What did you eat?"><button class="btn small" id="ask-go">Estimate</button></div>
+    <p class="muted small" id="ask-wait" hidden>Estimating…</p>
+  </form>
+  {% endif %}
+  <form method="post" action="{{ url_for('foodlog.add') }}" class="card form">
+    <input type="hidden" name="mode" value="manual"><input type="hidden" name="slot" class="slot-field" value="{{ slot }}">
+    <h2>{{ 'Check the estimate' if estimate else 'Type it in' }}{% if estimate %} <span class="tag {{ 'out' if estimate.confidence == 'low' else '' }}">{{ estimate.confidence }} confidence</span>{% endif %}</h2>
+    <label>What<input name="name" required value="{{ estimate.name if estimate else '' }}" placeholder="Curry pan"></label>
+    <div class="row3">
+      <label>kcal<input name="kcal" type="number" required value="{{ estimate.kcal if estimate else '' }}"></label>
+      <label>Protein g<input name="protein" type="number" step="0.1" value="{{ estimate.protein if estimate else '' }}"></label>
+      <label>{{ cur }}<input name="yen" type="number" value="{{ estimate.price|int if estimate and estimate.price else '' }}"></label>
+    </div>
+    <div class="row">
+      <label>Carbs g<input name="carbs" type="number" step="0.1" value="{{ estimate.carbs if estimate else '' }}"></label>
+      <label>Fat g<input name="fat" type="number" step="0.1" value="{{ estimate.fat if estimate else '' }}"></label>
+    </div>
+    <button class="btn wide">Log it</button>
+  </form>
+</section>
+
+{% if today_log %}
+<h2 style="margin:18px 2px 8px">Logged today</h2>
+<div class="day-list">
+  {% for e in today_log %}
+  <div class="lp"><span class="t">{{ e.slot[:5] }}</span>
+    <div><b>{{ e.name }}</b><small>{{ e.kcal }} kcal · {{ e.protein|round|int }} g{% if e.yen %} · {{ cur }}{{ e.yen }}{% endif %}</small></div>
+    <form method="post" action="{{ url_for('foodlog.delete', entry_id=e.id) }}"><button class="icon-btn" aria-label="Remove {{ e.name }}">✕</button></form>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script>
+(() => {
+  // tabs switch in place
+  const tabs = document.querySelectorAll(".seg-tabs a");
+  tabs.forEach((t) => t.addEventListener("click", (e) => {
+    e.preventDefault();
+    tabs.forEach((x) => { x.classList.toggle("on", x === t); x.setAttribute("aria-selected", x === t); });
+    document.querySelectorAll(".tab-panel").forEach((p) => p.hidden = p.dataset.panel !== t.dataset.tab);
+  }));
+  // one meal picker feeds every form
+  const slot = document.getElementById("slot-choice");
+  const sync = () => document.querySelectorAll(".slot-field").forEach((f) => f.value = slot.value);
+  slot.addEventListener("change", sync);
+  // live search
+  const q = document.getElementById("pick-search");
+  q?.addEventListener("input", () => {
+    const term = q.value.trim().toLowerCase();
+    document.querySelectorAll("#pick-list .pick-row").forEach((row) => row.hidden = term && !row.dataset.name.includes(term));
+  });
+  document.getElementById("ask")?.addEventListener("submit", () => {
+    document.getElementById("ask-go").disabled = true;
+    document.getElementById("ask-wait").hidden = false;
+  });
+})();
+</script>
+{% endblock %}
