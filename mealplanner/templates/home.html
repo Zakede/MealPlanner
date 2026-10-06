@@ -64,11 +64,12 @@
   <div class="day-list">
     {% for m in meals %}
       {% set done = m.status in ('cooked', 'eaten', 'eaten_out', 'skipped') %}
-      <div class="lp {{ 'done' if done }} {{ 'now' if next_meal and m.id == next_meal.id }}">
+      {% set tagname = 'a' if m.recipe_id else 'div' %}
+      <{{ tagname }} class="lp {{ 'done' if done }} {{ 'now' if next_meal and m.id == next_meal.id }}"{% if m.recipe_id %} href="{{ url_for('cook.cook', meal_id=m.id) }}"{% endif %}>
         <span class="t">{{ m.eat_time or m.slot }}</span>
         <div><b>{{ m.title }}</b><small>{{ m.kcal|round|int }} kcal · {{ m.protein|round|int }} g{% if m.kind == 'leftover' %} · leftover{% endif %}</small></div>
         <span class="dot">{{ '✓' if done else ('▶' if next_meal and m.id == next_meal.id else '') }}</span>
-      </div>
+      </{{ tagname }}>
     {% endfor %}
   </div>
   {% endif %}

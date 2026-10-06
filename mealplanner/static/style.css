@@ -129,16 +129,18 @@ nav.bottom a.active { color: var(--b-ink); }
 .lp.now .t, .lp.now small { color: inherit; opacity: .85; }
 .lp.now .dot { background: color-mix(in srgb, var(--on-b) 18%, transparent); color: inherit; }
 .lp.done b { opacity: .55; }
+a.lp:hover b { text-decoration: underline; text-decoration-thickness: 2px; }
 
 /* week plan */
 .day-head { display: flex; justify-content: space-between; align-items: baseline; margin: 18px 4px 8px; }
 .day-head h2 { margin: 0; }
 .day-head span { font-size: .8rem; font-weight: 700; color: var(--soft); font-variant-numeric: tabular-nums; }
 .day-head.today h2 { color: var(--b-ink); }
-.lp .tag { display: inline-block; font-size: .72rem; font-weight: 700; padding: 1px 8px; border-radius: 99px; background: var(--a-tint); color: var(--a-ink); margin-left: 4px; vertical-align: 1px; }
-.lp .tag.out { background: var(--b-tint); color: var(--b-ink); }
+.tag { display: inline-block; font-size: .72rem; font-weight: 700; padding: 1px 8px; border-radius: 99px; background: var(--a-tint); color: var(--a-ink); margin-left: 4px; vertical-align: 1px; }
+.tag.out { background: var(--b-tint); color: var(--b-ink); }
 .lp.flagged { outline: 2px dashed var(--b); outline-offset: -2px; }
 .icon-btn { width: 34px; height: 34px; border-radius: 50%; border: 0; display: grid; place-items: center; cursor: pointer; background: var(--bg); color: var(--soft); font: 700 1rem var(--body); }
+.icon-btn:disabled { opacity: .35; cursor: default; }
 .lp.flagged .icon-btn { background: var(--b); color: var(--on-b); }
 .status-pill { display: inline-block; font: 700 .78rem var(--body); padding: 4px 12px; border-radius: 99px; background: var(--surface); color: var(--soft); }
 .status-pill.approved { background: var(--a-tint); color: var(--a-ink); }

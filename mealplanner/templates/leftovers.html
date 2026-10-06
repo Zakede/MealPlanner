@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Leftovers · Meal Planner{% endblock %}
+{% block content %}
+<h1>Leftovers</h1>
+{% if not leftovers %}
+  <div class="card empty"><p>No leftovers. Batch cooks put their extra portions here.</p></div>
+{% endif %}
+<div class="day-list">
+  {% for lo in leftovers %}
+  <div class="lp">
+    <span class="t">{{ '%g'|format(lo.portions) }}×</span>
+    <div><b>{{ lo.title }}</b>
+      <small class="{{ 'bad' if lo.days_left < 1 else ('warn' if lo.days_left < 2 else '') }}">
+        {{ lo.location }} · {% if lo.days_left < 0 %}past safe date{% elif lo.days_left == 0 %}eat today{% else %}{{ lo.days_left }} days left{% endif %}</small></div>
+    <span style="display:flex;gap:6px">
+      {% if lo.location == 'fridge' %}
+      <form method="post" action="{{ url_for('cook.freeze', leftover_id=lo.id) }}"><button class="icon-btn" title="Freeze" aria-label="Freeze {{ lo.title }}">❄</button></form>
+      {% endif %}
+      <form method="post" action="{{ url_for('cook.discard', leftover_id=lo.id) }}"><button class="icon-btn" title="Throw out" aria-label="Throw out {{ lo.title }}" data-confirm="Throw this out?">✕</button></form>
+    </span>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

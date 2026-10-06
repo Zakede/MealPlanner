@@ -371,7 +371,10 @@ def undo_last():
     if not row:
         return False
     payload = json.loads(row["payload"])
-    if row["action"] == "push_back":
+    if row["action"] == "status":
+        for meal_id, status in payload["previous"].items():
+            get_db().execute("UPDATE plan_meals SET status = ? WHERE id = ?", (status, int(meal_id)))
+    elif row["action"] == "push_back":
         ids = payload["ids"]
         marks = ",".join("?" * len(ids))
         get_db().execute(f"UPDATE plan_meals SET date = date(date, '-{int(payload['days'])} day') "
