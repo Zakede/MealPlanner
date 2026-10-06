@@ -13,7 +13,12 @@
 
   <header class="top">
     <a class="brand" href="{{ url_for('main.home') }}">食券<small>Meal Planner</small></a>
-    <a class="top-link" href="{{ url_for('settings.edit') }}" aria-label="Settings">{{ icon('settings') }}</a>
+    <span style="display:flex;gap:8px">
+      {% if request.endpoint not in ('auth.login', 'people.pick') %}
+      <a class="top-link avatar-link" href="{{ url_for('people.pick') }}" aria-label="Profile: {{ me.name }}">{{ me.name[:1]|upper }}</a>
+      <a class="top-link" href="{{ url_for('settings.edit') }}" aria-label="Settings">{{ icon('settings') }}</a>
+      {% endif %}
+    </span>
   </header>
 
   <main>
@@ -24,7 +29,7 @@
     <p class="safety-note">Plans are suggestions. Check allergens and food safety yourself.</p>
   </main>
 
-  {% if request.endpoint != 'auth.login' %}
+  {% if request.endpoint not in ('auth.login', 'people.pick') %}
   <nav class="bottom" aria-label="Main">
     {% for endpoint, jp, label in [('main.home', '今日', 'Today'), ('plan.week', '献立', 'Plan'),
                                    ('plan.shopping', '買物', 'Shop'), ('pantry.index', '冷蔵庫', 'Pantry'),

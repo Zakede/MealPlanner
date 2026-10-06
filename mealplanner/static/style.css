@@ -412,3 +412,8 @@ details.meal > summary::after { display: none; }
 .day-info { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: -2px 2px 8px; }
 .day-info .tag { margin: 0; }
 .tag.soft { background: var(--key); color: var(--muted); }
+.avatar-link { font: 400 1rem var(--head); color: var(--on-fuji); background: var(--fuji); }
+.key.person { border: 0; cursor: pointer; text-align: left; font: inherit; min-height: 132px; }
+.key.person .avatar { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; font: 400 1.3rem var(--head);
+  background: rgba(0, 0, 0, .18); margin-bottom: 6px; }
+.key.person[aria-current="true"] { outline: 3px solid var(--ink); outline-offset: 2px; }

@@ -1,0 +1,75 @@
+from flask import Blueprint, flash, redirect, render_template, request, session, url_for
+
+from .. import profiles
+from ..db import close_db
+
+bp = Blueprint("people", __name__, url_prefix="/people")
+
+
+@bp.route("/")
+def pick():
+    return render_template("people.html", everyone=profiles.all_profiles(), chosen=session.get("profile"))
+
+
+@bp.route("/<pid>/use", methods=["POST"])
+def use(pid):
+    if not profiles.find(pid):
+        flash("That profile doesn't exist any more.", "error")
+        return redirect(url_for("people.pick"))
+    session["profile"] = pid
+    session.permanent = True
+    return redirect(url_for("main.home"))
+
+
+@bp.route("/new", methods=["POST"])
+def create():
+    # adding people needs an open (or unlocked) profile, except the very first extra one
+    from .auth import lock_enabled, unlocked
+    if session.get("profile") is None and len(profiles.all_profiles()) > 1:
+        flash("Open your own profile first, then add someone.", "error")
+        return redirect(url_for("people.pick"))
+    if session.get("profile") and lock_enabled() and not unlocked():
+        return redirect(url_for("auth.login"))
+    try:
+        pid = profiles.create(request.form.get("name", ""))
+    except ValueError as e:
+        flash(str(e).capitalize() + ".", "error")
+        return redirect(url_for("people.pick"))
+    session["profile"] = pid
+    flash("New profile made. Hand the phone over for setup.", "ok")
+    return redirect(url_for("setup.start"))
+
+
+@bp.route("/<pid>/rename", methods=["POST"])
+def rename(pid):
+    if pid != profiles.current_id():
+        flash("You can only rename the profile you're using.", "error")
+    else:
+        try:
+            profiles.rename(pid, request.form.get("name", ""))
+            flash("Renamed.", "ok")
+        except ValueError as e:
+            flash(str(e).capitalize() + ".", "error")
+    return redirect(url_for("settings.edit"))
+
+
+@bp.route("/<pid>/delete", methods=["POST"])
+def delete(pid):
+    if pid != profiles.current_id():
+        flash("Open a profile to delete it.", "error")
+        return redirect(url_for("people.pick"))
+    if (request.form.get("confirm") or "").strip().upper() != "DELETE":
+        flash("Type DELETE to confirm. Nothing was deleted.", "error")
+        return redirect(url_for("settings.edit"))
+    if pid == profiles.MAIN:
+        flash("The first profile can't be deleted, but it can be reset.", "error")
+        return redirect(url_for("settings.edit"))
+    close_db()  # Windows won't delete a file that's still open
+    try:
+        profiles.delete(pid)
+    except ValueError as e:
+        flash(str(e).capitalize() + ".", "error")
+        return redirect(url_for("settings.edit"))
+    session.pop("profile", None)
+    flash("Profile deleted.", "ok")
+    return redirect(url_for("people.pick"))

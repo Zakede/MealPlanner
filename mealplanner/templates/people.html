@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Who's eating? · Meal Planner{% endblock %}
+{% block content %}
+<h1 class="rise" style="margin-top:6vh">Who's eating?<span class="jp">誰の献立</span></h1>
+<div class="keys">
+  {% for p in everyone %}
+  <form method="post" action="{{ url_for('people.use', pid=p.id) }}" style="display:contents">
+    <button class="key {{ ['lunch', 'breakfast', 'dinner', 'snack'][loop.index0 % 4] }} person" aria-current="{{ 'true' if p.id == chosen else 'false' }}">
+      <span class="avatar">{{ p.name[:1]|upper }}</span>
+      <span class="n">{{ p.name }}</span>
+      <span class="k">{{ 'Open now' if p.id == chosen else 'Tap to open' }}</span>
+    </button>
+  </form>
+  {% endfor %}
+</div>
+
+<details class="card">
+  <summary><b>Add someone</b></summary>
+  <form method="post" action="{{ url_for('people.create') }}" class="form" style="margin-top:12px">
+    <label>Their name<input name="name" maxlength="30" required placeholder="Ken"></label>
+    <button class="btn wide">Make profile</button>
+    <p class="muted small">They get their own plan, pantry, prices and settings. Give them their own password in Settings so only they can open it.</p>
+  </form>
+</details>
+{% endblock %}

@@ -9,7 +9,20 @@ from .. import store
 from ..db import execute
 
 bp = Blueprint("auth", __name__)
-OPEN_ENDPOINTS = {"auth.login", "static"}
+OPEN_ENDPOINTS = {"auth.login", "static", "people.pick", "people.use", "people.create"}
+
+
+def unlocked():
+    from ..profiles import current_id
+    return current_id() in session.get("unlocked", [])
+
+
+def mark_unlocked():
+    from ..profiles import current_id
+    ids = set(session.get("unlocked", []))
+    ids.add(current_id())
+    session["unlocked"] = sorted(ids)
+    session.permanent = True
 
 
 def password_hash():
@@ -32,9 +45,13 @@ def lock_enabled():
 
 
 def require_login():
+    from ..profiles import all_profiles
     if request.endpoint in OPEN_ENDPOINTS or request.endpoint is None:
         return None
-    if not lock_enabled() or session.get("ok"):
+    # with several people on one app, ask who's eating before showing anyone's data
+    if len(all_profiles()) > 1 and not session.get("profile"):
+        return redirect(url_for("people.pick"))
+    if not lock_enabled() or unlocked():
         return None
     return redirect(url_for("auth.login", next=request.full_path if request.method == "GET" else None))
 
@@ -47,9 +64,7 @@ def set_password(new):
 def login():
     if request.method == "POST":
         if check(request.form.get("password", "")):
-            session.clear()
-            session["ok"] = True
-            session.permanent = True
+            mark_unlocked()
             nxt = request.args.get("next") or ""
             return redirect(nxt if nxt.startswith("/") and not nxt.startswith("//") else url_for("main.home"))
         time.sleep(1)  # slows down guessing
@@ -59,8 +74,10 @@ def login():
 
 @bp.route("/logout", methods=["POST"])
 def logout():
-    session.clear()
-    return redirect(url_for("auth.login"))
+    from ..profiles import current_id
+    session["unlocked"] = [p for p in session.get("unlocked", []) if p != current_id()]
+    session.pop("profile", None)
+    return redirect(url_for("main.home"))
 
 
 @bp.route("/lock", methods=["POST"])
@@ -76,7 +93,6 @@ def lock():
         flash("The two passwords don't match.", "error")
     else:
         set_password(new)
-        session["ok"] = True
-        session.permanent = True
+        mark_unlocked()
         flash("App lock is on. Your phone stays logged in for 30 days.", "ok")
     return redirect(url_for("settings.edit") + "#lock")

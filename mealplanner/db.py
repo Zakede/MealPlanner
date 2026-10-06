@@ -15,7 +15,8 @@ def connect(path):
 
 def get_db():
     if "db" not in g:
-        g.db = connect(current_app.config["DATABASE"])
+        from .profiles import db_path
+        g.db = connect(db_path())
     return g.db
 
 

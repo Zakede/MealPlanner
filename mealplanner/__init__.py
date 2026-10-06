@@ -45,10 +45,12 @@ def create_app(config=None):
         conn = db.connect(app.config["DATABASE"])
         db.init_db(conn)
         conn.close()
+        from .profiles import migrate_all
+        migrate_all()
     app.teardown_appcontext(db.close_db)
 
-    from .views import auth, cook, extras, main, pantry, plan, receipts, recipes, schedule, settings, setup, taste, track
-    for module in (main, settings, pantry, recipes, schedule, plan, cook, taste, extras, setup, receipts, track, auth):
+    from .views import auth, cook, people, extras, main, pantry, plan, receipts, recipes, schedule, settings, setup, taste, track
+    for module in (main, settings, pantry, recipes, schedule, plan, cook, taste, extras, setup, receipts, track, auth, people):
         app.register_blueprint(module.bp)
 
     app.before_request(auth.require_login)
@@ -56,9 +58,12 @@ def create_app(config=None):
     @app.context_processor
     def nav():
         from .pricing import currency, in_japan
+        from .profiles import all_profiles, current
         from .store import settings
         s = settings()
         return {
+            "me": current(),
+            "people": all_profiles(),
             "cur": currency(s),
             "in_japan": in_japan(s),
             "has_endpoint": lambda name: name in app.view_functions,
