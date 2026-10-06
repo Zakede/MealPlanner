@@ -28,8 +28,8 @@
 
   <div class="actions">
     {% if drafts %}<form method="post" action="{{ url_for('plan.approve', week=wk) }}"><button class="btn">承認 Approve{% if flagged %} + swap {{ flagged }}{% endif %}</button></form>
-    {% else %}<a class="btn sky" href="{{ url_for('plan.shopping', week=wk) }}">買い物 Shopping list</a>{% endif %}
-    {% if flagged %}<form method="post" action="{{ url_for('plan.replace', week=wk) }}"><button class="btn butter">Swap {{ flagged }} now</button></form>{% endif %}
+    {% else %}<a class="btn jade" href="{{ url_for('plan.shopping', week=wk) }}">買い物 Shopping list</a>{% endif %}
+    {% if flagged %}<form method="post" action="{{ url_for('plan.replace', week=wk) }}"><button class="btn gold">Swap {{ flagged }} now</button></form>{% endif %}
     <form method="post" action="{{ url_for('plan.generate', week=wk) }}"><button class="btn secondary" data-confirm="Re-plan the rest of the week?">Re-plan</button></form>
   </div>
   {% if not is_next %}

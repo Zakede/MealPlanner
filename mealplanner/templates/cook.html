@@ -55,7 +55,7 @@
 <div class="actions" style="margin-top:10px">
   <form method="post" action="{{ url_for('plan.toggle_replace', meal_id=meal.id) }}">
     <input type="hidden" name="flag" value="{{ 0 if meal.replace_flag else 1 }}">
-    <button class="btn butter small">{{ 'Keep it' if meal.replace_flag else '替 Swap' }}</button>
+    <button class="btn gold small">{{ 'Keep it' if meal.replace_flag else '替 Swap' }}</button>
   </form>
   <form method="post" action="{{ url_for('cook.skip', meal_id=meal.id) }}"><button class="btn secondary small">Skip</button></form>
   <form method="post" action="{{ url_for('recipes.pref', recipe_id=r.id) }}"><input type="hidden" name="status" value="favorite"><button class="btn secondary small" aria-label="Favourite">♥</button></form>

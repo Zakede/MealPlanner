@@ -18,7 +18,7 @@
     </div>
     <div class="bar-row">
       <div class="line"><span>Calories</span><span>{{ kcal_eaten }} / {{ kcal_target }}</span></div>
-      <div class="meter sky {{ 'over' if k_left < 0 }}"><i style="width: {{ [100, kcal_eaten * 100 // kcal_target]|min }}%"></i></div>
+      <div class="meter jade {{ 'over' if k_left < 0 }}"><i style="width: {{ [100, kcal_eaten * 100 // kcal_target]|min }}%"></i></div>
     </div>
   </div>
 </div>
