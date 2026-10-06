@@ -261,10 +261,15 @@ CREATE TABLE IF NOT EXISTS recipe_prefs (
 
 -- One-off changes for a single date: "free today", "gym today", "away today".
 CREATE TABLE IF NOT EXISTS day_overrides (
-    date   TEXT PRIMARY KEY,
-    effort TEXT CHECK (effort IN ('none', 'low', 'full')),
-    gym    INTEGER,
-    away   INTEGER
+    date        TEXT PRIMARY KEY,
+    effort      TEXT CHECK (effort IN ('none', 'low', 'full')),
+    gym         INTEGER,
+    away        INTEGER,
+    work_mode   TEXT,      -- NULL: usual pattern, 'off': no work, 'work': work_start..work_end
+    work_start  TEXT,
+    work_end    TEXT,
+    commute_min INTEGER,
+    note        TEXT
 );
 
 CREATE TABLE IF NOT EXISTS water_log (

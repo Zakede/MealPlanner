@@ -44,6 +44,15 @@
     <div class="day-head {{ 'today' if d.date == today }}">
       <h2>{{ 'Today' if d.date == today else d.date.strftime('%a') ~ ' ' ~ d.date.day }}</h2>
       {% if d.target %}<span class="{{ 'warn' if d.protein < d.target.protein_target * 0.9 }}">{{ d.kcal }} kcal · {{ d.protein }} g</span>{% endif %}
+      <a class="chip" href="{{ url_for('plan.day', day=d.date.isoformat()) }}" aria-label="Edit {{ d.date.strftime('%A') }}">Edit day</a>
+    </div>
+    <div class="day-info">
+      {% set i = d.info %}
+      {% if i.work_start %}<span class="tag">work {{ i.work_start }}–{{ i.work_end }}</span>{% else %}<span class="tag soft">day off</span>{% endif %}
+      {% if i.gym %}<span class="tag">gym</span>{% endif %}
+      {% if i.away %}<span class="tag out">out</span>{% endif %}
+      {% if i.effort == 'full' %}<span class="tag">big cook</span>{% elif i.effort == 'none' %}<span class="tag soft">no cooking</span>{% endif %}
+      {% if i.note %}<span class="muted small">· {{ i.note }}</span>{% endif %}
     </div>
     <div class="keys three">
       {% for m in d.meals %}

@@ -1,4 +1,5 @@
-from datetime import timedelta
+import re
+from datetime import date as date_cls, timedelta
 
 from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
 
@@ -27,6 +28,9 @@ def week():
     for d in days:
         d["meals"] = sorted(d["meals"], key=lambda m: (grid_order[m["slot"]], m["id"]))
     meals = [m for d in days for m in d["meals"]]
+    infos = plans.build_days([d["date"] for d in days])
+    for d in days:
+        d["info"] = infos[d["date"]]
     return render_template(
         "plan/week.html",
         first=first,
@@ -94,7 +98,6 @@ def undo():
 
 @bp.route("/add", methods=["GET", "POST"])
 def add():
-    from datetime import date as date_cls
     from .. import diet
     if request.method == "POST":
         try:
@@ -118,6 +121,46 @@ def add():
                and diet.allowed(r, s.get("diet") or "any", avoid)]
     options.sort(key=lambda r: (prefs.get(r["id"]) != "favorite", r["name"]))
     return render_template("plan/add.html", on=on, slot=slot, options=options, prefs=prefs)
+
+
+@bp.route("/day/<day>", methods=["GET", "POST"])
+def day(day):
+    try:
+        on = date_cls.fromisoformat(day)
+    except ValueError:
+        return redirect(url_for("plan.week"))
+    if request.method == "POST":
+        f = request.form
+        hhmm = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
+        mode = f.get("work_mode") if f.get("work_mode") in ("usual", "off", "work") else "usual"
+        start, end = f.get("work_start", ""), f.get("work_end", "")
+        if mode == "work" and not (hhmm.match(start) and hhmm.match(end)):
+            flash("Give work a start and end time, like 09:00 and 18:00.", "error")
+            return redirect(url_for("plan.day", day=day))
+        try:
+            commute = max(0, min(240, int(f.get("commute_min") or 0)))
+        except ValueError:
+            commute = 0
+        effort = f.get("effort") if f.get("effort") in ("none", "low", "full") else None
+        plans.set_override(
+            on,
+            work_mode=None if mode == "usual" else mode,
+            work_start=start if mode == "work" else None,
+            work_end=end if mode == "work" else None,
+            commute_min=commute if mode == "work" else None,
+            gym={"yes": 1, "no": 0}.get(f.get("gym")),
+            away={"yes": 1, "no": 0}.get(f.get("away")),
+            effort=effort,
+            note=(f.get("note") or "").strip()[:140] or None,
+        )
+        if store.targets() is not None:
+            plans.replan_rest_of_day(on)
+        flash(f"{on.strftime('%A')} updated and re-planned.", "ok")
+        current, _ = plans.current_week()
+        return redirect(url_for("plan.week", week="next" if on >= current + timedelta(days=7) else None))
+    info = plans.build_days([on])[on]
+    o = plans.override(on)
+    return render_template("plan/day.html", on=on, info=info, o=o)
 
 
 @bp.route("/shopping")

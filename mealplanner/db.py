@@ -51,6 +51,11 @@ MIGRATIONS = [
     ("settings", "protein_per_kg", "REAL NOT NULL DEFAULT 1.8"),
     ("settings", "fat_share", "REAL NOT NULL DEFAULT 0.25"),
     ("settings", "password_hash", "TEXT NOT NULL DEFAULT ''"),
+    ("day_overrides", "work_mode", "TEXT"),
+    ("day_overrides", "work_start", "TEXT"),
+    ("day_overrides", "work_end", "TEXT"),
+    ("day_overrides", "commute_min", "INTEGER"),
+    ("day_overrides", "note", "TEXT"),
 ]
 
 

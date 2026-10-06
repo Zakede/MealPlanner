@@ -143,23 +143,34 @@ def build_days(dates, s=None):
             for key in ("effort", "gym", "away"):
                 if o[key] is not None:
                     day[key] = o[key]
+            if o.get("work_mode") == "off":
+                day.update(work_start=None, work_end=None, commute_min=0)
+            elif o.get("work_mode") == "work" and o.get("work_start") and o.get("work_end"):
+                day.update(work_start=o["work_start"], work_end=o["work_end"],
+                           commute_min=o["commute_min"] if o.get("commute_min") is not None else day["commute_min"])
+            day["note"] = o.get("note") or ""
+        else:
+            day["note"] = ""
         day["prep"] = d in prep or (o is not None and o["effort"] == "full")
         days[d] = day
     return days
 
 
+OVERRIDE_KEYS = ("effort", "gym", "away", "work_mode", "work_start", "work_end", "commute_min", "note")
+
+
 def set_override(on, **values):
-    """values: effort / gym / away. None clears that part."""
+    """Change parts of one date's override. None clears that part."""
     row = query("SELECT * FROM day_overrides WHERE date = ?", (on.isoformat(),), one=True)
-    current = dict(row) if row else {"effort": None, "gym": None, "away": None}
+    current = {k: (dict(row).get(k) if row else None) for k in OVERRIDE_KEYS}
     current.update(values)
     db = get_db()
-    if all(current[k] is None for k in ("effort", "gym", "away")):
+    if all(current[k] in (None, "") for k in OVERRIDE_KEYS):
         db.execute("DELETE FROM day_overrides WHERE date = ?", (on.isoformat(),))
     else:
-        db.execute("INSERT INTO day_overrides (date, effort, gym, away) VALUES (?, ?, ?, ?)"
-                   " ON CONFLICT(date) DO UPDATE SET effort = excluded.effort, gym = excluded.gym, away = excluded.away",
-                   (on.isoformat(), current["effort"], current["gym"], current["away"]))
+        cols = ", ".join(OVERRIDE_KEYS)
+        db.execute(f"INSERT OR REPLACE INTO day_overrides (date, {cols}) VALUES (?, {', '.join('?' * len(OVERRIDE_KEYS))})",
+                   (on.isoformat(), *[current[k] for k in OVERRIDE_KEYS]))
     db.commit()
 
 
@@ -169,9 +180,9 @@ def override(on):
 
 
 def replan_rest_of_day(on):
-    """Plan today's remaining meals again (after e.g. "gym today"), leaving the other days alone."""
+    """Plan one day's remaining meals again (after e.g. "gym today"), leaving the other days alone."""
     first, last = budget.week_bounds(on)
-    now = now_minutes()
+    now = now_minutes() if on == get_today() else -1
     days = build_days([on])
     rows = [dict(r) for r in query("SELECT * FROM plan_meals WHERE date = ? AND status IN ('draft', 'approved')",
                                    (on.isoformat(),))]

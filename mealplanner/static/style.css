@@ -406,3 +406,9 @@ details.meal > summary::after { display: none; }
 .chip.removable { background: color-mix(in srgb, var(--fuji) 22%, var(--key)); color: var(--ink); }
 .chip-entry { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
 .chip-entry input { margin: 0; }
+.day-head .chip { margin: 0 0 0 8px; min-height: 30px; font-size: .74rem; }
+.day-head { gap: 6px; }
+.day-head > span { margin-left: auto; }
+.day-info { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: -2px 2px 8px; }
+.day-info .tag { margin: 0; }
+.tag.soft { background: var(--key); color: var(--muted); }

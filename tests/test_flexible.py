@@ -133,3 +133,32 @@ def test_wizard_saves_flexible_and_kitchen(app, client):
         s = store.settings()
         assert s["schedule_mode"] == "flexible" and s["prep_days"] == 3
         assert s["appliances"] == "stove,microwave"
+
+
+def test_edit_day_sets_work_and_replans(profile, client):
+    client.post("/plan/generate")
+    thu = WED + timedelta(days=1)
+    resp = client.post(f"/plan/day/{thu.isoformat()}", data={
+        "work_mode": "work", "work_start": "11:00", "work_end": "20:00", "commute_min": "30",
+        "gym": "yes", "away": "usual", "effort": "low", "note": "late shift"}, follow_redirects=True)
+    assert b"re-planned" in resp.data and b"late shift" in resp.data
+    with profile.app_context():
+        day = plans.build_days([thu])[thu]
+        assert day["work_start"] == "11:00" and day["gym"] == 1 and day["note"] == "late shift"
+        meals = plans.meals_between(thu, thu)
+        assert {"breakfast", "lunch", "dinner"} <= {m["slot"] for m in meals}
+        dinner = next(m for m in meals if m["slot"] == "dinner")
+        assert dinner["recipe"] is None or dinner["recipe"]["total_min"] <= 30 or dinner["kind"] == "leftover"
+
+
+def test_edit_day_rejects_bad_hours(profile, client):
+    resp = client.post(f"/plan/day/{WED.isoformat()}", data={"work_mode": "work", "work_start": "", "work_end": ""},
+                       follow_redirects=True)
+    assert b"start and end time" in resp.data
+    assert client.get(f"/plan/day/{WED.isoformat()}").status_code == 200
+
+
+def test_day_off_clears_usual_work(profile, client):
+    client.post(f"/plan/day/{WED.isoformat()}", data={"work_mode": "off", "gym": "usual", "away": "usual", "effort": "usual"})
+    with profile.app_context():
+        assert plans.build_days([WED])[WED]["work_start"] is None

@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}{{ on.strftime('%A') }} · Meal Planner{% endblock %}
+{% block content %}
+<h1>{{ on.strftime('%A') }}<span class="jp">{{ on.month }}月{{ on.day }}日</span></h1>
+<p class="muted">Tell the app what this day looks like. Its meals re-plan around it.</p>
+
+<form method="post" class="form" id="day-form">
+  <div class="card">
+    <h2>Work or study</h2>
+    {% set mode = o.get('work_mode') or 'usual' %}
+    <div class="opts">
+      <label class="opt"><input type="radio" name="work_mode" value="usual" {{ 'checked' if mode == 'usual' }}><span><b>Usual</b><small>{% if info.work_start and mode == 'usual' %}{{ info.work_start }}–{{ info.work_end }}{% else %}Follow my schedule{% endif %}</small></span></label>
+      <label class="opt"><input type="radio" name="work_mode" value="work" {{ 'checked' if mode == 'work' }}><span><b>Working</b><small>Set the hours</small></span></label>
+      <label class="opt"><input type="radio" name="work_mode" value="off" {{ 'checked' if mode == 'off' }}><span><b>Day off</b><small>Home all day</small></span></label>
+    </div>
+    <div class="row3 work-only" style="margin-top:12px">
+      <label>From<input type="time" name="work_start" value="{{ o.get('work_start') or info.work_start or '09:00' }}"></label>
+      <label>Until<input type="time" name="work_end" value="{{ o.get('work_end') or info.work_end or '18:00' }}"></label>
+      <label>Commute min<input type="number" name="commute_min" value="{{ o.get('commute_min') if o.get('commute_min') is not none else info.commute_min }}"></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Gym</h2>
+    {% set gym = 'usual' if o.get('gym') is none else ('yes' if o.get('gym') else 'no') %}
+    <div class="opts">
+      {% for v, label in [('usual', 'Usual'), ('yes', 'Training'), ('no', 'Rest')] %}
+      <label class="opt"><input type="radio" name="gym" value="{{ v }}" {{ 'checked' if gym == v }}><span><b>{{ label }}</b></span></label>
+      {% endfor %}
+    </div>
+    <h2 style="margin-top:16px">Out all day?</h2>
+    {% set away = 'usual' if o.get('away') is none else ('yes' if o.get('away') else 'no') %}
+    <div class="opts">
+      {% for v, label in [('usual', 'Usual'), ('yes', 'Out'), ('no', 'Home')] %}
+      <label class="opt"><input type="radio" name="away" value="{{ v }}" {{ 'checked' if away == v }}><span><b>{{ label }}</b></span></label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Cooking</h2>
+    {% set effort = o.get('effort') or 'usual' %}
+    <div class="opts">
+      {% for v, label, sub in [('usual', 'Usual', ''), ('none', 'None', 'Leftovers or no-cook'), ('low', 'Quick', '15 min max'), ('full', 'Big cook', 'Batch prep for later')] %}
+      <label class="opt"><input type="radio" name="effort" value="{{ v }}" {{ 'checked' if effort == v }}><span><b>{{ label }}</b>{% if sub %}<small>{{ sub }}</small>{% endif %}</span></label>
+      {% endfor %}
+    </div>
+    <label style="margin-top:14px">Note<input name="note" maxlength="140" value="{{ o.get('note') or '' }}" placeholder="Dinner at Ken's, leg day, early shift…"></label>
+  </div>
+
+  <button class="btn wide">Save and re-plan</button>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+(() => {
+  const form = document.getElementById("day-form");
+  const sync = () => {
+    const working = form.querySelector('input[name="work_mode"]:checked')?.value === "work";
+    form.querySelectorAll(".work-only").forEach((el) => el.hidden = !working);
+  };
+  form.querySelectorAll('input[name="work_mode"]').forEach((r) => r.addEventListener("change", sync));
+  sync();
+})();
+</script>
+{% endblock %}
