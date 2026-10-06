@@ -754,3 +754,19 @@ def guess_item(name, amount=""):
         grams = PACK_GRAMS.get(category, 200)
         label = f"about {grams} g"
     return {"cost": max(1, round(per100 * grams / 100)), "amount": label}
+
+
+def add_simple_meal(on, slot, title, kcal, protein=0, carbs=0, fat=0, cost=0, kind="konbini", note=""):
+    """Put a ready-made thing (a konbini item, a snack, something typed in) into a slot. No recipe needed."""
+    if slot not in ("breakfast", "lunch", "dinner", "snack"):
+        raise ValueError("pick a meal")
+    first = budget.week_bounds(on)[0]
+    approved = bool(query("SELECT 1 FROM shopping_list WHERE week_start = ? LIMIT 1", (first.isoformat(),)))
+    sched = {r["weekday"]: dict(r) for r in query("SELECT * FROM schedule_days")}
+    save_meals([{"date": on, "slot": slot, "kind": kind, "recipe_id": None, "portion": 1, "cook_portions": 1,
+                 "title": title[:80], "kcal": kcal, "protein": protein, "carbs": carbs, "fat": fat,
+                 "cost": cost, "buy_cost": cost, "note": note or "Added by you",
+                 "eat_time": planner.eat_time(sched[on.weekday()], slot),
+                 "status": "approved" if approved else "draft"}])
+    if not query("SELECT 1 FROM plan_days WHERE date = ?", (on.isoformat(),), one=True) and store.targets():
+        save_plan_days([on])

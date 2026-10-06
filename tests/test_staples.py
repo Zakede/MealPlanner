@@ -34,3 +34,22 @@ def test_always_have_keeps_staples_off_the_list(profile, client):
 def test_staples_page_and_setup_render(profile, client):
     assert "Garlic powder" in client.get("/pantry/staples").get_data(as_text=True)
     assert "What you use instead" in client.get("/setup/").get_data(as_text=True)
+
+
+def test_add_konbini_pick_and_custom_meal(profile, client):
+    from datetime import date
+    with profile.app_context():
+        on = plans.get_today().isoformat()
+    page = client.get(f"/plan/add?date={on}&slot=snack&tab=picks").get_data(as_text=True)
+    assert "Konbini &amp; snacks" in page and "Type it" in page
+    with profile.app_context():
+        pick = query("SELECT * FROM quick_picks WHERE item = 'Boiled egg'", one=True)
+    client.post(f"/plan/add/pick/{pick['id']}", data={"date": on, "slot": "snack"})
+    client.post("/plan/add/custom", data={"date": on, "slot": "dinner", "name": "Friend's curry", "kcal": "650",
+                                          "protein": "20", "cost": "0"})
+    with profile.app_context():
+        titles = {m["title"]: dict(m) for m in query("SELECT * FROM plan_meals WHERE date = ?", (on,))}
+        assert "Boiled egg (Konbini)" in titles and titles["Boiled egg (Konbini)"]["kcal"] == 80
+        assert titles["Friend's curry"]["kcal"] == 650 and titles["Friend's curry"]["slot"] == "dinner"
+    r = client.get("/plan/add/guess?text=famichiki").get_json()
+    assert r["kcal"] == 252 and r["source"] == "list"

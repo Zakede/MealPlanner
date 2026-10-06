@@ -3,23 +3,123 @@
 {% block content %}
 <h1>Add a meal</h1>
 <form method="get" class="actions">
-  <input type="hidden" name="date" value="{{ on }}">
+  <input type="hidden" name="date" value="{{ on }}"><input type="hidden" name="tab" value="{{ tab }}">
   {% for s in ['breakfast', 'lunch', 'dinner', 'snack'] %}
   <button class="chip {{ 'ok' if s == slot }}" name="slot" value="{{ s }}">{{ s|capitalize }}</button>
   {% endfor %}
 </form>
-<p class="muted small">For {{ on }}. Portions are sized to your targets automatically.</p>
-<div class="day-list">
-  {% for r in options %}
-  <form method="post" class="lp pick-row">
-    <input type="hidden" name="date" value="{{ on }}"><input type="hidden" name="slot" value="{{ slot }}">
-    <input type="hidden" name="recipe_id" value="{{ r.id }}">
-    <span class="t">{{ r.per_serving.kcal|round|int }}</span>
-    <div><b>{% if prefs.get(r.id) == 'favorite' %}♥ {% endif %}{{ r.name }}</b><small>{{ r.per_serving.protein|round|int }} g protein · {{ r.active_min }} min · {{ cur }}{{ r.per_serving.cost|round|int }}</small></div>
-    <button class="icon-btn" aria-label="Add {{ r.name }}">+</button>
-  </form>
-  {% else %}
-  <div class="card empty"><p>No recipes fit this meal with your diet settings.</p><a class="btn" href="{{ url_for('recipes.ai') }}">Get a recipe idea</a></div>
+<p class="muted small">For {{ on }}.</p>
+
+<div class="seg-tabs" role="tablist">
+  {% for key, label in [('recipes', 'Recipes'), ('picks', 'Konbini & snacks'), ('type', 'Type it')] %}
+  <a role="tab" href="{{ url_for('plan.add', date=on, slot=slot, tab=key) }}" class="{{ 'on' if tab == key }}" aria-selected="{{ 'true' if tab == key else 'false' }}" data-tab="{{ key }}">{{ label }}</a>
   {% endfor %}
 </div>
+
+<section class="tab-panel" data-panel="recipes" {% if tab != 'recipes' %}hidden{% endif %}>
+  <p class="muted small">Portions are sized to your targets automatically.</p>
+  <div class="day-list">
+    {% for r in options %}
+    <form method="post" action="{{ url_for('plan.add') }}" class="lp pick-row">
+      <input type="hidden" name="date" value="{{ on }}"><input type="hidden" name="slot" value="{{ slot }}">
+      <input type="hidden" name="recipe_id" value="{{ r.id }}">
+      <span class="t">{{ r.per_serving.kcal|round|int }}</span>
+      <div><b>{% if prefs.get(r.id) == 'favorite' %}♥ {% endif %}{{ r.name }}</b><small>{{ r.per_serving.protein|round|int }} g protein · {{ r.active_min }} min · {{ cur }}{{ r.per_serving.cost|round|int }}</small></div>
+      <button class="icon-btn" aria-label="Add {{ r.name }}">+</button>
+    </form>
+    {% else %}
+    <div class="card empty"><p>No recipes fit this meal with your diet settings.</p><a class="btn" href="{{ url_for('recipes.ai') }}">Get a recipe idea</a></div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="tab-panel" data-panel="picks" {% if tab != 'picks' %}hidden{% endif %}>
+  <input type="search" id="pick-search" placeholder="Search: onigiri, protein bar, famichiki…" aria-label="Search konbini items">
+  {% if slot == 'snack' and snacks %}
+  <h2 style="margin:16px 2px 8px">Snacks you make</h2>
+  <div class="day-list">
+    {% for r in snacks %}
+    <form method="post" action="{{ url_for('plan.add') }}" class="lp pick-row" data-name="{{ r.name|lower }}">
+      <input type="hidden" name="date" value="{{ on }}"><input type="hidden" name="slot" value="{{ slot }}">
+      <input type="hidden" name="recipe_id" value="{{ r.id }}">
+      <span class="t">{{ r.per_serving.kcal|round|int }}</span>
+      <div><b>{{ r.name }}</b><small>{{ r.per_serving.protein|round|int }} g protein · {{ cur }}{{ r.per_serving.cost|round|int }}</small></div>
+      <button class="icon-btn" aria-label="Add {{ r.name }}">+</button>
+    </form>
+    {% endfor %}
+  </div>
+  {% endif %}
+  <h2 style="margin:16px 2px 8px">Konbini & chains</h2>
+  <div class="day-list" id="pick-list">
+    {% for p in picks %}
+    <form method="post" action="{{ url_for('plan.add_pick', pick_id=p.id) }}" class="lp pick-row" data-name="{{ (p.item ~ ' ' ~ p.chain)|lower }}">
+      <input type="hidden" name="date" value="{{ on }}"><input type="hidden" name="slot" value="{{ slot }}">
+      <span class="t">{{ p.kcal }}</span>
+      <div><b>{{ p.item }}</b><small>{{ p.chain }} · {{ p.protein|round|int }} g protein · {{ cur }}{{ p.yen }}</small></div>
+      <button class="icon-btn" aria-label="Add {{ p.item }}">+</button>
+    </form>
+    {% endfor %}
+  </div>
+  <p class="muted small">Typical values. Check the label if you want them exact.</p>
+</section>
+
+<section class="tab-panel" data-panel="type" {% if tab != 'type' %}hidden{% endif %}>
+  <form method="post" action="{{ url_for('plan.add_custom') }}" class="card form" id="custom-form">
+    <input type="hidden" name="date" value="{{ on }}"><input type="hidden" name="slot" value="{{ slot }}">
+    <label>What is it?
+      <span class="chip-entry"><input name="name" required placeholder="Lawson karaage bento, homemade smoothie…"><button type="button" class="btn small" data-guess>✦ Guess</button></span>
+    </label>
+    <p class="muted small" data-guess-status>{{ 'Tap Guess to fill in the numbers from the konbini list or the AI helper.' if ai else 'Tap Guess to look it up in the konbini list. Add a Gemini key in Settings for anything else.' }}</p>
+    <div class="row4">
+      <label>kcal<input name="kcal" type="number" step="any" min="0" required></label>
+      <label>Protein g<input name="protein" type="number" step="any" min="0"></label>
+      <label>Carbs g<input name="carbs" type="number" step="any" min="0"></label>
+      <label>Fat g<input name="fat" type="number" step="any" min="0"></label>
+    </div>
+    <label>About {{ cur }}<input name="cost" type="number" step="any" min="0" placeholder="0"></label>
+    <label class="small" style="display:flex;gap:6px;align-items:center;color:var(--ink)"><input type="checkbox" name="out" value="1">Eating out (uses an eat-out slot)</label>
+    <button class="btn wide">Add to {{ slot }}</button>
+  </form>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+(() => {
+  // tabs switch without a reload
+  const tabs = document.querySelectorAll(".seg-tabs [data-tab]");
+  tabs.forEach((t) => t.addEventListener("click", (e) => {
+    e.preventDefault();
+    tabs.forEach((x) => { x.classList.toggle("on", x === t); x.setAttribute("aria-selected", x === t); });
+    document.querySelectorAll(".tab-panel").forEach((p) => { p.hidden = p.dataset.panel !== t.dataset.tab; });
+    history.replaceState(null, "", t.href);
+  }));
+  // search the konbini list
+  const search = document.getElementById("pick-search");
+  search?.addEventListener("input", () => {
+    const q = search.value.trim().toLowerCase();
+    document.querySelectorAll("[data-panel=picks] .pick-row").forEach((r) => { r.hidden = q && !r.dataset.name.includes(q); });
+  });
+  // Guess: konbini list first, then the AI helper
+  const form = document.getElementById("custom-form");
+  const btn = form.querySelector("[data-guess]"), status = form.querySelector("[data-guess-status]");
+  btn.addEventListener("click", async () => {
+    const text = form.elements.name.value.trim();
+    if (!text) { status.textContent = "Type what it is first."; form.elements.name.focus(); return; }
+    btn.disabled = true; btn.classList.add("thinking"); status.textContent = "Guessing…";
+    try {
+      const r = await fetch(`{{ url_for('plan.add_guess') }}?text=${encodeURIComponent(text)}`);
+      const d = await r.json();
+      if (!r.ok) { status.textContent = d.error || "Couldn't guess that one."; return; }
+      for (const k of ["kcal", "protein", "carbs", "fat"]) form.elements[k].value = d[k] || "";
+      if (d.price) form.elements.cost.value = d.price;
+      form.querySelectorAll(".row4 input, input[name=cost]").forEach((el, i) => {
+        el.classList.remove("filled"); void el.offsetWidth; el.style.setProperty("--i", i); el.classList.add("filled");
+      });
+      status.textContent = (d.source === "ai" ? `AI guess (${d.confidence || "low"} confidence)` : "From the konbini list") + ". Fix anything that looks off.";
+      burst(btn);
+    } catch { status.textContent = "Couldn't reach the app."; }
+    finally { btn.disabled = false; btn.classList.remove("thinking"); }
+  });
+})();
+</script>
 {% endblock %}

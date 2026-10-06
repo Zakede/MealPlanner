@@ -128,7 +128,88 @@ def add():
     options = [r for r in store.recipes() if slot in r["type_list"] and prefs.get(r["id"]) != "never"
                and diet.allowed(r, s.get("diet") or "any", avoid)]
     options.sort(key=lambda r: (prefs.get(r["id"]) != "favorite", r["name"]))
-    return render_template("plan/add.html", on=on, slot=slot, options=options, prefs=prefs)
+    from .. import llm
+    picks = [dict(r) for r in plans.query("SELECT * FROM quick_picks ORDER BY chain, item")]
+    snacks = [r for r in options if slot == "snack"] or [r for r in store.recipes() if "snack" in r["type_list"]
+                                                          and prefs.get(r["id"]) != "never"]
+    return render_template("plan/add.html", on=on, slot=slot, options=options, prefs=prefs, picks=picks,
+                           snacks=snacks, tab=request.args.get("tab") or "recipes", ai=llm.provider() is not None)
+
+
+def _add_target():
+    on = date_cls.fromisoformat(request.form.get("date", ""))
+    slot = request.form.get("slot")
+    return on, slot
+
+
+def _after_add(on, title):
+    flash(f"{title} added.", "ok")
+    current, _ = plans.current_week()
+    return redirect(url_for("plan.week", week="next" if on >= current + timedelta(days=7) else None))
+
+
+@bp.route("/add/pick/<int:pick_id>", methods=["POST"])
+def add_pick(pick_id):
+    """A konbini or chain item into the plan."""
+    p = plans.query("SELECT * FROM quick_picks WHERE id = ?", (pick_id,), one=True)
+    try:
+        on, slot = _add_target()
+        if not p:
+            raise ValueError("that item is gone")
+        plans.add_simple_meal(on, slot, f"{p['item']} ({p['chain']})", p["kcal"], p["protein"], cost=p["yen"])
+    except ValueError as e:
+        flash(str(e).capitalize() + ".", "error")
+        return redirect(url_for("plan.add", date=request.form.get("date"), slot=request.form.get("slot"), tab="picks"))
+    return _after_add(on, p["item"])
+
+
+@bp.route("/add/custom", methods=["POST"])
+def add_custom():
+    """Anything typed in: a name and its numbers (guessed or yours)."""
+    f = request.form
+    try:
+        on, slot = _add_target()
+        name = (f.get("name") or "").strip()
+        if not name:
+            raise ValueError("give it a name")
+        nums = {}
+        for key, hi in (("kcal", 3000), ("protein", 200), ("carbs", 400), ("fat", 200), ("cost", 100000)):
+            raw = (f.get(key) or "").strip()
+            nums[key] = max(0.0, min(hi, float(raw))) if raw else 0.0
+        if nums["kcal"] <= 0:
+            raise ValueError("add the calories, or tap Guess")
+        plans.add_simple_meal(on, slot, name, nums["kcal"], nums["protein"], nums["carbs"], nums["fat"],
+                              round(nums["cost"]), kind="eat_out" if f.get("out") else "konbini")
+    except ValueError as e:
+        flash(str(e).capitalize() + ".", "error")
+        return redirect(url_for("plan.add", date=f.get("date"), slot=f.get("slot"), tab="type"))
+    return _after_add(on, name)
+
+
+@bp.route("/add/guess")
+def add_guess():
+    """Calories for something typed in: a known konbini item first, then the AI helper."""
+    from .. import llm
+    from ..pricing import currency
+    from .foodlog import check_estimate, estimate_prompt
+    text = (request.args.get("text") or "").strip()[:200]
+    if not text:
+        return jsonify({"error": "Type what it is first."}), 400
+    low = text.lower()
+    for p in plans.query("SELECT * FROM quick_picks"):
+        if p["item"].lower() in low or low in p["item"].lower():
+            return jsonify({"name": p["item"], "kcal": p["kcal"], "protein": p["protein"], "carbs": 0, "fat": 0,
+                            "price": p["yen"], "source": "list"})
+    provider = llm.provider()
+    if provider is None:
+        return jsonify({"error": "Not in the konbini list, and no AI helper is set up (Settings → AI helper)."}), 404
+    try:
+        est = check_estimate(llm.extract_json(provider.complete(estimate_prompt(text, currency(store.settings())))))
+    except llm.LLMError as e:
+        return jsonify({"error": f"AI helper: {e}."}), 502
+    if not est:
+        return jsonify({"error": "That guess didn't add up. Type the numbers yourself."}), 502
+    return jsonify(dict(est, source="ai"))
 
 
 @bp.route("/day/<day>", methods=["GET", "POST"])
