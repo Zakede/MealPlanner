@@ -1,7 +1,14 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 {% block title %}Taste · Meal Planner{% endblock %}
 {% block content %}
 <h1>Your taste</h1>
+<form method="post" action="{{ url_for('taste.rules') }}" class="card">
+  <h2>How you like each protein</h2>
+  <p class="muted small">Finer than "won't eat": say chicken is fine but only from the air fryer. Saving fixes this week's and next week's meals.</p>
+  {% include "_food_rules.html" %}
+  <button class="btn wide">Save</button>
+</form>
 {% for h in hints %}<div class="flash flash-warn">{{ h }}</div>{% endfor %}
 
 {% if ranked %}

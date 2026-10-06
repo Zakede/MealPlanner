@@ -1,0 +1,15 @@
+{# How you like each protein. Needs: rules (dict), rule_groups, rule_options; icon macro imported by the caller. #}
+<div class="rules">
+  {% for g, label in rule_groups.items() %}
+  {% set cur = rules.get(g, 'any') %}
+  <div class="rule-row">
+    <span class="rule-name">{{ icon({'chicken': 'drumstick', 'pork': 'bowl', 'beef': 'flame', 'fish': 'fish', 'seafood': 'fish', 'eggs': 'egg', 'tofu': 'leaf'}[g]) }}{{ label }}</span>
+    <span class="rule-pick" role="radiogroup" aria-label="{{ label }}">
+      {% for v, (name, sub) in rule_options.items() %}
+      <input type="radio" name="rule_{{ g }}" value="{{ v }}" id="r{{ g }}{{ v }}" {{ 'checked' if cur == v }}>
+      <label for="r{{ g }}{{ v }}" class="r-{{ v }}" title="{{ sub }}">{{ name }}</label>
+      {% endfor %}
+    </span>
+  </div>
+  {% endfor %}
+</div>

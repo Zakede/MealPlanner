@@ -1,3 +1,5 @@
+import re
+
 """Kitchen appliances, and which ones a recipe needs."""
 
 APPLIANCES = {
@@ -12,6 +14,8 @@ APPLIANCES = {
 }
 
 STOVE_WORDS = ("fry", "pan", "simmer", "boil", "sear", "bring", "scramble", "grill", "toss", "bubble", "soften")
+# whole words, so "panko" isn't a pan; "fry" also catches fried / fries / frying
+STOVE_RE = re.compile(r"\b(?:fr(?:y|ies|ied|ying)|pans?|" + "|".join(w + r"\w*" for w in STOVE_WORDS[2:]) + r")\b")
 
 
 def needs(recipe):
@@ -20,7 +24,9 @@ def needs(recipe):
         return {e for e in recipe["equipment"].split(",") if e}
     steps = recipe.get("steps", "").lower()
     out = set()
-    if any(w in steps for w in STOVE_WORDS):
+    # "air fry" is not frying on the stove
+    stove_text = steps.replace("air fryer", "").replace("air fry", "").replace("air-fry", "")
+    if STOVE_RE.search(stove_text):
         out.add("stove")
     if "microwave" in steps:
         out.add("microwave")

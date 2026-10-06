@@ -58,6 +58,7 @@ MIGRATIONS = [
     ("day_overrides", "commute_min", "INTEGER"),
     ("day_overrides", "note", "TEXT"),
     ("day_overrides", "work_kind", "TEXT"),
+    ("settings", "food_rules", "TEXT NOT NULL DEFAULT ''"),
 ]
 
 

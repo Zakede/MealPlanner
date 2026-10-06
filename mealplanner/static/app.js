@@ -103,15 +103,31 @@ document.querySelectorAll("input[data-chips]").forEach((input) => {
   render();
 });
 
-// Activities on the week plan: "+ Add" opens a small form under that day.
+// Week plan: one "+ Add" per day. It flips to two choices: a meal, or an activity (school, a shift...).
+document.querySelectorAll(".add-menu").forEach((menu) => {
+  const main = menu.querySelector("[data-add-toggle]"), choices = menu.querySelector(".add-choices");
+  const set = (open) => {
+    choices.hidden = !open;
+    menu.classList.toggle("open", open);
+    main.setAttribute("aria-expanded", open);
+  };
+  main.addEventListener("click", (e) => { e.preventDefault(); set(choices.hidden); if (!choices.hidden) burst(main, 6); });
+  document.addEventListener("pointerdown", (e) => { if (!menu.contains(e.target)) set(false); });
+  menu.addEventListener("keydown", (e) => { if (e.key === "Escape") { set(false); main.focus(); } });
+});
+
+// Activities: "Activity" opens a small form under that day.
 document.querySelectorAll("[data-act-open]").forEach((btn) => {
-  const form = btn.closest(".day-info").nextElementSibling;
+  const form = btn.closest(".keys").previousElementSibling;
   if (!form || !form.classList.contains("act-form")) return;
+  const menu = btn.closest(".add-menu");
   const toggle = (open) => {
     form.hidden = !open;
-    btn.setAttribute("aria-expanded", open);
-    btn.textContent = open ? "Close" : "+ Add";
-    if (open) { burst(btn, 8); form.querySelector("input[name=label]").focus({ preventScroll: true }); }
+    if (menu) { menu.querySelector(".add-choices").hidden = true; menu.classList.remove("open"); }
+    if (open) {
+      form.scrollIntoView({ behavior: calm ? "auto" : "smooth", block: "nearest" });
+      form.querySelector("input[name=label]").focus({ preventScroll: true });
+    }
   };
   btn.addEventListener("click", () => toggle(form.hidden));
   form.querySelector("[data-act-cancel]").addEventListener("click", () => toggle(false));

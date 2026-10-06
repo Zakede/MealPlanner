@@ -100,8 +100,6 @@
   @keyframes slide-open { from { clip-path: inset(0 0 100% 0 round 14px); } to { clip-path: inset(0 0 0 0 round 14px); } }
   .act-kinds input:checked + span { animation: pick .35s var(--spring); }
   .act-kinds input:checked + span i { animation: wiggle .5s var(--spring); }
-  .act-add { transition: transform .2s var(--spring), background .2s; }
-  .act-add:active { transform: scale(.94); }
   .act-x { transition: transform .2s var(--spring), opacity .2s, background .2s; }
   .act-x:hover { transform: rotate(90deg); }
 

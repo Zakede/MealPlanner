@@ -426,9 +426,6 @@ details.meal > summary::after { display: none; }
 .act-x { width: 24px; height: 24px; border: 0; border-radius: 50%; background: transparent; color: inherit; font: 700 1rem/1 var(--text);
   cursor: pointer; opacity: .6; display: grid; place-items: center; }
 .act-x:hover, .act-x:focus-visible { opacity: 1; background: rgba(0, 0, 0, .12); }
-.act-add { min-height: 32px; padding: 2px 12px; border-radius: 999px; border: 2px dashed var(--fuji-light); background: transparent;
-  color: var(--fuji-light); font: 700 .78rem var(--text); cursor: pointer; }
-[data-mode="light"] .act-add { border-color: var(--fuji); color: var(--fuji-deep); }
 .act-form { display: grid; gap: 10px; margin: -2px 0 12px; padding: 14px; border: 2px solid color-mix(in srgb, var(--fuji) 35%, transparent); }
 .act-form[hidden] { display: none; }
 .act-form input[name=label] { margin: 0; }

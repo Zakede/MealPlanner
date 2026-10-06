@@ -1,5 +1,6 @@
 import re
 
+from .. import food_rules
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 
 from .. import plans, store
@@ -58,6 +59,10 @@ def parse(form):
     v["schedule_mode"] = "flexible" if form.get("schedule_mode") == "flexible" else "fixed"
     v["prep_days"] = int(_num(form, "prep_days", 0, 4)) if form.get("prep_days") else 2
     v["appliances"] = ",".join(k for k in APPLIANCES if form.get(f"app_{k}"))
+    rules = food_rules.from_form(form)
+    v["food_rules"] = food_rules.dump(rules)
+    if "airfryer" in rules.values() and "air_fryer" not in v["appliances"].split(","):
+        v["appliances"] = ",".join(filter(None, [v["appliances"], "air_fryer"]))
     v["about_me"] = (form.get("about_me") or "").strip()[:1000]
     v["country"] = form.get("country") if form.get("country") in COUNTRIES else "JP"
     v["area"] = form.get("area") if form.get("area") in areas(v["country"]) else "city"
@@ -128,6 +133,7 @@ def render_wizard(s, sched):
         flavors=FLAVORS, cuisines=CUISINES, paces=PACES, efforts=EFFORTS, weekdays=WEEKDAYS, sched=sched,
         work=work, avoid_on=store.split_list(s.get("avoid")), flavor_on=store.split_list(s["flavor_likes"]),
         cuisine_on=store.split_list(s["cuisines_liked"]),
+        rules=food_rules.load(s), rule_groups=food_rules.GROUPS, rule_options=food_rules.RULES,
     )
 
 

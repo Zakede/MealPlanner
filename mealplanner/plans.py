@@ -4,7 +4,7 @@ from datetime import date, datetime, timedelta
 
 from flask import current_app
 
-from . import budget, planner, store, today as get_today
+from . import budget, food_rules, planner, store, today as get_today
 from .db import execute, get_db, query
 from .nutrition import day_targets
 from .schedule import minutes
@@ -279,6 +279,9 @@ def load_context(first, last, exclude=None, skip=None):
         "flavor_likes": store.split_list(s["flavor_likes"]),
         "diet": s.get("diet") or "any",
         "avoid": store.split_list(s.get("avoid")),
+        "food_rules": food_rules.load(s),
+        "skip_foods": {r["food_id"] for r in query("SELECT food_id FROM shopping_skip WHERE week_start = ?",
+                                                   (first.isoformat(),))},
         "prefs": {r["recipe_id"]: r["status"] for r in query("SELECT * FROM recipe_prefs")},
         "budget_cap": cap,
         "eat_out_slots_left": max(0, s["eat_out_slots"] - used - planned_eat_out),
@@ -477,16 +480,63 @@ def skipped_foods(first):
 
 
 def skip_food(first, food_id, skip=True):
+    """Not buying a food this week. Meals that needed it are planned again without it.
+
+    Returns how many meals changed.
+    """
     db = get_db()
+    changed = 0
     if skip:
         db.execute("INSERT OR IGNORE INTO shopping_skip (week_start, food_id) VALUES (?, ?)", (first.isoformat(), food_id))
         db.execute("DELETE FROM shopping_list WHERE week_start = ? AND food_id = ?", (first.isoformat(), food_id))
+        db.commit()
+        changed = refit_week(first, lambda recipe: any(i["id"] == food_id for i in recipe["ingredients"]))
     else:
         db.execute("DELETE FROM shopping_skip WHERE week_start = ? AND food_id = ?", (first.isoformat(), food_id))
-    db.commit()
+        db.commit()
     if query("SELECT 1 FROM plan_meals WHERE status = 'approved' AND date BETWEEN ? AND ? LIMIT 1",
              (first.isoformat(), (first + timedelta(days=6)).isoformat())):
         build_shopping_list(first)
+    return changed
+
+
+def refit_week(first, wrong):
+    """Plan again every meal still to come this week whose recipe `wrong(recipe)` rejects.
+
+    An approved week stays approved: the new meals are approved too and the list follows.
+    """
+    last = first + timedelta(days=6)
+    start = max(first, get_today())
+    rows = query("""SELECT * FROM plan_meals WHERE date BETWEEN ? AND ? AND status IN ('draft', 'approved')
+                    AND recipe_id IS NOT NULL AND kind != 'leftover'""", (start.isoformat(), last.isoformat()))
+    recipes, ids = {}, []
+    for m in rows:
+        if m["recipe_id"] not in recipes:
+            recipes[m["recipe_id"]] = store.recipe(m["recipe_id"])
+        r = recipes[m["recipe_id"]]
+        if r and wrong(r):
+            ids.append(m["id"])
+    if not ids:
+        return 0
+    was_approved = bool(query("SELECT 1 FROM plan_meals WHERE status = 'approved' AND date BETWEEN ? AND ? LIMIT 1",
+                              (first.isoformat(), last.isoformat())))
+    db = get_db()
+    db.execute(f"UPDATE plan_meals SET replace_flag = 1 WHERE id IN ({','.join('?' * len(ids))})", ids)
+    db.commit()
+    replace_flagged(first)
+    if was_approved:
+        db.execute("UPDATE plan_meals SET status = 'approved' WHERE status = 'draft' AND date BETWEEN ? AND ?",
+                   (first.isoformat(), last.isoformat()))
+        db.commit()
+        build_shopping_list(first)
+    return len(ids)
+
+
+def refit_for_rules():
+    """After the protein rules change: fix this week and next so no meal breaks them."""
+    rules = food_rules.load(store.settings())
+    first, _ = current_week()
+    return sum(refit_week(f, lambda r: food_rules.breaks(r, rules)) for f in (first, first + timedelta(days=7)))
 
 
 def shopping_extras(first):
@@ -659,3 +709,46 @@ def add_meal(on, slot, recipe_id):
                          " AND status = 'draft'", (on.isoformat(), slot, recipe_id))
         get_db().commit()
         build_shopping_list(first)
+
+
+# grams in a usual pack, for guessing a price when you don't say how much
+PACK_GRAMS = {"poultry": 300, "meat": 300, "fish": 250, "seafood": 200, "egg": 600, "dairy": 400, "soy": 300,
+              "legume": 400, "grain": 500, "veg": 200, "fruit": 300, "sauce": 200, "fat": 200, "snack": 150}
+
+
+def _grams(amount, piece_g):
+    """'500g', '1.5 kg', '2 pcs', '3個' -> grams, or None."""
+    import re
+    m = re.match(r"^\s*(\d+(?:\.\d+)?)\s*(kg|g|ml|l|pcs?|pieces?|個|本|枚|packs?|袋)?\s*$", (amount or "").lower())
+    if not m:
+        return None
+    n, unit = float(m.group(1)), m.group(2) or "g"
+    if unit == "kg" or unit == "l":
+        return n * 1000
+    if unit in ("g", "ml"):
+        return n
+    return n * (piece_g or 100)
+
+
+def guess_item(name, amount=""):
+    """A price for something typed into the shopping list: a food you already have, or a known kind of food."""
+    from .food_guess import guess
+    from .pricing import factor
+    lower = name.lower().strip()
+    food = store.food_by_name(name)
+    if not food:
+        matches = [f for f in store.foods() if f["name"].lower() in lower or lower in f["name"].lower()]
+        food = max(matches, key=lambda f: len(f["name"])) if matches else None
+    if food and food.get("current_price"):
+        per100, category, piece = food["current_price"], food.get("category") or "", food.get("piece_g")
+    else:
+        g = guess(name)
+        if not g or not g.get("price_jpy"):
+            return None
+        per100, category, piece = g["price_jpy"] * factor(store.settings()), g["category"], None
+    grams = _grams(amount, piece)
+    label = amount
+    if grams is None:
+        grams = PACK_GRAMS.get(category, 200)
+        label = f"about {grams} g"
+    return {"cost": max(1, round(per100 * grams / 100)), "amount": label}

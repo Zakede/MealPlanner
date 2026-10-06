@@ -13,6 +13,7 @@ from datetime import timedelta
 
 from . import diet
 from .costing import MACROS
+from . import food_rules
 from .equipment import can_make
 from .nutrition import HARD_DAY_SNACK, day_targets, is_hard
 from .schedule import busy, hhmm, minutes, slot_limits
@@ -105,6 +106,11 @@ def blocked(recipe, ctx):
         return True
     if "appliances" in ctx and not can_make(recipe, ctx["appliances"]):
         return True
+    if food_rules.breaks(recipe, ctx.get("food_rules", {})):
+        return True
+    skipped = ctx.get("skip_foods")
+    if skipped and any(ing["id"] in skipped for ing in recipe["ingredients"]):
+        return True
     allergies = ctx["allergies"]
     names = [ing["name"].lower() for ing in recipe["ingredients"]]
     for word in allergies:
@@ -153,6 +159,7 @@ def score(recipe, portion, target, check, ctx, date, chosen, gym, budget_left, m
     pref = ctx.get("prefs", {}).get(recipe["id"])
     total += FAVORITE_BONUS if pref == "favorite" else TRY_BONUS if pref == "try" else 0
     total += diet.bonus(recipe, ctx.get("diet", "any"))
+    total += food_rules.bonus(recipe, ctx.get("food_rules", {}))
     total += protein_weight * min(1.0, protein_share / 0.40)
     total += W_BUDGET * (1 - min(1.0, check["buy"] / max(1.0, per_meal_budget)))
     total += W_EXPIRY * min(1.0, check["expiring_g"] / 150)

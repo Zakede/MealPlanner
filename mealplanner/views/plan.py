@@ -9,6 +9,11 @@ from ..db import execute
 bp = Blueprint("plan", __name__, url_prefix="/plan")
 
 
+def store_cur():
+    from ..pricing import currency
+    return currency(store.settings())
+
+
 def selected_week():
     first, _ = plans.current_week()
     if request.values.get("week") == "next":
@@ -307,7 +312,11 @@ def shopping():
 
 @bp.route("/shopping/skip/<int:food_id>", methods=["POST"])
 def skip(food_id):
-    plans.skip_food(selected_week(), food_id, skip=request.form.get("undo") != "1")
+    undo = request.form.get("undo") == "1"
+    changed = plans.skip_food(selected_week(), food_id, skip=not undo)
+    food = store.food(food_id)
+    if changed and food:
+        flash(f"Not buying {food['name'].lower()}: {changed} meal{'s' if changed != 1 else ''} re-planned without it.", "ok")
     return redirect(url_for("plan.shopping", week=request.values.get("week")))
 
 
@@ -318,12 +327,20 @@ def extra():
     if not name:
         flash("Type what you want to buy.", "error")
     else:
+        amount = (request.form.get("amount") or "").strip()[:30]
         try:
             cost = max(0, int(float(request.form.get("cost") or 0)))
         except ValueError:
             cost = 0
+        guessed = None
+        if not cost:
+            guessed = plans.guess_item(name, amount)
+            if guessed:
+                cost, amount = guessed["cost"], amount or guessed["amount"]
         execute("INSERT INTO shopping_extra (week_start, name, amount, est_cost) VALUES (?, ?, ?, ?)",
-                      (first.isoformat(), name, (request.form.get("amount") or "").strip()[:30], cost))
+                      (first.isoformat(), name, amount, cost))
+        if guessed:
+            flash(f"{name}: guessed about {store_cur()}{cost:,} for {amount}. Change it if you know better.", "ok")
     return redirect(url_for("plan.shopping", week=request.values.get("week")))
 
 

@@ -60,7 +60,6 @@
         {% endif %}
       </span>
       {% endfor %}
-      <button type="button" class="act-add" data-act-open aria-expanded="false">+ Add</button>
       {% if i.gym %}<span class="tag">gym</span>{% endif %}
       {% if i.away %}<span class="tag out">out</span>{% endif %}
       {% if i.effort == 'full' %}<span class="tag">big cook</span>{% elif i.effort == 'none' %}<span class="tag soft">no cooking</span>{% endif %}
@@ -104,7 +103,13 @@
           {% elif m.cook_portions > m.portion and m.kind == 'cook' %}<span class="badge">×{{ '%g'|format(m.cook_portions / m.portion) }}</span>{% endif %}
         </{{ tagname }}>
       {% endfor %}
-      <a class="key add" href="{{ url_for('plan.add', date=d.date.isoformat(), slot='dinner') }}">+ Add</a>
+      <div class="key add add-menu">
+        <a class="add-main" href="{{ url_for('plan.add', date=d.date.isoformat(), slot='dinner') }}" data-add-toggle aria-expanded="false">+ Add</a>
+        <div class="add-choices" hidden>
+          <a href="{{ url_for('plan.add', date=d.date.isoformat(), slot='dinner') }}"><b>Meal</b><small>pick a recipe</small></a>
+          <button type="button" data-act-open><b>Activity</b><small>work, school, club…</small></button>
+        </div>
+      </div>
     </div>
   {% endfor %}
 {% endif %}

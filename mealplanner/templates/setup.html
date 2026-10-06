@@ -101,6 +101,8 @@
       <label class="opt iconed"><input type="radio" name="diet" value="{{ k }}" {{ 'checked' if s.diet == k }}><span><i class="opt-ico">{{ icon({'any': 'plate', 'high_meat': 'drumstick', 'pescatarian': 'fish', 'vegetarian': 'egg', 'vegan': 'sprout', 'keto': 'avocado'}.get(k, 'plate')) }}</i><b>{{ label }}</b><small>{{ sub }}</small></span></label>
       {% endfor %}
     </div>
+    <h2>How you like each protein</h2>
+    {% include "_food_rules.html" %}
     <h2>Skip these</h2>
     <div class="tag-picks left">
       {% for k, (label, cats, words, tags) in avoid.items() %}<input type="checkbox" name="avoid_{{ k }}" id="a{{ k }}" {{ 'checked' if k in avoid_on }}><label for="a{{ k }}">{{ label }}</label>{% endfor %}

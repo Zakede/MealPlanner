@@ -121,3 +121,37 @@ body.fsel-lock { overflow: hidden; }
   @keyframes badge-in { from { opacity: 0; transform: scale(.5) rotate(-25deg); } }
   .opt.iconed input:checked + span .opt-ico .ico { animation: wiggle .5s var(--spring); }
 }
+
+/* ---- one "+ Add" per day: flips into Meal / Activity ---- */
+.add-menu { padding: 0; }
+.add-menu .add-main { display: grid; place-items: center; width: 100%; height: 100%; min-height: 104px; color: inherit; font-weight: 700; }
+.add-menu.open { border-style: solid; border-color: var(--fuji); }
+.add-menu.open .add-main { display: none; }
+.add-choices { display: grid; grid-template-rows: 1fr 1fr; gap: 6px; width: 100%; height: 100%; padding: 6px; }
+.add-choices[hidden] { display: none; }
+.add-choices > * { display: grid; align-content: center; gap: 0; padding: 4px 10px; border: 0; border-radius: 9px; cursor: pointer;
+  background: var(--fuji); color: var(--on-fuji); text-align: left; font: inherit; }
+.add-choices > :last-child { background: var(--fuji-light); color: var(--on-fuji-light); }
+.add-choices b { font: 400 .9rem var(--head); }
+.add-choices small { font-size: .68rem; font-weight: 700; opacity: .75; }
+
+/* ---- protein rules ---- */
+.rules { display: grid; gap: 10px; margin: 6px 0 4px; }
+.rule-row { display: grid; gap: 6px; }
+.rule-name { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+.rule-name .ico { width: 20px; height: 20px; color: var(--fuji); }
+.rule-pick { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 3px; padding: 3px; border-radius: 12px; background: var(--key); }
+.rule-pick input { position: absolute; opacity: 0; pointer-events: none; }
+.rule-pick label { display: grid; place-items: center; min-height: 38px; padding: 4px 2px; border-radius: 9px; text-align: center;
+  font-size: .72rem; font-weight: 700; line-height: 1.15; color: var(--muted); cursor: pointer; transition: background .2s, color .2s, transform .25s var(--spring); }
+.rule-pick input:checked + label { background: var(--fuji); color: var(--on-fuji); }
+.rule-pick input:checked + label.r-never { background: var(--bad); color: #fff; }
+.rule-pick input:checked + label.r-love { background: var(--fuji-light); color: var(--on-fuji-light); }
+.rule-pick input:checked + label.r-airfryer { background: linear-gradient(135deg, var(--fuji), var(--seal)); color: var(--on-fuji); }
+.rule-pick input:focus-visible + label { outline: 2px solid var(--fuji); outline-offset: 1px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .add-menu.open .add-choices > * { animation: pop .35s var(--spring) both; }
+  .add-menu.open .add-choices > :last-child { animation-delay: .05s; }
+  .rule-pick input:checked + label { animation: pick .35s var(--spring); }
+}

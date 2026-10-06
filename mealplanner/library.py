@@ -1,7 +1,7 @@
 """Built-in food and recipe library. Values are approximate Japanese food-table and supermarket
 figures; users edit them to match their labels and receipts."""
 
-LIBRARY_VERSION = 5
+LIBRARY_VERSION = 6
 
 # Category drives diet filters: poultry, meat, fish, seafood, egg, dairy, soy, legume, grain,
 # veg, fruit, sauce, fat, snack.
@@ -327,6 +327,35 @@ RECIPES = [
      "Chop the onion finely. Mix with the mince, egg, panko and a pinch of salt; shape into a thick patty.\n"
      "Fry 3 minutes per side, then add 50 ml water, cover and steam 6 minutes until cooked through (75 °C inside).\n"
      "Add soy sauce and mirin to the pan and spoon the glaze over. Serve with shredded cabbage and rice."),
+    ("Air fryer garlic chicken & rice bowl", 8, 20, 1, "garlicky,savory,crispy", 0, 0, "lunch,dinner", "", 1, 1,
+     [("Chicken breast", 150), ("Garlic", 5), ("Soy sauce", 10), ("Olive oil", 3), ("Frozen broccoli", 100),
+      ("Cooked rice", 150)],
+     "Cut the chicken into thick strips. Mix with crushed garlic, soy sauce and oil.\n"
+     "Air fry at 200 °C for 12-14 minutes, shaking halfway, until 75 °C inside and golden at the edges.\n"
+     "Add the broccoli to the basket for the last 5 minutes. Serve over rice."),
+    ("Air fryer crispy thighs & potatoes", 10, 30, 1, "crispy,garlicky,comfort", 0, 0, "dinner", "western", 0, 0,
+     [("Chicken thigh", 150), ("Potato", 200), ("Garlic", 6), ("Olive oil", 5), ("Curry powder", 2)],
+     "Cut the potatoes into wedges, mix with half the oil and a pinch of salt.\n"
+     "Rub the chicken with garlic, curry powder, salt and the rest of the oil.\n"
+     "Air fry the potatoes at 200 °C for 10 minutes, add the chicken skin side up and air fry 15 more minutes until 75 °C inside."),
+    ("Air fryer tandoori-style chicken", 10, 25, 1, "spicy,sour,savory", 1, 0, "lunch,dinner", "indian", 1, 1,
+     [("Chicken breast", 150), ("Greek yogurt", 50), ("Curry powder", 5), ("Garlic", 5), ("Lemon juice", 10),
+      ("Cabbage", 80), ("Cooked rice", 150)],
+     "Mix yogurt, curry powder, grated garlic, lemon juice and salt. Coat the chicken pieces (overnight is best, 10 minutes works).\n"
+     "Air fry at 200 °C for 14 minutes, turning once, until charred at the edges and 75 °C inside.\n"
+     "Serve with shredded cabbage and rice."),
+    ("Air fryer panko chicken", 12, 25, 1, "crispy,crunchy,savory", 0, 0, "lunch,dinner", "", 1, 1,
+     [("Chicken breast", 150), ("Egg", 30), ("Panko", 15), ("Cabbage", 100), ("Half-calorie mayo", 10),
+      ("Cooked rice", 150)],
+     "Slice the chicken into cutlets, season with salt. Dip in beaten egg, then press into panko.\n"
+     "Air fry at 200 °C for 12 minutes, flipping halfway, until crunchy and 75 °C inside.\n"
+     "Serve with shredded cabbage, a little half-calorie mayo and rice."),
+    ("Air fryer gochujang chicken bowl", 10, 22, 1, "spicy,sweet-savory,crispy", 2, 0, "lunch,dinner", "korean", 1, 1,
+     [("Chicken thigh", 130), ("Gochujang", 15), ("Soy sauce", 5), ("Honey", 5), ("Bean sprouts", 100),
+      ("Cooked rice", 150)],
+     "Cut the chicken into bite-size pieces. Mix gochujang, soy sauce and honey; coat the chicken.\n"
+     "Air fry at 190 °C for 14 minutes, shaking halfway, until sticky and 75 °C inside.\n"
+     "Microwave the bean sprouts 2 minutes. Serve everything over rice."),
 ]
 
 # Built-in recipes from earlier versions that are no longer shipped.

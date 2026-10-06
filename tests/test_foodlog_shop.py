@@ -97,7 +97,8 @@ def test_shopping_skip_add_back_and_extras(profile, client):
         assert item["food_id"] not in {i["food_id"] for i in plans.shopping_list(MON)}
     client.post(f"/plan/shopping/skip/{item['food_id']}", data={"undo": "1"})
     with profile.app_context():
-        assert item["food_id"] in {i["food_id"] for i in plans.shopping_list(MON)}
+        # meals were re-planned without it, so it's simply allowed again (no longer on the skip list)
+        assert item["food_id"] not in plans.skipped_foods(MON)
     client.post("/plan/shopping/extra", data={"name": "Coffee beans", "amount": "1 bag", "cost": "900"})
     with profile.app_context():
         extra = plans.shopping_extras(MON)[0]
