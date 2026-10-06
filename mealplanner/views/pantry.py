@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from flask import Blueprint, abort, flash, jsonify, redirect, render_template, request, url_for
 
 from .. import store, today
@@ -192,6 +194,23 @@ def food_guess():
         return jsonify({"error": "Not in the built-in list.", "can_ai": llm.provider() is not None}), 404
     found["price_local"] = round(found["price_jpy"] * factor(s)) if found.get("price_jpy") else None
     return jsonify(found)
+
+
+@bp.route("/staples", methods=["GET", "POST"])
+def staples():
+    """Garlic powder for garlic, spray for oil; and the staples that are always at home."""
+    from .. import plans
+    from ..staples import BASICS, STAPLES, from_form, load
+    if request.method == "POST":
+        execute("UPDATE settings SET staples = ? WHERE id = 1", (from_form(request.form),))
+        first, _ = plans.current_week()
+        for week in (first, first + timedelta(days=7)):
+            if query("SELECT 1 FROM shopping_list WHERE week_start = ? LIMIT 1", (week.isoformat(),), one=True):
+                plans.build_shopping_list(week)
+        flash("Saved. Recipes and the shopping list now use your staples.", "ok")
+        return redirect(url_for("pantry.staples"))
+    return render_template("pantry/staples.html", staples=STAPLES, basics=BASICS,
+                           staple_prefs=load(store.settings()))
 
 
 @bp.route("/api/foods")

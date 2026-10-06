@@ -46,7 +46,7 @@ def renamed(text, old_name, new_name):
 
 def variant(recipe_id, old_food_id, new_food_id):
     """Id of a recipe like this one but with new_food in place of old_food (made once, then reused)."""
-    recipe = store.recipe(recipe_id)
+    recipe = store.recipe(recipe_id, raw=True)
     old, new = store.food(old_food_id), store.food(new_food_id)
     if not recipe or not old or not new:
         raise ValueError("That ingredient or food doesn't exist any more.")

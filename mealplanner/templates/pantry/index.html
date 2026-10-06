@@ -7,6 +7,7 @@
   <a class="btn jade" href="{{ url_for('track.cook_now') }}">Cook now</a>
   <a class="btn secondary" href="{{ url_for('pantry.edit') }}">+ Add item</a>
   <a class="btn secondary" href="{{ url_for('pantry.foods') }}">Food catalogue</a>
+  <a class="btn secondary" href="{{ url_for('pantry.staples') }}">Staples</a>
 </div>
 
 {% for loc, items in grouped.items() %}

@@ -115,8 +115,11 @@ def pantry_items(today):
     return items
 
 
-def recipe_ingredients(recipe_id=None):
-    """Ingredient rows joined with food macros and current price, grouped by recipe id."""
+def recipe_ingredients(recipe_id=None, raw=False):
+    """Ingredient rows joined with food macros and current price, grouped by recipe id.
+
+    Unless raw, your kitchen staples apply: garlic becomes garlic powder at the right amount, and so on.
+    """
     sql = f"""
         SELECT ri.recipe_id, ri.grams, f.* FROM recipe_ingredients ri
         JOIN ({FOOD_SELECT}) f ON f.id = ri.food_id
@@ -129,7 +132,33 @@ def recipe_ingredients(recipe_id=None):
         row = _priced(r, m)
         row["price_per_100g"] = row["current_price"]
         grouped.setdefault(row["recipe_id"], []).append(row)
+    if not raw:
+        _apply_staples(grouped, m)
     return grouped
+
+
+def _apply_staples(grouped, model):
+    from .staples import load, swap_for
+    prefs = load(settings())
+    if not any(v.get("use") for v in prefs.values()):
+        return
+    subs = {}
+    for rows in grouped.values():
+        for i, row in enumerate(rows):
+            swap = swap_for(row["name"], prefs)
+            if not swap:
+                continue
+            name, ratio, note = swap
+            if name not in subs:
+                found = query(FOOD_SELECT + " WHERE f.name = ? COLLATE NOCASE", (name,), one=True)
+                subs[name] = _priced(found, model) if found else None
+            sub = subs[name]
+            if not sub:
+                continue
+            new = dict(sub, recipe_id=row["recipe_id"], grams=row["grams"] * ratio,
+                       instead_of=row["name"], swap_note=note)
+            new["price_per_100g"] = new["current_price"]
+            rows[i] = new
 
 
 def _with_numbers(recipe, ingredients):
@@ -149,11 +178,12 @@ def recipes():
     return [_with_numbers(r, ings.get(r["id"], [])) for r in query("SELECT * FROM recipes ORDER BY name")]
 
 
-def recipe(recipe_id):
+def recipe(recipe_id, raw=False):
+    """A recipe with its numbers. raw=True skips your staple swaps (for editing the recipe itself)."""
     row = query("SELECT * FROM recipes WHERE id = ?", (recipe_id,), one=True)
     if not row:
         return None
-    return _with_numbers(row, recipe_ingredients(recipe_id).get(recipe_id, []))
+    return _with_numbers(row, recipe_ingredients(recipe_id, raw=raw).get(recipe_id, []))
 
 
 def recipe_prefs():

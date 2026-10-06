@@ -438,13 +438,15 @@ def shopping_needs(first, statuses=("approved",)):
     today = get_today()
     sim = planner.PantrySim(pantry_lots())
     skipped = skipped_foods(first)
+    from .staples import at_home, load as load_staples
+    home = at_home(load_staples(store.settings()))
     need = {}
     for m in meals_between(max(first, today), last):
         if m["status"] not in statuses or m["kind"] not in ("cook", "nocook", "snack") or not m["recipe"]:
             continue
         for ing, grams in planner.scaled_ingredients(m["recipe"], m["cook_portions"]):
             missing = sim.take(ing["id"], grams, m["date"])
-            if missing > 0.5 and ing["id"] not in skipped:
+            if missing > 0.5 and ing["id"] not in skipped and ing["name"].lower() not in home:
                 entry = need.setdefault(ing["id"], {"grams": 0.0, "price": ing.get("price_per_100g") or 0,
                                                     "name": ing["name"], "piece_g": ing.get("piece_g"),
                                                     "category": ing.get("category") or ""})

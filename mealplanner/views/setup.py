@@ -1,6 +1,7 @@
 import re
 
 from .. import food_rules
+from ..staples import BASICS, STAPLES, load as load_staples
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 
 from .. import plans, store
@@ -61,6 +62,8 @@ def parse(form):
     v["appliances"] = ",".join(k for k in APPLIANCES if form.get(f"app_{k}"))
     rules = food_rules.from_form(form)
     v["food_rules"] = food_rules.dump(rules)
+    from ..staples import from_form as staples_from_form
+    v["staples"] = staples_from_form(form)
     if "airfryer" in rules.values() and "air_fryer" not in v["appliances"].split(","):
         v["appliances"] = ",".join(filter(None, [v["appliances"], "air_fryer"]))
     v["about_me"] = (form.get("about_me") or "").strip()[:1000]
@@ -135,6 +138,7 @@ def render_wizard(s, sched):
         cuisine_on=store.split_list(s["cuisines_liked"]),
         rules=food_rules.load(s), rule_groups=food_rules.GROUPS, rule_options=food_rules.RULES,
         diet_now=s.get("diet") or "any",
+        staples=STAPLES, basics=BASICS, staple_prefs=load_staples(s),
     )
 
 

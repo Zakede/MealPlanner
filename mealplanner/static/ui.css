@@ -186,3 +186,11 @@ nav.bottom a span { font-size: .66rem; }
   @keyframes logo-bob { 40% { transform: rotate(-8deg) scale(1.08); } }
   nav.bottom a.active .ico { animation: wiggle .5s var(--spring) .1s; }
 }
+
+/* ---- kitchen staples ---- */
+.staples { display: grid; gap: 14px; margin-bottom: 4px; }
+.staple-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
+.staple-pick { grid-template-columns: repeat(var(--n), minmax(0, 1fr)); }
+.have { display: flex; align-items: center; gap: 6px; font-size: .78rem; font-weight: 700; color: var(--muted); cursor: pointer; margin: 0; }
+.have input { width: 18px; height: 18px; margin: 0; }
+.have:has(input:checked) { color: var(--fuji); }

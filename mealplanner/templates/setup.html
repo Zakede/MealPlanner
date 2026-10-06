@@ -134,6 +134,9 @@
     <div class="tag-picks left kitchen">
       {% for k, label in appliances.items() %}<input type="checkbox" name="app_{{ k }}" id="ap{{ k }}" {{ 'checked' if k in app_on }}><label for="ap{{ k }}" class="with-ico">{{ icon({'stove': 'stove', 'microwave': 'microwave', 'rice_cooker': 'ricecooker', 'toaster_oven': 'toaster', 'oven': 'oven', 'air_fryer': 'airfryer', 'blender': 'blender', 'freezer': 'snow'}.get(k, 'pantry')) }}<span>{{ label }}</span></label>{% endfor %}
     </div>
+      <h2>What you use instead</h2>
+    <p class="muted small">Garlic powder instead of fresh garlic, spray instead of oil. Recipes follow along.</p>
+    {% include "_staples.html" %}
   </section>
 
   <section class="step" data-title="Money">

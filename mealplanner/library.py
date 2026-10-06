@@ -1,7 +1,7 @@
 """Built-in food and recipe library. Values are approximate Japanese food-table and supermarket
 figures; users edit them to match their labels and receipts."""
 
-LIBRARY_VERSION = 6
+LIBRARY_VERSION = 7
 
 # Category drives diet filters: poultry, meat, fish, seafood, egg, dairy, soy, legume, grain,
 # veg, fruit, sauce, fat, snack.
@@ -78,6 +78,17 @@ FOODS = [
     ("Sesame oil", 890, 0.0, 0.0, 100.0, 150, None, "sesame", "fat"),
     ("Olive oil", 894, 0.0, 0.0, 100.0, 120, None, "", "fat"),
     ("Peanut butter", 600, 25.0, 20.0, 50.0, 120, None, "peanut", "fat"),
+    ("Vegetable oil", 921, 0.0, 0.0, 100.0, 60, None, "", "fat"),
+    ("Cooking spray", 800, 0.0, 0.0, 90.0, 300, None, "", "fat"),
+    ("Garlic powder", 331, 16.6, 72.7, 0.7, 800, None, "", "sauce"),
+    ("Grated garlic (tube)", 171, 4.1, 33.9, 3.0, 450, None, "", "sauce"),
+    ("Ginger paste (tube)", 48, 0.7, 9.6, 0.6, 400, None, "", "sauce"),
+    ("Ground ginger", 335, 9.0, 71.6, 4.2, 900, None, "", "sauce"),
+    ("Dried green onion", 300, 20.0, 55.0, 3.0, 1500, None, "", "veg"),
+    ("Onion powder", 341, 10.4, 79.1, 1.0, 700, None, "", "sauce"),
+    ("Monk fruit sweetener", 0, 0.0, 0.0, 0.0, 250, None, "", "sauce"),
+    ("Low-sodium soy sauce", 69, 7.7, 7.9, 0.0, 70, None, "soy, wheat", "sauce"),
+    ("Microwave rice pack", 152, 2.3, 34.6, 0.3, 65, 200, "", "grain"),
     ("Chili crisp", 600, 3.0, 10.0, 60.0, 300, None, "sesame, soy", "sauce"),
     ("Rice crackers", 380, 7.0, 85.0, 1.0, 150, None, "soy", "snack"),
     ("Light popcorn", 400, 11.0, 70.0, 9.0, 200, None, "", "snack"),

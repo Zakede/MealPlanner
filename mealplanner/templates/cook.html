@@ -20,7 +20,7 @@
     {% for i in r.ingredients %}
     <li class="ing" tabindex="0" role="checkbox" aria-checked="false">
       <div class="line">
-        <span>{{ i.name }}{% if i.piece_g %}<br><small class="muted">about {{ '%g'|format(((i.grams * factor / i.piece_g) * 2)|round / 2) }} pcs</small>{% endif %}</span>
+        <span>{{ i.name }}{% if i.instead_of %}<br><small class="muted">instead of {{ i.instead_of|lower }} · {{ i.swap_note }}</small>{% endif %}{% if i.piece_g %}<br><small class="muted">about {{ '%g'|format(((i.grams * factor / i.piece_g) * 2)|round / 2) }} pcs</small>{% endif %}</span>
         <span><b class="num-big" style="font-size:1.05rem">{{ (i.grams * factor)|round|int }} g</b>
           {% if is_cook and cook_portions > meal.portion %}<br><small class="muted">yours {{ (i.grams * plate)|round|int }} g</small>{% endif %}</span>
       </div>

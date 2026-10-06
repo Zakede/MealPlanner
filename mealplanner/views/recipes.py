@@ -123,7 +123,7 @@ def view(recipe_id):
 @bp.route("/new", methods=["GET", "POST"])
 @bp.route("/<int:recipe_id>/edit", methods=["GET", "POST"])
 def edit(recipe_id=None):
-    r = store.recipe(recipe_id) if recipe_id else None
+    r = store.recipe(recipe_id, raw=True) if recipe_id else None
     if recipe_id and not r:
         abort(404)
     if request.method == "POST":

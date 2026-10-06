@@ -1,0 +1,29 @@
+{# What you use instead, and what's always at home. Needs: staples, basics, staple_prefs. #}
+<div class="staples">
+  {% for name, options in staples.items() %}
+  {% set key = name.lower().replace(' ', '_') %}
+  {% set pref = staple_prefs.get(name, {}) %}
+  <div class="staple-row">
+    <div class="staple-top">
+      <b>{{ name }}</b>
+      <label class="have"><input type="checkbox" name="have_{{ key }}" value="1" {{ 'checked' if pref.get('have') }}><span>Always have</span></label>
+    </div>
+    <span class="rule-pick staple-pick" style="--n: {{ options|length + 1 }}">
+      <input type="radio" name="use_{{ key }}" value="" id="u{{ key }}-" {{ 'checked' if not pref.get('use') }}>
+      <label for="u{{ key }}-">{{ 'Fresh' if name in ('Garlic', 'Ginger', 'Green onion', 'Onion') else 'As is' }}</label>
+      {% for sub, ratio, note in options %}
+      <input type="radio" name="use_{{ key }}" value="{{ sub }}" id="u{{ key }}{{ loop.index }}" {{ 'checked' if pref.get('use') == sub }}>
+      <label for="u{{ key }}{{ loop.index }}" title="{{ note }}">{{ sub }}</label>
+      {% endfor %}
+    </span>
+  </div>
+  {% endfor %}
+  <div class="staple-row">
+    <div class="staple-top"><b>Sauces & spices you always have</b></div>
+    <div class="tag-picks left">
+      {% for name in basics %}{% set key = name.lower().replace(' ', '_') %}
+      <input type="checkbox" name="have_{{ key }}" id="h{{ key }}" value="1" {{ 'checked' if staple_prefs.get(name, {}).get('have') }}><label for="h{{ key }}">{{ name }}</label>
+      {% endfor %}
+    </div>
+  </div>
+</div>
