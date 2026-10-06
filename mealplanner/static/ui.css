@@ -194,3 +194,48 @@ nav.bottom a span { font-size: .66rem; }
 .have { display: flex; align-items: center; gap: 6px; font-size: .78rem; font-weight: 700; color: var(--muted); cursor: pointer; margin: 0; }
 .have input { width: 18px; height: 18px; margin: 0; }
 .have:has(input:checked) { color: var(--fuji); }
+
+/* ---- receipt drop zone ---- */
+.rc-file { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.drop { position: relative; display: grid; place-items: center; min-height: 260px; margin-bottom: 10px; border-radius: 20px; cursor: pointer;
+  border: 2px dashed color-mix(in srgb, var(--fuji) 55%, transparent); background: color-mix(in srgb, var(--fuji) 6%, var(--panel));
+  overflow: hidden; transition: border-color .2s, background .2s, transform .25s var(--spring); }
+.drop:hover, .drop:focus-visible { border-color: var(--fuji); outline: none; }
+.drop.over { border-style: solid; border-color: var(--fuji); background: color-mix(in srgb, var(--fuji) 16%, var(--panel)); transform: scale(1.01); }
+.drop.has { border-style: solid; cursor: default; }
+.drop-empty { display: grid; justify-items: center; gap: 8px; padding: 26px 16px; text-align: center; }
+.drop-ico { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 20px; color: var(--on-fuji);
+  background: linear-gradient(140deg, var(--fuji-light), var(--fuji) 55%, var(--fuji-deep)); box-shadow: 0 12px 30px -12px var(--fuji); }
+.drop-ico .ico { width: 30px; height: 30px; }
+.drop-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 6px; }
+.drop-actions .btn { margin: 0; }
+kbd { display: inline-block; padding: 1px 6px; border-radius: 6px; border: 1.5px solid var(--line); background: var(--key);
+  font: 700 .78rem var(--text); box-shadow: inset 0 -2px 0 var(--line); }
+.drop-preview { position: relative; width: 100%; height: 100%; display: grid; place-items: center; padding: 12px; }
+.drop-preview[hidden] { display: none; }
+.drop-preview img { max-width: 100%; max-height: 420px; border-radius: 12px; box-shadow: 0 16px 40px -18px rgba(0, 0, 0, .8); }
+.drop-clear { position: absolute; top: 10px; right: 10px; width: 36px; height: 36px; border: 0; border-radius: 50%; cursor: pointer;
+  background: var(--key); color: var(--ink); font: 700 1.2rem/1 var(--text); box-shadow: var(--press); }
+.scan { position: absolute; left: 6%; right: 6%; top: 10%; height: 3px; border-radius: 3px; opacity: 0;
+  background: linear-gradient(90deg, transparent, var(--fuji), transparent); box-shadow: 0 0 16px 4px color-mix(in srgb, var(--fuji) 60%, transparent); }
+.drop.reading .scan { opacity: 1; }
+.rc-name { min-height: 1.2em; margin: 0 0 8px; }
+.rc-wait { display: flex; align-items: center; gap: 10px; justify-content: center; font-weight: 700; color: var(--fuji); }
+.dots { display: inline-flex; gap: 4px; }
+.dots i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.rc-tips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 14px 0 10px; }
+.rc-tips div { display: grid; gap: 2px; padding: 12px; border-radius: 14px; background: var(--panel); text-align: center; }
+.rc-tips b { font-family: var(--head); }
+.rc-tips span { font-size: .75rem; color: var(--muted); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .drop:not(.has) .drop-ico { animation: float 3s ease-in-out infinite; }
+  @keyframes float { 50% { transform: translateY(-6px) rotate(-3deg); } }
+  .drop.has .drop-preview img { animation: pop .5s var(--spring) both; }
+  .drop.reading .scan { animation: scan 1.6s ease-in-out infinite alternate; }
+  @keyframes scan { from { top: 10%; } to { top: 88%; } }
+  .drop.reading img { filter: saturate(.6) brightness(.85); transition: filter .4s; }
+  .dots i { animation: dot 1s ease-in-out infinite; }
+  .dots i:nth-child(2) { animation-delay: .15s; } .dots i:nth-child(3) { animation-delay: .3s; }
+  @keyframes dot { 50% { transform: translateY(-5px); opacity: .5; } }
+}

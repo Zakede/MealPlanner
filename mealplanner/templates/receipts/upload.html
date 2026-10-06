@@ -1,22 +1,89 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 {% block title %}Receipt · Meal Planner{% endblock %}
 {% block content %}
 <h1>Add a receipt</h1>
+<p class="muted">Groceries go straight into the pantry, and prices teach the app what things cost you.</p>
 {% if not available %}
-  <div class="card empty"><p>No model is set up for reading photos. You can still add items in the pantry by hand.</p></div>
+  <div class="card empty"><p>No AI helper is set up for reading photos. Add a Gemini key in Settings, or add items in the pantry by hand.</p>
+    <a class="btn" href="{{ url_for('settings.edit') }}#ai">Set up the AI helper</a></div>
 {% else %}
-<form method="post" enctype="multipart/form-data" class="card form" id="rc">
-  <label for="photo">Photo of the receipt</label>
-  <input id="photo" type="file" name="photo" accept="image/*" capture="environment" required>
-  <button class="btn wide" id="go">Read it</button>
-  <p class="muted small" id="wait" hidden>Reading the receipt… about 10–30 seconds.</p>
+<form method="post" enctype="multipart/form-data" id="rc">
+  <input id="photo" type="file" name="photo" accept="image/*" required class="rc-file">
+  <div class="drop" id="drop" tabindex="0" role="button" aria-label="Add a receipt photo: tap, drop or paste">
+    <div class="drop-empty">
+      <span class="drop-ico">{{ icon('receipt') }}</span>
+      <b>Drop a receipt here</b>
+      <span class="muted small">or paste a screenshot with <kbd>Ctrl</kbd> + <kbd>V</kbd></span>
+      <span class="drop-actions">
+        <label class="btn small" for="camera">Take a photo</label>
+        <label class="btn small secondary" for="photo">Choose a file</label>
+      </span>
+    </div>
+    <div class="drop-preview" hidden>
+      <img id="preview" alt="Receipt preview">
+      <span class="scan" aria-hidden="true"></span>
+      <button type="button" class="drop-clear" id="clear" aria-label="Use a different photo">×</button>
+    </div>
+  </div>
+  <input id="camera" type="file" accept="image/*" capture="environment" class="rc-file">
+  <p class="rc-name muted small" id="name"></p>
+  <button class="btn wide" id="go" disabled>Read it</button>
+  <p class="rc-wait" id="wait" hidden><span class="dots"><i></i><i></i><i></i></span> Reading the receipt, about 10–30 seconds</p>
 </form>
-<p class="muted small">Lay it flat, fill the frame, avoid glare. You check every line before anything goes into the pantry.</p>
+<div class="rc-tips">
+  <div><b>Flat</b><span>no folds or curls</span></div>
+  <div><b>Close</b><span>fill the frame</span></div>
+  <div><b>Bright</b><span>no glare or shadow</span></div>
+</div>
+<p class="muted small">You check every line before anything goes into the pantry.</p>
 {% endif %}
 {% endblock %}
 {% block scripts %}
 <script>
-const f = document.getElementById("rc");
-if (f) f.addEventListener("submit", () => { document.getElementById("go").disabled = true; document.getElementById("wait").hidden = false; });
+(() => {
+  const form = document.getElementById("rc");
+  if (!form) return;
+  const file = document.getElementById("photo"), camera = document.getElementById("camera");
+  const drop = document.getElementById("drop"), img = document.getElementById("preview");
+  const empty = drop.querySelector(".drop-empty"), view = drop.querySelector(".drop-preview");
+  const go = document.getElementById("go"), name = document.getElementById("name");
+
+  function use(f) {
+    if (!f || !f.type.startsWith("image/")) { name.textContent = "That isn't a picture. Try a photo or a screenshot."; return; }
+    const dt = new DataTransfer();
+    dt.items.add(new File([f], f.name && f.name !== "image.png" ? f.name : "receipt-" + Date.now() + ".png", { type: f.type }));
+    file.files = dt.files;
+    img.src = URL.createObjectURL(f);
+    empty.hidden = true; view.hidden = false; drop.classList.add("has");
+    name.textContent = `${(f.size / 1024).toFixed(0)} KB ready`;
+    go.disabled = false;
+    burst(drop, 10);
+  }
+  file.addEventListener("change", () => use(file.files[0]));
+  camera.addEventListener("change", () => use(camera.files[0]));
+  document.getElementById("clear").addEventListener("click", (e) => {
+    e.stopPropagation();
+    file.value = ""; img.removeAttribute("src");
+    empty.hidden = false; view.hidden = true; drop.classList.remove("has");
+    name.textContent = ""; go.disabled = true;
+  });
+  drop.addEventListener("click", (e) => { if (!drop.classList.contains("has") && !e.target.closest("label")) file.click(); });
+  drop.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); file.click(); } });
+  ["dragenter", "dragover"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add("over"); }));
+  ["dragleave", "drop"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.remove("over"); }));
+  drop.addEventListener("drop", (e) => use(e.dataTransfer.files[0]));
+  // Ctrl+V anywhere on the page
+  document.addEventListener("paste", (e) => {
+    const item = [...(e.clipboardData?.items || [])].find((i) => i.type.startsWith("image/"));
+    if (!item) return;
+    e.preventDefault();
+    use(item.getAsFile());
+  });
+  form.addEventListener("submit", () => {
+    go.disabled = true; drop.classList.add("reading");
+    document.getElementById("wait").hidden = false;
+  });
+})();
 </script>
 {% endblock %}

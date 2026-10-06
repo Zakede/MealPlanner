@@ -13,7 +13,7 @@
   <a href="{{ url_for('plan.shopping') }}" class="quick-key">
     {{ icon('cart') }}<b>Shop</b><small>{% if shop.count %}{{ shop.count }} items · {{ cur }}{{ '{:,}'.format(shop.cost|int) }}{% else %}Nothing to buy{% endif %}</small>
   </a>
-  <a href="{{ url_for('receipts.upload') }}" class="quick-key">{{ icon('leaf') }}<b>Receipt</b><small>Scan to pantry</small></a>
+  <a href="{{ url_for('receipts.upload') }}" class="quick-key">{{ icon('receipt') }}<b>Receipt</b><small>Scan to pantry</small></a>
   <a href="{{ url_for('track.cook_now') }}" class="quick-key">{{ icon('bowl') }}<b>Cook now</b><small>From the fridge</small></a>
   <a href="{{ url_for('plan.week') }}" class="quick-key">{{ icon('plan') }}<b>Week</b><small>{{ 'Draft' if has_plan else 'Not planned' }}</small></a>
 </div>
