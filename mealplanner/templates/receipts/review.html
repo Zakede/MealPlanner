@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Check receipt · Meal Planner{% endblock %}
+{% block content %}
+<h1>Check the receipt</h1>
+<p class="muted">{{ header.store or 'Receipt' }} · {{ header.date }}{% if header.total %} · total ¥{{ '{:,}'.format(header.total) }}{% endif %}</p>
+{% for w in warnings %}<div class="flash flash-warn">{{ w }}</div>{% endfor %}
+
+<form method="post" action="{{ url_for('receipts.save') }}">
+  <input type="hidden" name="count" value="{{ rows|length }}">
+  <datalist id="food-names">{% for f in foods %}<option value="{{ f.name }}">{% endfor %}</datalist>
+  <div class="day-list">
+    {% for r in rows %}{% set i = loop.index0 %}
+    <div class="card form receipt-row" style="margin:0">
+      <label class="small" style="display:flex;align-items:center;gap:6px;margin-bottom:6px;color:var(--ink)">
+        <input type="checkbox" name="include_{{ i }}" {{ 'checked' if r.include }}> <b>{{ r.name_ja }}</b> <span class="muted">¥{{ r.price }}</span>
+      </label>
+      <div class="row3">
+        <label>Food<input name="food_{{ i }}" list="food-names" value="{{ r.food }}"></label>
+        <label>Grams<input name="grams_{{ i }}" type="number" value="{{ r.grams }}"></label>
+        <label>¥<input name="price_{{ i }}" type="number" value="{{ r.price }}"></label>
+      </div>
+      <div class="row">
+        <label>Use by<input name="expiry_{{ i }}" type="date" value="{{ r.expiry }}"></label>
+        <label>Where<select name="location_{{ i }}">{% for l in ['fridge', 'freezer', 'shelf'] %}<option {{ 'selected' if r.location == l }}>{{ l }}</option>{% endfor %}</select></label>
+      </div>
+    </div>
+    {% else %}
+    <div class="card empty"><p>No items found on that photo.</p></div>
+    {% endfor %}
+  </div>
+  <button class="btn wide" style="margin-top:14px">Add ticked items to pantry</button>
+</form>
+<p class="muted small">Food not in the list? Add it in Foods first, or leave the row unticked.</p>
+{% endblock %}

@@ -21,6 +21,7 @@ def create_app(config=None):
         DATABASE=os.environ.get("MEALPLANNER_DB", str(Path(app.instance_path) / "mealplanner.db")),
         TODAY=os.environ.get("MEALPLANNER_TODAY"),
         NOW=os.environ.get("MEALPLANNER_NOW"),
+        MAX_CONTENT_LENGTH=16 * 1024 * 1024,
     )
     if config:
         app.config.update(config)
@@ -31,8 +32,8 @@ def create_app(config=None):
         conn.close()
     app.teardown_appcontext(db.close_db)
 
-    from .views import cook, extras, main, pantry, plan, recipes, schedule, settings, setup, taste
-    for module in (main, settings, pantry, recipes, schedule, plan, cook, taste, extras, setup):
+    from .views import cook, extras, main, pantry, plan, receipts, recipes, schedule, settings, setup, taste
+    for module in (main, settings, pantry, recipes, schedule, plan, cook, taste, extras, setup, receipts):
         app.register_blueprint(module.bp)
 
     @app.context_processor

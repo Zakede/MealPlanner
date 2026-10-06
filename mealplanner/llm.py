@@ -14,6 +14,7 @@ import tempfile
 from flask import current_app
 
 DEFAULT_MODEL = "opencode-go/deepseek-v4-flash"
+DEFAULT_VISION_MODEL = "opencode-go/deepseek-v4-flash-vision-exp"
 
 
 class LLMError(Exception):
@@ -31,15 +32,21 @@ class OpencodeProvider:
     def available(self):
         return bool(self.binary)
 
-    def complete(self, prompt):
+    def complete(self, prompt, images=(), model=None):
+        """images: paths of pictures to attach (needs a vision model)."""
         if not self.binary:
             raise LLMError("opencode is not installed or not on PATH")
         with tempfile.TemporaryDirectory(prefix="mealplanner-llm-") as work:
             prompt_file = os.path.join(work, "request.md")
             with open(prompt_file, "w", encoding="utf-8") as f:
                 f.write(prompt)
-            cmd = [self.binary, "run", "--pure", "--format", "json", "-m", self.model,
-                   "-f", prompt_file, "--", "Follow the instructions in the attached request.md. Do not use any tools."]
+            attached = ["-f", prompt_file]
+            for i, src in enumerate(images):
+                dest = os.path.join(work, f"image{i}{os.path.splitext(src)[1].lower() or '.jpg'}")
+                shutil.copyfile(src, dest)
+                attached += ["-f", dest]
+            cmd = [self.binary, "run", "--pure", "--format", "json", "-m", model or self.model, *attached,
+                   "--", "Follow the instructions in the attached request.md. Do not use any tools."]
             try:
                 proc = subprocess.run(cmd, cwd=work, capture_output=True, text=True, encoding="utf-8",
                                       timeout=self.timeout, stdin=subprocess.DEVNULL)

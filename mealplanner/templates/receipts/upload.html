@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Receipt · Meal Planner{% endblock %}
+{% block content %}
+<h1>Add a receipt</h1>
+{% if not available %}
+  <div class="card empty"><p>No model is set up for reading photos. You can still add items in the pantry by hand.</p></div>
+{% else %}
+<form method="post" enctype="multipart/form-data" class="card form" id="rc">
+  <label for="photo">Photo of the receipt</label>
+  <input id="photo" type="file" name="photo" accept="image/*" capture="environment" required>
+  <button class="btn wide" id="go">Read it</button>
+  <p class="muted small" id="wait" hidden>Reading the receipt… about 10–30 seconds.</p>
+</form>
+<p class="muted small">Lay it flat, fill the frame, avoid glare. You check every line before anything goes into the pantry.</p>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script>
+const f = document.getElementById("rc");
+if (f) f.addEventListener("submit", () => { document.getElementById("go").disabled = true; document.getElementById("wait").hidden = false; });
+</script>
+{% endblock %}
