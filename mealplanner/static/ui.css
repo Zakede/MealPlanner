@@ -173,18 +173,15 @@ nav.bottom a span { font-size: .66rem; }
 .act-kinds i .ico { width: 16px; height: 16px; stroke-width: 2.3; }
 
 @media (prefers-reduced-motion: no-preference) {
-  /* the rat cook: blinks, twitches its whiskers, and its hat wobbles now and then */
-  .logo .eyes { transform-box: fill-box; transform-origin: center; animation: blink 4.5s infinite; }
+  /* the rat peeks over its crock pot, blinks, and the steam heart floats up */
+  .logo .rat { animation: peek 5s var(--spring) infinite; }
+  @keyframes peek { 0%, 70%, 100% { transform: none; } 78% { transform: translateY(2.2px); } 86% { transform: translateY(-.8px); } }
+  .logo .eye { transform-box: fill-box; transform-origin: center; animation: blink 4.5s infinite; }
   @keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
-  .logo .whiskers { transform-box: fill-box; transform-origin: center; animation: twitch 3.2s ease-in-out infinite; }
-  @keyframes twitch { 0%, 80%, 100% { transform: none; } 85% { transform: translateY(-.6px) rotate(-2deg); } 90% { transform: translateY(.4px) rotate(2deg); } }
-  .logo .hat { transform-box: fill-box; transform-origin: 50% 100%; animation: hat 6s var(--spring) infinite 1s; }
-  @keyframes hat { 0%, 88%, 100% { transform: none; } 92% { transform: rotate(-9deg) translateY(-1px); } 96% { transform: rotate(5deg); } }
-  .logo .ear { transform-box: fill-box; transform-origin: center; }
-  .brand:hover .logo .el { animation: ear-l .5s var(--spring); }
-  .brand:hover .logo .er { animation: ear-r .5s var(--spring); }
-  @keyframes ear-l { 40% { transform: rotate(-14deg) scale(1.08); } }
-  @keyframes ear-r { 40% { transform: rotate(14deg) scale(1.08); } }
+  .logo .heart { transform-box: fill-box; transform-origin: center; animation: heart 3s ease-in-out infinite; }
+  @keyframes heart { 0%, 100% { transform: translateY(0) scale(1); opacity: 1; } 50% { transform: translateY(-1.6px) scale(1.15); opacity: .8; } }
+  .logo .wisp { animation: wisp 2.4s ease-in-out infinite; }
+  @keyframes wisp { 0%, 100% { opacity: .4; transform: translateY(.8px); } 50% { opacity: 1; transform: translateY(-.8px); } }
   .brand:hover .logo { animation: logo-bob .6s var(--spring); }
   @keyframes logo-bob { 40% { transform: rotate(-8deg) scale(1.08); } }
   nav.bottom a.active .ico { animation: wiggle .5s var(--spring) .1s; }
