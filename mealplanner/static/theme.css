@@ -1,0 +1,206 @@
+/* Portfolio look, laid over the base styles: near-black page, hairline rules, square edges,
+   condensed Archivo headings, IBM Plex Mono text, Miku teal accent. Loaded last so it wins. */
+@font-face { font-family: "Archivo"; src: url("fonts/archivo-latin-wdth.woff2") format("woff2-variations");
+  font-weight: 100 900; font-stretch: 62% 125%; font-display: swap; }
+@font-face { font-family: "IBM Plex Mono"; font-weight: 400; src: url("fonts/ibm-plex-mono-400-latin.woff2") format("woff2"); font-display: swap; }
+@font-face { font-family: "IBM Plex Mono"; font-weight: 500; src: url("fonts/ibm-plex-mono-500-latin.woff2") format("woff2"); font-display: swap; }
+@font-face { font-family: "IBM Plex Mono"; font-weight: 600; src: url("fonts/ibm-plex-mono-600-latin.woff2") format("woff2"); font-display: swap; }
+
+:root, [data-mode="dark"] {
+  --body: #0B0C0D; --panel: #121415; --key: #16191A; --ink: #E4E6E2; --muted: #979C98;
+  --plate: #121415; --plate-ink: #E4E6E2; --plate-muted: #979C98; --plate-edge: color-mix(in srgb, #E4E6E2 30%, transparent);
+  --fuji: #5BC2B5; --on-fuji: #0B0C0D;            /* accent: Miku teal */
+  --fuji-light: #A8F25C; --on-fuji-light: #0B0C0D; /* second accent: dev lime */
+  --fuji-deep: #3A9E90; --on-fuji-deep: #0B0C0D;
+  --seal: #5BC2B5; --ok: #A8F25C; --warn: #E8C170; --bad: #FF6B6B;
+  --line: color-mix(in srgb, var(--ink) 13%, transparent);
+  --line-strong: color-mix(in srgb, var(--ink) 30%, transparent);
+  --glow: none; --press: none; --press-down: none;
+  --head: "Archivo", "Arial Narrow", sans-serif;
+  --text: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  --r: 0px;
+  --spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  color-scheme: dark;
+}
+[data-mode="light"] {
+  --body: #F1F1EC; --panel: #E8E8E2; --key: #E1E1DA; --ink: #0E1010; --muted: #555B57;
+  --plate: #E8E8E2; --plate-ink: #0E1010; --plate-muted: #555B57; --plate-edge: color-mix(in srgb, #0E1010 30%, transparent);
+  --fuji: #1C7A70; --on-fuji: #F1F1EC; --fuji-light: #3D6B0E; --on-fuji-light: #F1F1EC;
+  --fuji-deep: #15645B; --on-fuji-deep: #F1F1EC; --seal: #1C7A70; --ok: #3D6B0E; --warn: #8A5A00; --bad: #C0392B;
+  --glow: none; color-scheme: light;
+}
+@media (prefers-color-scheme: light) {
+  [data-mode="system"] {
+    --body: #F1F1EC; --panel: #E8E8E2; --key: #E1E1DA; --ink: #0E1010; --muted: #555B57;
+    --plate: #E8E8E2; --plate-ink: #0E1010; --plate-muted: #555B57;
+    --fuji: #1C7A70; --on-fuji: #F1F1EC; --fuji-light: #3D6B0E; --on-fuji-light: #F1F1EC;
+    --fuji-deep: #15645B; --on-fuji-deep: #F1F1EC; --seal: #1C7A70; --ok: #3D6B0E; --warn: #8A5A00; --bad: #C0392B;
+    --glow: none; color-scheme: light;
+  }
+}
+
+html { background: var(--body); }
+body { font-family: var(--text); font-size: 15px; letter-spacing: -.01em; }
+::selection { background: var(--fuji); color: var(--on-fuji); }
+.aurora { display: none; }
+
+/* faint blueprint grid behind the top of every page, like the portfolio hero */
+body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 48px 48px; background-position: -1px -1px; opacity: .55;
+  -webkit-mask-image: radial-gradient(ellipse 90% 45% at 30% 0%, #000 10%, transparent 70%);
+  mask-image: radial-gradient(ellipse 90% 45% at 30% 0%, #000 10%, transparent 70%); }
+
+/* type: condensed heavy headings, mono everything else */
+h1, h2, .num-big, .meal-name, .brand .word, .rc-tips b, .add-choices b, .fsel-title, .step-head h1 {
+  font-family: var(--head) !important; font-weight: 900 !important; font-stretch: 75%; letter-spacing: .005em; }
+h1 { font-size: clamp(2.2rem, 9vw, 3.2rem); line-height: .9; text-transform: uppercase; font-stretch: 62%; }
+h2 { font-size: 1.35rem; line-height: 1.05; text-transform: uppercase; }
+.num-big { font-stretch: 62%; }
+.muted, small, .lbl, label, .t, .k { letter-spacing: 0; }
+.form label, .lbl, .wizard-count, .day-head span, .act-row label { font-family: var(--text); font-size: .74rem; font-weight: 500;
+  text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+
+/* square everything that was rounded */
+.btn, .chip, .card, .plate, .key, .opt span, .tag-picks label, .fsel-btn, .fsel-panel, .fsel-opt, .fsel-search,
+input, select, textarea, nav.bottom, nav.bottom a, .top-link, .ticket, .menu a, .act, .act-kinds span, .act-kinds i, .act-mark,
+.rule-pick, .rule-pick label, .tag, .status-pill, .boost-add, .drop, .drop-ico, .drop-preview img, .drop-clear, .nudge, .nudge-ico,
+.nudge-panel, .toast, .quick-key, .tile, .seg-tabs, .seg-tabs a, .flash, .lp, details.meal, .describe, .wizard-progress,
+.wizard-progress i, .meter, .meter > i, .icon-btn, .add-choices > *, .act-form, .step-badge, .opt-ico, .rc-tips div, kbd,
+.wdot, .fsel-chev, .bell-count, .add-row, .stamp, .badge, .key .badge, .avatar-link, .work-times select, .guess-row .btn {
+  border-radius: 0 !important; }
+.logo { border-radius: 0; }
+
+/* flat surfaces with hairlines instead of filled, shadowed blocks */
+.card, .plate, .describe, details.meal, .tile, .rc-tips div, .nudge-panel, .fsel-panel, .act-form {
+  background: var(--panel); border: 1px solid var(--line); box-shadow: none !important; }
+.card:hover, .plate:hover { box-shadow: none !important; border-color: var(--line-strong); }
+.plate { border-color: var(--line-strong); }
+
+/* buttons: outlined mono, accent fill for the main action */
+.btn { min-height: 46px; padding: 12px 20px; border: 1px solid var(--line-strong); box-shadow: none !important;
+  font: 600 .8rem var(--text) !important; letter-spacing: .08em; text-transform: uppercase; }
+.btn:not(.secondary):not(.danger):not(.jade) { background: var(--fuji); color: var(--on-fuji); border-color: var(--fuji); }
+.btn.secondary, .btn.jade { background: transparent; color: var(--ink); }
+.btn.secondary:hover, .btn.jade:hover { border-color: var(--fuji); color: var(--fuji); }
+.btn:not(.secondary):not(.danger):not(.jade):hover { filter: brightness(1.08); }
+.btn::before { display: none; }
+.btn:active, .chip:active, .key:active, nav.bottom a:active, .menu a:active, .top-link:active { transform: translateY(1px); box-shadow: none; }
+.chip { min-height: 34px; padding: 4px 12px; background: transparent; border: 1px solid var(--line-strong); box-shadow: none;
+  font: 500 .74rem var(--text); letter-spacing: .06em; text-transform: uppercase; color: var(--ink); }
+.chip:hover { border-color: var(--fuji); color: var(--fuji); }
+.chip.ok, .chip.hot, .chip.soon, .boost-jump .chip.here { background: var(--fuji); color: var(--on-fuji); border-color: var(--fuji); }
+.icon-btn { background: transparent; border: 1px solid var(--line-strong); box-shadow: none; }
+.icon-btn:hover { border-color: var(--fuji); color: var(--fuji); }
+
+/* inputs */
+input, select, textarea { background: var(--panel); border: 1px solid var(--line-strong); font-family: var(--text); }
+input:focus, select:focus, textarea:focus { border-color: var(--fuji); box-shadow: 0 0 0 1px var(--fuji); }
+.fsel-btn { background: var(--panel); border: 1px solid var(--line-strong); box-shadow: none; font: 500 .9rem var(--text); }
+.fsel-btn:hover, .fsel.open .fsel-btn { border-color: var(--fuji); }
+.fsel-chev { background: transparent; color: var(--fuji); border-left: 1px solid var(--line); }
+.fsel-opt.on { background: var(--fuji); color: var(--on-fuji); }
+.fsel-opt.act { background: color-mix(in srgb, var(--fuji) 14%, transparent); }
+
+/* choice tiles */
+.opt span, .tag-picks label, .act-kinds span, .rule-pick { background: transparent; border: 1px solid var(--line-strong); box-shadow: none; }
+.opt span:hover, .tag-picks label:hover { border-color: var(--fuji); }
+.opt input:checked + span, .tag-picks input:checked + label, .act-kinds input:checked + span {
+  background: var(--fuji) !important; color: var(--on-fuji) !important; border-color: var(--fuji); }
+.opt-ico { background: transparent; border: 1px solid var(--line-strong); }
+.opt.iconed input:checked + span .opt-ico { background: transparent; color: var(--on-fuji); border-color: var(--on-fuji); transform: none; }
+.rule-pick { padding: 0; gap: 0; }
+.rule-pick label { border-right: 1px solid var(--line); text-transform: uppercase; letter-spacing: .04em; font-size: .66rem; }
+.rule-pick label:last-of-type { border-right: 0; }
+
+/* meal keys: hairline tiles, slot colour as a top rule instead of a fill */
+.key { background: var(--panel) !important; color: var(--ink) !important; border: 1px solid var(--line); box-shadow: none !important; }
+.key.breakfast { border-top: 3px solid var(--fuji-light); }
+.key.lunch { border-top: 3px solid var(--fuji); }
+.key.dinner { border-top: 3px solid var(--fuji-deep); }
+.key.snack { border-top: 3px solid var(--muted); }
+.key:hover { border-color: var(--line-strong); transform: none; }
+.key .n { font-family: var(--head); font-weight: 800; font-stretch: 75%; font-size: 1.1rem; }
+.key .t { font-family: var(--text); text-transform: uppercase; letter-spacing: .06em; font-size: .66rem; color: var(--muted); opacity: 1; }
+.key.done { opacity: .5; }
+.key.add { background: transparent !important; border: 1px dashed var(--line-strong); border-top-width: 1px; }
+.key .badge { background: var(--fuji); color: var(--on-fuji); font-family: var(--text); text-transform: uppercase; }
+.add-choices > * { background: var(--fuji); color: var(--on-fuji); }
+.add-choices > :last-child { background: transparent; color: var(--ink); border: 1px solid var(--line-strong); }
+
+/* the next-meal ticket: accent block with a hairline cut line */
+.ticket { background: var(--fuji); color: var(--on-fuji); box-shadow: none !important; transform: none !important; }
+.ticket::after { display: none; }
+.ticket::before { border-left: 1px dashed color-mix(in srgb, var(--on-fuji) 45%, transparent); }
+.ticket .btn { background: var(--on-fuji) !important; color: var(--fuji) !important; border-color: var(--on-fuji) !important; }
+
+/* stamp: a square label instead of a hanko circle */
+.stamp { width: auto; height: auto; min-width: 96px; padding: 10px 12px; border: 1px solid var(--line-strong); color: var(--ink);
+  transform: none !important; font: 500 .66rem var(--text); text-transform: uppercase; letter-spacing: .08em; animation: none !important; }
+.stamp b { font: 900 1.3rem var(--head) !important; font-stretch: 75% !important; color: var(--fuji); letter-spacing: 0; text-transform: none; }
+.status-pill { border: 1px solid var(--fuji); color: var(--fuji); font: 600 .7rem var(--text); text-transform: uppercase; letter-spacing: .08em;
+  transform: none !important; }
+
+/* header and bottom bar */
+header.top { background: color-mix(in srgb, var(--body) 88%, transparent); border-bottom: 1px solid var(--line);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+.top-link { background: transparent; border: 1px solid var(--line); box-shadow: none; }
+.top-link:hover { border-color: var(--fuji); color: var(--fuji); }
+.avatar-link { background: var(--fuji) !important; color: var(--on-fuji) !important; border-color: var(--fuji); font-family: var(--head); font-weight: 900; }
+.brand .word { font-size: 1.35rem; text-transform: uppercase; letter-spacing: .01em; }
+.brand .word em { background: none; -webkit-background-clip: initial; background-clip: initial; color: var(--fuji); }
+.logo { filter: none; width: 34px; height: 34px; }
+nav.bottom { left: 0; right: 0; bottom: 0; max-width: none; gap: 0; padding: 0 0 env(safe-area-inset-bottom, 0px);
+  background: color-mix(in srgb, var(--body) 94%, transparent); border-top: 1px solid var(--line-strong); }
+nav.bottom a { background: transparent; box-shadow: none; border-right: 1px solid var(--line); min-height: 58px; }
+nav.bottom a:last-child { border-right: 0; }
+nav.bottom a span { font-family: var(--text); text-transform: uppercase; letter-spacing: .08em; font-size: .6rem; }
+nav.bottom a.active { background: var(--fuji); color: var(--on-fuji); animation: none; }
+nav.bottom a.active::after { display: none; }
+body { padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
+
+/* bits and pieces */
+.tag { background: transparent; border: 1px solid var(--line-strong); color: var(--ink); font-family: var(--text); text-transform: uppercase;
+  letter-spacing: .06em; font-size: .62rem; }
+.tag.out { border-color: var(--fuji); color: var(--fuji); }
+.act { background: transparent; border: 1px solid var(--line-strong); color: var(--ink); }
+.act-mark { background: var(--fuji) !important; color: var(--on-fuji) !important; }
+.act.k-school .act-mark { background: #8FC9FF !important; } .act.k-parttime .act-mark { background: #E8C170 !important; }
+.act.k-club .act-mark { background: var(--fuji-light) !important; } .act.k-gym .act-mark { background: #FF8FA3 !important; }
+.act.k-other .act-mark { background: var(--muted) !important; }
+.meter { background: var(--line); height: 6px; }
+.meter > i { background: var(--fuji); }
+.meter.jade > i { background: var(--fuji-light); }
+.flash { background: var(--panel); border: 1px solid var(--line-strong); border-left: 3px solid var(--fuji); }
+.flash-error { border-left-color: var(--bad); }
+.step-badge, .drop-ico, .nudge-ico { background: var(--fuji); box-shadow: none; }
+.wdot { background: var(--line-strong); height: 4px; width: 18px; }
+.wdot.done { background: var(--fuji-deep); } .wdot.here { background: var(--fuji); width: 36px; }
+.wizard-progress { height: 2px; background: var(--line); } .wizard-progress i { background: var(--fuji); }
+.seg-tabs { background: transparent; border: 1px solid var(--line-strong); padding: 0; gap: 0; }
+.seg-tabs a { text-transform: uppercase; letter-spacing: .06em; font-size: .72rem; }
+.seg-tabs a.on { background: var(--fuji); color: var(--on-fuji); }
+.menu a { background: transparent; border: 1px solid var(--line); box-shadow: none; }
+.menu a:hover { border-color: var(--fuji); }
+.menu a svg { stroke: var(--fuji) !important; }
+.quick-key { background: transparent !important; border: 1px solid var(--line) !important; box-shadow: none !important; }
+.quick-key:hover { border-color: var(--fuji) !important; }
+.day-head.today h2 { background: none; -webkit-background-clip: initial; background-clip: initial; color: var(--fuji); animation: none; }
+.drop { border: 1px dashed var(--line-strong); background: transparent; }
+.drop:hover, .drop.over { border-color: var(--fuji); }
+.toast { background: var(--panel); border: 1px solid var(--line-strong); border-left: 3px solid var(--fuji); box-shadow: 0 20px 50px -20px rgba(0, 0, 0, .8); }
+.boost-add { background: var(--fuji); }
+.loadbar { background: var(--fuji); box-shadow: none; height: 2px; }
+.spark { border-radius: 0; }
+
+/* motion in the portfolio's spirit: slower, smoother, no bounce */
+@media (prefers-reduced-motion: no-preference) {
+  html.motion .in { animation: reveal .9s var(--ease) both; animation-delay: var(--d, 0ms); }
+  @keyframes reveal { from { opacity: 0; transform: translateY(24px); } }
+  main > h1, main > .line > h1, .step-head h1 { animation: line-up 1s var(--ease) both; clip-path: inset(0 0 -.1em 0); }
+  @keyframes line-up { from { transform: translateY(60%); opacity: 0; } }
+  .key, .chip, .btn, .opt span, .tag-picks label { transition: background-color .3s, color .3s, border-color .3s, transform .25s var(--ease); }
+}
+.brand .logo { color: var(--fuji); transition: transform .7s var(--ease), color .4s; }
+.brand:hover .logo { transform: rotate(-8deg) scale(1.08); color: var(--fuji-light); animation: none; }

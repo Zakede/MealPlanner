@@ -1,9 +1,5 @@
 /* Shokken: a Japanese meal-ticket machine. Warm charcoal body, ivory paper, chunky lit buttons
    you can feel pressing in. Light/dark set by data-mode on <html>. */
-@font-face { font-family: "JetBrains Mono"; font-weight: 400; src: url("fonts/jetbrains-mono-400-latin.woff2") format("woff2"); font-display: swap; }
-@font-face { font-family: "JetBrains Mono"; font-weight: 500; src: url("fonts/jetbrains-mono-500-latin.woff2") format("woff2"); font-display: swap; }
-@font-face { font-family: "JetBrains Mono"; font-weight: 700; src: url("fonts/jetbrains-mono-700-latin.woff2") format("woff2"); font-display: swap; }
-@font-face { font-family: "JetBrains Mono"; font-weight: 800; src: url("fonts/jetbrains-mono-800-latin.woff2") format("woff2"); font-display: swap; }
 
 :root {
   /* dark: OLED black with wisteria */

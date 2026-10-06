@@ -1,3 +1,5 @@
-JetBrains Mono (jetbrains-mono-*-latin.woff2)
-Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono)
-Licensed under the SIL Open Font License, Version 1.1: https://openfontlicense.org
+Archivo (archivo-latin-wdth.woff2)
+Copyright 2019 The Archivo Project Authors (https://github.com/Omnibus-Type/Archivo)
+IBM Plex Mono (ibm-plex-mono-*-latin.woff2)
+Copyright 2017 IBM Corp.
+Both licensed under the SIL Open Font License, Version 1.1: https://openfontlicense.org

@@ -6,10 +6,11 @@
   <link rel="icon" href="{{ url_for('static', filename='logo.svg') }}" type="image/svg+xml">
   <meta name="theme-color" content="{{ '#f8f5fd' if ui.mode == 'light' else '#000000' }}">
   <title>{% block title %}Meal Planner{% endblock %}</title>
-  <link rel="preload" href="{{ url_for('static', filename='fonts/jetbrains-mono-800-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="{{ url_for('static', filename='fonts/archivo-latin-wdth.woff2') }}" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='motion.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='ui.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='theme.css') }}">
   <script>if (!matchMedia("(prefers-reduced-motion: reduce)").matches) document.documentElement.classList.add("motion");</script>
 </head>
 <body>
