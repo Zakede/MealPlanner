@@ -66,16 +66,32 @@
   </div>
   <p class="muted small">Activity multiplier ×{{ multiplier }}</p>
 
-  <h2>Money (¥)</h2>
+  <h2>Money ({{ cur }})</h2>
   <label>Weekly food budget, including eating out<input name="weekly_budget_yen" type="number" value="{{ s.weekly_budget_yen }}" required></label>
   <div class="row">
     <label>Eat-out slots / week<input name="eat_out_slots" type="number" value="{{ s.eat_out_slots }}" required></label>
-    <label>¥ per slot<input name="eat_out_budget_yen" type="number" value="{{ s.eat_out_budget_yen }}" required></label>
+    <label>{{ cur }} per slot<input name="eat_out_budget_yen" type="number" value="{{ s.eat_out_budget_yen }}" required></label>
   </div>
   <div class="row">
     <label>kcal per eat-out slot<input name="eat_out_kcal" type="number" value="{{ s.eat_out_kcal }}" required></label>
     <label>Daily snack kcal<input name="snack_kcal" type="number" value="{{ s.snack_kcal }}" required></label>
   </div>
+
+  <h2>Where you shop</h2>
+  <div class="row">
+    <label>Country
+      <select name="country">{% for k, c in countries.items() %}<option value="{{ k }}" {{ 'selected' if s.country == k }}>{{ c[0] }} ({{ c[1] }})</option>{% endfor %}</select>
+    </label>
+    <label>Usual shop
+      <select name="shop">{% for k, (label, f) in shops.items() %}<option value="{{ k }}" {{ 'selected' if s.shop == k }}>{{ label }}</option>{% endfor %}</select>
+    </label>
+  </div>
+  {% if s.country == 'JP' %}
+  <label>Area
+    <select name="area">{% for k, (label, f) in areas.items() %}<option value="{{ k }}" {{ 'selected' if s.area == k }}>{{ label }}</option>{% endfor %}</select>
+  </label>
+  {% else %}<input type="hidden" name="area" value="{{ s.area }}">{% endif %}
+  <p class="muted small">Used to estimate prices until you scan receipts. Real prices you paid always win. Outside Japan the estimates are rough.</p>
 
   <h2>Food</h2>
   <label>Diet style
@@ -94,6 +110,12 @@
   <label>Flavours I like (tags)<input name="flavor_likes" value="{{ s.flavor_likes }}" placeholder="spicy, cheesy, garlicky, crunchy"></label>
   <label>Cuisines I like<input name="cuisines_liked" value="{{ s.cuisines_liked }}" placeholder="korean, japanese"></label>
   <label>Cuisines I'm tired of<input name="cuisines_tired" value="{{ s.cuisines_tired }}"></label>
+
+  <h2>AI helper</h2>
+  <label>Gemini API key {% if has_key %}<span class="good">· saved</span>{% endif %}
+    <input name="gemini_key" type="password" autocomplete="off" placeholder="{{ 'Leave blank to keep the saved key, - to remove it' if has_key else 'Paste a key from aistudio.google.com/apikey' }}">
+  </label>
+  <p class="muted small">Used for recipe ideas, imports, receipt photos and setup help. Stays on this computer.</p>
 
   <button class="btn wide" type="submit">Save</button>
 </form>

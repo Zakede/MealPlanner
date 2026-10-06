@@ -15,7 +15,7 @@
     <input type="hidden" name="date" value="{{ on }}"><input type="hidden" name="slot" value="{{ slot }}">
     <input type="hidden" name="recipe_id" value="{{ r.id }}">
     <span class="t">{{ r.per_serving.kcal|round|int }}</span>
-    <div><b>{% if prefs.get(r.id) == 'favorite' %}♥ {% endif %}{{ r.name }}</b><small>{{ r.per_serving.protein|round|int }} g protein · {{ r.active_min }} min · ¥{{ r.per_serving.cost|round|int }}</small></div>
+    <div><b>{% if prefs.get(r.id) == 'favorite' %}♥ {% endif %}{{ r.name }}</b><small>{{ r.per_serving.protein|round|int }} g protein · {{ r.active_min }} min · {{ cur }}{{ r.per_serving.cost|round|int }}</small></div>
     <button class="icon-btn" aria-label="Add {{ r.name }}">+</button>
   </form>
   {% else %}

@@ -131,10 +131,15 @@
   <section class="step" data-title="Money">
     <h1>Money</h1>
     <div class="form">
-      <label>Food budget per week (¥), eating out included<input name="weekly_budget_yen" type="number" value="{{ s.weekly_budget_yen }}" required></label>
+      <div class="row">
+        <label>Country<select name="country">{% for k, c in countries.items() %}<option value="{{ k }}" {{ 'selected' if s.country == k }}>{{ c[0] }}</option>{% endfor %}</select></label>
+        <label>Area (Japan)<select name="area">{% for k, (label, f) in areas.items() %}<option value="{{ k }}" {{ 'selected' if s.area == k }}>{{ label }}</option>{% endfor %}</select></label>
+      </div>
+      <label>Where you usually shop<select name="shop">{% for k, (label, f) in shops.items() %}<option value="{{ k }}" {{ 'selected' if s.shop == k }}>{{ label }}</option>{% endfor %}</select></label>
+      <label>Food budget per week ({{ cur }}), eating out included<input name="weekly_budget_yen" type="number" value="{{ s.weekly_budget_yen }}" required></label>
       <div class="row">
         <label>Meals out a week<input name="eat_out_slots" type="number" value="{{ s.eat_out_slots }}"></label>
-        <label>¥ per meal out<input name="eat_out_budget_yen" type="number" value="{{ s.eat_out_budget_yen }}"></label>
+        <label>{{ cur }} per meal out<input name="eat_out_budget_yen" type="number" value="{{ s.eat_out_budget_yen }}"></label>
       </div>
     </div>
     <button class="btn wide" type="submit">Plan my week</button>

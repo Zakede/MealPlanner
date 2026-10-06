@@ -6,6 +6,7 @@ from .. import plans, store
 from ..db import get_db
 from ..diet import AVOID_OPTIONS, DIETS
 from ..equipment import APPLIANCES
+from ..pricing import AREAS, COUNTRIES, SHOPS
 from ..nutrition import JOB_LEVELS, TRAINING_LEVELS
 from ..schedule import WEEKDAYS
 
@@ -58,6 +59,9 @@ def parse(form):
     v["prep_days"] = int(_num(form, "prep_days", 0, 4)) if form.get("prep_days") else 2
     v["appliances"] = ",".join(k for k in APPLIANCES if form.get(f"app_{k}"))
     v["about_me"] = (form.get("about_me") or "").strip()[:1000]
+    v["country"] = form.get("country") if form.get("country") in COUNTRIES else "JP"
+    v["area"] = form.get("area") if form.get("area") in AREAS else "city"
+    v["shop"] = form.get("shop") if form.get("shop") in SHOPS else "supermarket"
 
     work_days = {d for d in range(7) if form.get(f"work_{d}")}
     gym_days = {d for d in range(7) if form.get(f"gym_{d}")}
@@ -108,6 +112,7 @@ def render_wizard(s, sched):
     return render_template(
         "setup.html", s=s, jobs=JOB_LEVELS, intensities=TRAINING_LEVELS, diets=DIETS, avoid=AVOID_OPTIONS,
         appliances=APPLIANCES, app_on=store.split_list(s.get("appliances")),
+        countries=COUNTRIES, areas=AREAS, shops=SHOPS,
         flavors=FLAVORS, cuisines=CUISINES, paces=PACES, efforts=EFFORTS, weekdays=WEEKDAYS, sched=sched,
         work=work, avoid_on=store.split_list(s.get("avoid")), flavor_on=store.split_list(s["flavor_likes"]),
         cuisine_on=store.split_list(s["cuisines_liked"]),

@@ -11,9 +11,9 @@
   {% for k in [400, 600, 800] %}<a class="chip {{ 'ok' if room == k }}" href="{{ url_for('extras.eat_out', kcal=k) }}">{{ k }} kcal</a>{% endfor %}
 </div>
 
-{% for chain, c in combos.items() if c['items'] %}
+{% for chain, c in combos.items() if c['items'] and in_japan %}
 <div class="card">
-  <div class="line"><h2 style="margin:0">{{ chain }}</h2><span class="muted small">{{ c.kcal }} kcal · {{ c.protein|round|int }} g · ¥{{ c.yen }}</span></div>
+  <div class="line"><h2 style="margin:0">{{ chain }}</h2><span class="muted small">{{ c.kcal }} kcal · {{ c.protein|round|int }} g · {{ cur }}{{ c.yen }}</span></div>
   <ul class="list">{% for p in c['items'] %}<li class="line"><span>{{ p.item }}</span><span class="muted small">{{ p.kcal }} kcal · {{ p.protein|round|int }} g</span></li>{% endfor %}</ul>
 </div>
 {% endfor %}
@@ -30,7 +30,7 @@
     <div class="row3">
       <label>kcal<input name="kcal" type="number" required></label>
       <label>Protein g<input name="protein" type="number"></label>
-      <label>¥<input name="yen" type="number"></label>
+      <label>{{ cur }}<input name="yen" type="number"></label>
     </div>
     <button class="btn wide">Log it</button>
   </form>
@@ -41,7 +41,7 @@
 <h2 style="margin:16px 4px 8px">This week</h2>
 <div class="day-list">
   {% for e in log %}
-  <div class="lp"><span class="t">{{ e.date[5:] }}</span><div><b>{{ e.place or e.item or 'Eating out' }}</b><small>{{ e.slot }} · {{ e.kcal }} kcal · ¥{{ e.yen }}{% if e.planned %} · reserved slot{% endif %}</small></div><span></span></div>
+  <div class="lp"><span class="t">{{ e.date[5:] }}</span><div><b>{{ e.place or e.item or 'Eating out' }}</b><small>{{ e.slot }} · {{ e.kcal }} kcal · {{ cur }}{{ e.yen }}{% if e.planned %} · reserved slot{% endif %}</small></div><span></span></div>
   {% endfor %}
 </div>
 {% endif %}

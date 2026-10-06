@@ -10,7 +10,7 @@
     <div><b>{{ (s.carbs * portions)|round|int }} g</b><span>carbs</span></div>
     <div><b>{{ (s.fat * portions)|round|int }} g</b><span>fat</span></div>
   </div>
-  <p class="muted">For {{ '%g'|format(portions) }} portion{{ 's' if portions != 1 }} · ¥{{ (s.cost * portions)|round|int }} ·
+  <p class="muted">For {{ '%g'|format(portions) }} portion{{ 's' if portions != 1 }} · {{ cur }}{{ (s.cost * portions)|round|int }} ·
     {{ r.active_min }} min active, {{ r.total_min }} min total{% if r.thaw_hours %} · thaw {{ r.thaw_hours }} h ahead{% endif %}</p>
   {% if s.unpriced %}<p class="warn small">No price yet for: {{ s.unpriced|join(', ') }}</p>{% endif %}
   {% if r.allergens %}<p class="small">Contains: <b>{{ r.allergens|join(', ') }}</b></p>{% endif %}

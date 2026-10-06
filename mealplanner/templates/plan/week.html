@@ -14,7 +14,7 @@
 {% if needs_profile %}
   <div class="card empty"><p>Finish setup first so the planner knows your targets.</p><a class="btn" href="{{ url_for('setup.start') }}">Set up</a></div>
 {% elif not has_plan %}
-  <div class="plate"><div><span class="lbl">Budget left</span><span class="num-big">¥{{ '{:,}'.format(budget.remaining) }}</span></div></div>
+  <div class="plate"><div><span class="lbl">Budget left</span><span class="num-big">{{ cur }}{{ '{:,}'.format(budget.remaining) }}</span></div></div>
   <div class="card empty">
     <h2>Nothing planned yet</h2>
     <p>Uses your pantry first and stays inside your budget.</p>
@@ -22,8 +22,8 @@
   </div>
 {% else %}
   <div class="plate rise" style="--i:1">
-    <div><span class="lbl">Still to buy</span><span class="num-big" style="font-size:2rem">¥{{ '{:,}'.format(budget.planned) }}</span></div>
-    <a class="stamp {{ 'over' if budget.over }}" href="{{ url_for('extras.spending') }}">残高<b>¥{{ '{:,}'.format(budget.remaining) }}</b></a>
+    <div><span class="lbl">Still to buy</span><span class="num-big" style="font-size:2rem">{{ cur }}{{ '{:,}'.format(budget.planned) }}</span></div>
+    <a class="stamp {{ 'over' if budget.over }}" href="{{ url_for('extras.spending') }}">残高<b>{{ cur }}{{ '{:,}'.format(budget.remaining) }}</b></a>
   </div>
 
   <div class="actions">

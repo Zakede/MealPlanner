@@ -12,7 +12,7 @@
     <label>Unit
       <select name="unit">{% for u in units %}<option {{ 'selected' if item.unit == u }}>{{ u }}</option>{% endfor %}</select>
     </label>
-    <label>Price paid ¥<input name="price_paid" type="number" value="{{ item.price_paid or '' }}"></label>
+    <label>Price paid {{ cur }}<input name="price_paid" type="number" value="{{ item.price_paid or '' }}"></label>
   </div>
   <div class="row">
     <label>Expiry<input name="expiry" type="date" value="{{ item.expiry or '' }}"></label>

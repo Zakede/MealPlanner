@@ -26,7 +26,7 @@
           {% else %}<span class="chip">{{ i.expiry }}</span>{% endif %}
         {% endif %}
         <span class="chip">{{ i.kcal|round|int }} kcal · {{ i.protein }} g P /100 g</span>
-        {% if i.price_paid %}<span class="chip">¥{{ i.price_paid }}</span>{% endif %}
+        {% if i.price_paid %}<span class="chip">{{ cur }}{{ i.price_paid }}</span>{% endif %}
       </div>
     </li>
     {% endfor %}

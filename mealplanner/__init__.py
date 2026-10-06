@@ -38,9 +38,12 @@ def create_app(config=None):
 
     @app.context_processor
     def nav():
+        from .pricing import currency, in_japan
         from .store import settings
         s = settings()
         return {
+            "cur": currency(s),
+            "in_japan": in_japan(s),
             "has_endpoint": lambda name: name in app.view_functions,
             "ui": {"theme": "shokken", "mode": s.get("mode") or "dark"},
         }

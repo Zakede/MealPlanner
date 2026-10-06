@@ -1,9 +1,9 @@
 <div class="card">
-  <div class="line"><b>¥{{ '{:,}'.format(budget.remaining) }} left this week</b><span class="muted">of ¥{{ '{:,}'.format(budget.budget) }}</span></div>
+  <div class="line"><b>{{ cur }}{{ '{:,}'.format(budget.remaining) }} left this week</b><span class="muted">of {{ cur }}{{ '{:,}'.format(budget.budget) }}</span></div>
   <div class="bar {{ 'over' if budget.over }}"><span style="width: {{ budget.planned_pct }}%"></span></div>
-  <p class="muted small">Spent ¥{{ '{:,}'.format(budget.spent) }}
-    {% if budget.planned %}· still to buy ¥{{ '{:,}'.format(budget.planned) }}{% endif %}
-    {% if budget.reserved %}· eat-out ¥{{ '{:,}'.format(budget.reserved) }} held{% endif %}
-    {% if budget.over %}<br><span class="bad">Over budget by ¥{{ '{:,}'.format(-budget.after_plan) }} once you shop.</span>{% endif %}
+  <p class="muted small">Spent {{ cur }}{{ '{:,}'.format(budget.spent) }}
+    {% if budget.planned %}· still to buy {{ cur }}{{ '{:,}'.format(budget.planned) }}{% endif %}
+    {% if budget.reserved %}· eat-out {{ cur }}{{ '{:,}'.format(budget.reserved) }} held{% endif %}
+    {% if budget.over %}<br><span class="bad">Over budget by {{ cur }}{{ '{:,}'.format(-budget.after_plan) }} once you shop.</span>{% endif %}
   </p>
 </div>

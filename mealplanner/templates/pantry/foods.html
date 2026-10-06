@@ -6,7 +6,7 @@
 <div class="actions"><a class="btn" href="{{ url_for('pantry.food_edit') }}">+ New food</a></div>
 <div class="card">
   <table>
-    <tr><th>Food</th><th class="num">kcal</th><th class="num">P</th><th class="num">¥/100 g</th></tr>
+    <tr><th>Food</th><th class="num">kcal</th><th class="num">P</th><th class="num">{{ cur }}/100 g</th></tr>
     {% for f in foods %}
     <tr>
       <td><a href="{{ url_for('pantry.food_edit', food_id=f.id) }}">{{ f.name }}</a></td>

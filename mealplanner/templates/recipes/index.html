@@ -21,7 +21,7 @@
   <a class="lp" href="{{ url_for('recipes.view', recipe_id=r.id) }}" {% if not r.fits %}style="opacity:.5"{% endif %}>
     <span class="t">{{ s.kcal|round|int }}</span>
     <div><b>{% if r.pref == 'favorite' %}♥ {% elif r.pref == 'try' %}☆ {% endif %}{{ r.name }}</b>
-      <small>{{ s.protein|round|int }} g protein · {{ r.active_min }} min · ¥{{ s.cost|round|int }}{% if not r.fits %} · not in your diet{% endif %}</small></div>
+      <small>{{ s.protein|round|int }} g protein · {{ r.active_min }} min · {{ cur }}{{ s.cost|round|int }}{% if not r.fits %} · not in your diet{% endif %}</small></div>
     <span class="dot">{% if r.spice_level >= 2 %}🌶{% endif %}</span>
   </a>
   {% else %}

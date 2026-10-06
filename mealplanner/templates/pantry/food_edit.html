@@ -12,7 +12,7 @@
     <label>Fat<input name="fat" type="number" step="any" value="{{ food.fat if food.fat is not none }}"></label>
   </div>
   <div class="row3">
-    <label>Ref. ¥/100 g<input name="price_per_100g" type="number" step="any" value="{{ food.price_per_100g if food.price_per_100g is not none }}"></label>
+    <label>Ref. {{ cur }}/100 g<input name="price_per_100g" type="number" step="any" value="{{ food.price_per_100g if food.price_per_100g is not none }}"></label>
     <label>g per piece<input name="piece_g" type="number" step="any" value="{{ food.piece_g if food.piece_g is not none }}"></label>
     <label>Allergens<input name="allergens" value="{{ food.allergens or '' }}"></label>
   </div>
@@ -22,7 +22,7 @@
 <div class="card">
   <h2>Price history</h2>
   <table>
-    {% for h in history %}<tr><td>{{ h.recorded_on }}</td><td>{{ h.source }}</td><td class="num">¥{{ h.price_per_100g|round|int }}/100 g</td></tr>{% endfor %}
+    {% for h in history %}<tr><td>{{ h.recorded_on }}</td><td>{{ h.source }}</td><td class="num">{{ cur }}{{ h.price_per_100g|round|int }}/100 g</td></tr>{% endfor %}
   </table>
 </div>
 {% endif %}

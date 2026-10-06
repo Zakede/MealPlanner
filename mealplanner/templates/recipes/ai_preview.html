@@ -11,7 +11,7 @@
     <div><b>{{ s.kcal|round|int }}</b><span>kcal</span></div>
     <div><b>{{ s.protein|round|int }} g</b><span>protein</span></div>
     <div><b>{{ s.carbs|round|int }} g</b><span>carbs</span></div>
-    <div><b>¥{{ s.cost|round|int }}</b><span>per serving</span></div>
+    <div><b>{{ cur }}{{ s.cost|round|int }}</b><span>per serving</span></div>
   </div>
   <p class="muted small" style="margin-bottom:0">{{ r.servings }} serving{{ 's' if r.servings > 1 }} · {{ r.active_min }} min active{% if r.spice_level %} · spice {{ r.spice_level }}{% endif %}</p>
 </div>

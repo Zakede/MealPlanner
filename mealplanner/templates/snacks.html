@@ -32,7 +32,7 @@
 <div class="day-list">
   {% for r in snacks %}
   <a class="lp" href="{{ url_for('recipes.view', recipe_id=r.id) }}"><span class="t">{{ r.per_serving.kcal|round|int }}</span>
-    <div><b>{{ r.name }}</b><small>{{ r.per_serving.protein|round|int }} g protein · ¥{{ r.per_serving.cost|round|int }}</small></div><span></span></a>
+    <div><b>{{ r.name }}</b><small>{{ r.per_serving.protein|round|int }} g protein · {{ cur }}{{ r.per_serving.cost|round|int }}</small></div><span></span></a>
   {% endfor %}
 </div>
 {% endblock %}

@@ -10,7 +10,7 @@
     <span class="lbl">残り · kcal left</span>
     <span class="num-big {{ 'bad' if k_left < 0 }}">{{ k_left }}</span>
   </div>
-  <a class="stamp {{ 'over' if budget.over }}" href="{{ url_for('extras.spending') }}" aria-label="Budget left this week">残高<b>¥{{ '{:,}'.format(budget.remaining) }}</b></a>
+  <a class="stamp {{ 'over' if budget.over }}" href="{{ url_for('extras.spending') }}" aria-label="Budget left this week">残高<b>{{ cur }}{{ '{:,}'.format(budget.remaining) }}</b></a>
   <div class="bars">
     <div class="bar-row">
       <div class="line"><span>Protein</span><span>{{ protein_eaten }} / {{ protein_target }} g{% if p_left > 0 %} · {{ p_left }} to go{% endif %}</span></div>

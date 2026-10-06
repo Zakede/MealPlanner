@@ -3,6 +3,7 @@ from flask import Blueprint, flash, redirect, render_template, request, url_for
 from .. import store
 from ..db import execute
 from ..diet import AVOID_OPTIONS, DIETS
+from ..pricing import AREAS, COUNTRIES, SHOPS
 from ..nutrition import (JOB_LEVELS, MAX_PACE_KG_WEEK, TRAINING_LEVELS, activity_multiplier, cm_to_in, in_to_cm,
                          kg_to_lb, lb_to_kg)
 
@@ -27,7 +28,7 @@ INT_FIELDS = {"age", "weekly_budget_yen", "eat_out_slots", "eat_out_budget_yen",
 TEXT_FIELDS = ["allergies", "dislikes", "flavor_likes", "cuisines_liked", "cuisines_tired"]
 THEMES = {"shokken": "Shokken"}
 MODES = {"dark": "Dark", "light": "Light", "system": "Follow phone"}
-LOOK_FIELDS = {"theme", "mode", "units"}
+LOOK_FIELDS = {"theme", "mode", "units", "gemini_key"}
 
 
 def parse_form(form):
@@ -74,6 +75,14 @@ def parse_form(form):
     values["avoid"] = ",".join(k for k in AVOID_OPTIONS if form.get(f"avoid_{k}"))
     for field in TEXT_FIELDS:
         values[field] = form.get(field, "").strip()
+    values["country"] = form.get("country") if form.get("country") in COUNTRIES else "JP"
+    values["area"] = form.get("area") if form.get("area") in AREAS else "city"
+    values["shop"] = form.get("shop") if form.get("shop") in SHOPS else "supermarket"
+    key = (form.get("gemini_key") or "").strip()
+    if key == "-":
+        values["gemini_key"] = ""          # "-" clears the saved key
+    elif key:
+        values["gemini_key"] = key[:200]   # blank keeps the saved key
     theme, mode = form.get("theme"), form.get("mode")
     values["theme"] = "shokken"
     values["mode"] = mode if mode in MODES else "dark"
@@ -129,5 +138,9 @@ def edit():
         multiplier=activity_multiplier(s["job"], s["training_days"], s["training_intensity"]),
         themes=THEMES,
         modes=MODES,
+        countries=COUNTRIES,
+        areas=AREAS,
+        shops=SHOPS,
+        has_key=bool(s.get("gemini_key")),
         max_pace=MAX_PACE_KG_WEEK,
     )
