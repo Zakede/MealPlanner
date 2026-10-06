@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}New recipe idea · Meal Planner{% endblock %}
+{% block content %}
+<h1>Recipe idea</h1>
+{% if not available %}
+  <div class="card empty"><p>No recipe model found. Install opencode and log in, then reload.</p></div>
+{% else %}
+<form method="post" class="card form" id="ai-form">
+  <label for="request">What do you feel like?</label>
+  <input id="request" name="request" maxlength="300" placeholder="spicy chicken dinner, 15 minutes" autofocus>
+  <label class="small" style="margin-top:10px"><input type="checkbox" name="use_expiring" checked>Use what expires soon</label>
+  <button class="btn wide" id="go">Get an idea</button>
+  <p class="muted small" id="wait" hidden>Thinking… this takes about 15 seconds.</p>
+</form>
+<p class="muted small">Ideas come from {{ model }}. Calories, protein and cost are worked out by the app from your food list, and allergens are checked before you can save.</p>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script>
+const f = document.getElementById("ai-form");
+if (f) f.addEventListener("submit", () => {
+  document.getElementById("go").disabled = true;
+  document.getElementById("wait").hidden = false;
+});
+</script>
+{% endblock %}

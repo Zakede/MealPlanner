@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Recipe idea · Meal Planner{% endblock %}
+{% block content %}
+{% for p in problems %}<div class="flash flash-error">{{ p }}</div>{% endfor %}
+{% for w in warnings %}<div class="flash flash-warn">{{ w }}</div>{% endfor %}
+{% if r %}
+<h1>{{ r.name or 'Untitled' }}</h1>
+{% if r.per_serving %}{% set s = r.per_serving %}
+<div class="card">
+  <div class="stats">
+    <div><b>{{ s.kcal|round|int }}</b><span>kcal</span></div>
+    <div><b>{{ s.protein|round|int }} g</b><span>protein</span></div>
+    <div><b>{{ s.carbs|round|int }} g</b><span>carbs</span></div>
+    <div><b>¥{{ s.cost|round|int }}</b><span>per serving</span></div>
+  </div>
+  <p class="muted small" style="margin-bottom:0">{{ r.servings }} serving{{ 's' if r.servings > 1 }} · {{ r.active_min }} min active{% if r.spice_level %} · spice {{ r.spice_level }}{% endif %}</p>
+</div>
+{% endif %}
+<div class="card">
+  <h2>Ingredients</h2>
+  <table>{% for i in r.ingredients %}<tr><td>{{ i.name }}</td><td class="num"><b>{{ i.grams }} g</b></td></tr>{% endfor %}</table>
+</div>
+<div class="card">
+  <h2>Steps</h2>
+  <ol>{% for step in r.steps.splitlines() %}<li>{{ step }}</li>{% endfor %}</ol>
+</div>
+{% endif %}
+<div class="actions">
+  {% if r and not problems %}
+  <form method="post" action="{{ url_for('recipes.ai_save') }}"><input type="hidden" name="raw" value="{{ raw }}"><button class="btn">Save recipe</button></form>
+  {% endif %}
+  <form method="post" action="{{ url_for('recipes.ai') }}"><input type="hidden" name="request" value="{{ request_text }}"><input type="hidden" name="use_expiring" value="on"><button class="btn secondary">Another idea</button></form>
+</div>
+{% endblock %}

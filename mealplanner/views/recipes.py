@@ -1,3 +1,6 @@
+import json
+import sqlite3
+
 from flask import Blueprint, abort, flash, jsonify, redirect, render_template, request, url_for
 
 from .. import store
@@ -136,3 +139,61 @@ def boosters():
 @bp.route("/api")
 def api():
     return jsonify(store.recipes())
+
+
+@bp.route("/ai", methods=["GET", "POST"])
+def ai():
+    from .. import llm, recipe_ai, today
+    p = llm.provider()
+    if request.method == "GET":
+        return render_template("recipes/ai.html", available=p is not None, model=getattr(p, "model", ""))
+
+    request_text = (request.form.get("request") or "").strip()[:300]
+    s = store.settings()
+    targets = store.targets(s)
+    kcal_hint = round(targets.kcal * 0.35) if targets else 600
+    protein_hint = round(targets.protein_g * 0.35) if targets else 40
+    expiring = [i["name"] for i in store.pantry_items(today())
+                if i["days_left"] is not None and 0 <= i["days_left"] <= 3] if request.form.get("use_expiring") else []
+    if p is None:
+        flash("No recipe model is set up. Install opencode, or set MEALPLANNER_LLM.", "error")
+        return redirect(url_for("recipes.ai"))
+    try:
+        data = llm.extract_json(p.complete(recipe_ai.build_prompt(request_text, store.foods(), s,
+                                                                   kcal_hint, protein_hint, expiring)))
+    except llm.LLMError as e:
+        flash(f"Couldn't get a recipe: {e}. Try again.", "error")
+        return redirect(url_for("recipes.ai"))
+    recipe, problems, warnings = recipe_ai.validate(data, s)
+    return render_template("recipes/ai_preview.html", r=recipe, problems=problems, warnings=warnings,
+                           raw=json.dumps(data), request_text=request_text)
+
+
+@bp.route("/ai/save", methods=["POST"])
+def ai_save():
+    from werkzeug.datastructures import MultiDict
+    from .. import recipe_ai
+    try:
+        data = json.loads(request.form.get("raw") or "")
+    except ValueError:
+        data = None
+    # check again on save: the page could have been edited
+    recipe, problems, _ = recipe_ai.validate(data, store.settings())
+    if problems or recipe is None:
+        flash("This recipe can't be saved: " + "; ".join(problems or ["invalid data"]), "error")
+        return redirect(url_for("recipes.ai"))
+    fields, ings = recipe_ai.to_form(recipe)
+    form = MultiDict(fields)
+    for name, grams in ings:
+        form.add("ing_name", name)
+        form.add("ing_grams", grams)
+    try:
+        new_id = save_recipe(form)
+    except ValueError as e:
+        flash(str(e), "error")
+        return redirect(url_for("recipes.ai"))
+    except sqlite3.IntegrityError:
+        flash("A recipe with that name already exists.", "error")
+        return redirect(url_for("recipes.ai"))
+    flash("Saved. The planner can use it now.", "ok")
+    return redirect(url_for("recipes.view", recipe_id=new_id))

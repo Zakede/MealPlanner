@@ -1,4 +1,9 @@
+import os
+
 import pytest
+
+# never call a real model from tests
+os.environ["MEALPLANNER_LLM"] = "none"
 
 from mealplanner import create_app
 from mealplanner.db import execute
