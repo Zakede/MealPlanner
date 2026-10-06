@@ -37,6 +37,11 @@ def create_app(config=None):
 
     @app.context_processor
     def nav():
-        return {"has_endpoint": lambda name: name in app.view_functions}
+        from .store import settings
+        s = settings()
+        return {
+            "has_endpoint": lambda name: name in app.view_functions,
+            "ui": {"theme": s.get("theme") or "wakatake", "mode": s.get("mode") or "system"},
+        }
 
     return app

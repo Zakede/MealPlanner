@@ -1,0 +1,17 @@
+{% macro icon(name) -%}
+<svg viewBox="0 0 24 24" aria-hidden="true">
+  {%- if name == 'home' %}<path d="M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/>
+  {%- elif name == 'plan' %}<rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M9 3v4M15 3v4"/>
+  {%- elif name == 'pantry' %}<rect x="6" y="3" width="12" height="18" rx="3"/><path d="M6 10h12M9 6v2M9 13v3"/>
+  {%- elif name == 'recipes' %}<path d="M6 4h10a2 2 0 0 1 2 2v14H8a2 2 0 0 1-2-2z"/><path d="M6 18a2 2 0 0 1 2-2h10M10 8h4"/>
+  {%- elif name == 'more' %}<circle cx="6" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="18" cy="12" r="1.4"/>
+  {%- elif name == 'settings' %}<circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/>
+  {%- elif name == 'cart' %}<path d="M4 5h2l2 10h10l2-7H7"/><circle cx="9" cy="19" r="1.3"/><circle cx="17" cy="19" r="1.3"/>
+  {%- elif name == 'clock' %}<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>
+  {%- elif name == 'leaf' %}<path d="M5 19c0-8 6-14 14-14 0 8-6 14-14 14z"/><path d="M5 19 13 11"/>
+  {%- elif name == 'spark' %}<path d="M12 4v4M12 16v4M4 12h4M16 12h4M7 7l2 2M15 15l2 2M7 17l2-2M15 9l2-2"/>
+  {%- elif name == 'bowl' %}<path d="M4 11h16a8 8 0 0 1-16 0z"/><path d="M9 7c0-1 1-1 1-2M13 7c0-1 1-1 1-2"/>
+  {%- elif name == 'star' %}<path d="m12 4 2.4 5 5.6.6-4.2 3.8 1.2 5.6L12 16.2 7 19l1.2-5.6L4 9.6 9.6 9z"/>
+  {%- endif %}
+</svg>
+{%- endmacro %}

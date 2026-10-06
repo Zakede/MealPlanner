@@ -23,6 +23,9 @@ NUMBER_RANGES = {
 INT_FIELDS = {"age", "weekly_budget_yen", "eat_out_slots", "eat_out_budget_yen",
               "eat_out_kcal", "snack_kcal", "spice_tolerance"}
 TEXT_FIELDS = ["allergies", "dislikes", "flavor_likes", "cuisines_liked", "cuisines_tired"]
+THEMES = {"wakatake": "Wakatake + Momo", "apothecary": "Apothecary"}
+MODES = {"system": "Follow phone", "dark": "Dark", "light": "Light"}
+LOOK_FIELDS = {"theme", "mode", "units"}
 
 
 def parse_form(form):
@@ -60,6 +63,9 @@ def parse_form(form):
     values["activity"] = activity if activity in ACTIVITY_LEVELS else "light"
     for field in TEXT_FIELDS:
         values[field] = form.get(field, "").strip()
+    theme, mode = form.get("theme"), form.get("mode")
+    values["theme"] = theme if theme in THEMES else "wakatake"
+    values["mode"] = mode if mode in MODES else "system"
     return values, errors
 
 
@@ -89,11 +95,13 @@ def edit():
             for e in errors:
                 flash(e, "error")
         else:
+            before = store.settings()
             cols = ", ".join(f"{k} = ?" for k in values)
             execute(f"UPDATE settings SET {cols} WHERE id = 1", list(values.values()))
             if values["pace_kg_week"] > MAX_PACE_KG_WEEK:
                 flash(f"Pace is capped at {MAX_PACE_KG_WEEK} kg/week for safety.", "warn")
-            on_settings_changed()
+            if any(before[k] != v for k, v in values.items() if k not in LOOK_FIELDS):
+                on_settings_changed()
             flash("Settings saved.", "ok")
             return redirect(url_for("settings.edit"))
 
@@ -103,5 +111,7 @@ def edit():
         s=display_values(s),
         targets=store.targets(s),
         activity_levels=ACTIVITY_LEVELS,
+        themes=THEMES,
+        modes=MODES,
         max_pace=MAX_PACE_KG_WEEK,
     )

@@ -1,22 +1,82 @@
 {% extends "base.html" %}
+{% block title %}Today · Meal Planner{% endblock %}
 {% block content %}
 {% if needs_profile %}
-  <div class="card callout">
-    <h2>Finish your profile</h2>
-    <p>Age and sex are needed to calculate calorie targets. Nothing can be planned until they are set.</p>
-    <a class="btn" href="{{ url_for('settings.edit') }}">Open settings</a>
+  <div class="card empty">
+    <h1>Hi! Two quick things first</h1>
+    <p>Your age and sex set your calorie target.</p>
+    <a class="btn" href="{{ url_for('settings.edit') }}">Set up profile</a>
   </div>
-{% endif %}
+{% else %}
+  <h1>{{ on.strftime('%A') }}</h1>
 
-{% if targets %}
-  <div class="card">
-    <h2>Daily targets</h2>
-    <div class="stats">
-      <div><b>{{ targets.kcal }}</b><span>kcal</span></div>
-      <div><b>{{ targets.protein_g }} g</b><span>protein</span></div>
-      <div><b>{{ targets.carbs_g }} g</b><span>carbs</span></div>
-      <div><b>{{ targets.fat_g }} g</b><span>fat</span></div>
+  <div class="tiles">
+    {% if next_meal %}
+    <div class="tile wide">
+      <small>{{ next_meal.slot|capitalize }}{% if next_meal.eat_time %} · {{ next_meal.eat_time }}{% endif %}{% if start_at %} · start {{ start_at }}{% endif %}</small>
+      <span class="meal-name">{{ next_meal.title }}</span>
+      <div class="row-end">
+        <small>{{ next_meal.kcal|round|int }} kcal · {{ next_meal.protein|round|int }} g</small>
+        {% if next_meal.recipe_id and has_endpoint('cook.cook') and next_meal.kind in ('cook', 'nocook', 'snack', 'leftover') %}
+          <a class="btn" href="{{ url_for('cook.cook', meal_id=next_meal.id) }}">{{ 'Cook' if next_meal.kind == 'cook' else 'Eat' }}</a>
+        {% elif next_meal.recipe_id %}
+          <a class="btn" href="{{ url_for('recipes.view', recipe_id=next_meal.recipe_id, portions=next_meal.portion) }}">Recipe</a>
+        {% endif %}
+      </div>
     </div>
+    {% elif not has_plan %}
+    <div class="tile wide">
+      <small>No plan yet</small>
+      <span class="meal-name">Plan your week</span>
+      <div class="row-end"><small>Takes a second</small>
+        <form method="post" action="{{ url_for('plan.generate') }}"><button class="btn">Plan</button></form></div>
+    </div>
+    {% else %}
+    <div class="tile wide"><small>All done</small><span class="meal-name">Nothing left today</span><small>Nice work.</small></div>
+    {% endif %}
+
+    {% set p_left = protein_target - protein_eaten %}
+    <div class="tile">
+      <small>Protein</small>
+      <span class="num-big p">{{ [p_left, 0]|max }}<small> g to go</small></span>
+      <div class="meter"><i style="width: {{ [100, protein_eaten * 100 // protein_target]|min }}%"></i></div>
+    </div>
+    {% set k_left = kcal_target - kcal_eaten %}
+    <div class="tile">
+      <small>Calories</small>
+      <span class="num-big k">{{ k_left }}<small> left</small></span>
+      <div class="meter k {{ 'over' if k_left < 0 }}"><i style="width: {{ [100, kcal_eaten * 100 // kcal_target]|min }}%"></i></div>
+    </div>
+    <a class="tile" href="{{ url_for('plan.shopping') }}">
+      <small>This week</small>
+      <span class="num-big {{ 'bad' if budget.over }}">¥{{ '{:,}'.format(budget.remaining) }}</span>
+      <div class="meter {{ 'over' if budget.over }}"><i style="width: {{ budget.planned_pct }}%"></i></div>
+    </a>
+    {% if reminders %}
+    <div class="tile alert"><small>Heads up</small><b>{{ reminders[0] }}</b>
+      {% if reminders|length > 1 %}<small>+{{ reminders|length - 1 }} more</small>{% endif %}</div>
+    {% else %}
+    <a class="tile" href="{{ url_for('plan.week') }}"><small>Week</small><b>See the plan</b><small>{{ 'Draft' if has_plan else 'Not planned' }}</small></a>
+    {% endif %}
   </div>
+
+  {% if meals %}
+  <div class="day-list">
+    {% for m in meals %}
+      {% set done = m.status in ('cooked', 'eaten', 'eaten_out', 'skipped') %}
+      <div class="lp {{ 'done' if done }} {{ 'now' if next_meal and m.id == next_meal.id }}">
+        <span class="t">{{ m.eat_time or m.slot }}</span>
+        <div><b>{{ m.title }}</b><small>{{ m.kcal|round|int }} kcal · {{ m.protein|round|int }} g{% if m.kind == 'leftover' %} · leftover{% endif %}</small></div>
+        <span class="dot">{{ '✓' if done else ('▶' if next_meal and m.id == next_meal.id else '') }}</span>
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if reminders|length > 1 %}
+  <div class="card">
+    <ul class="list">{% for r in reminders[1:] %}<li class="small">{{ r }}</li>{% endfor %}</ul>
+  </div>
+  {% endif %}
 {% endif %}
 {% endblock %}

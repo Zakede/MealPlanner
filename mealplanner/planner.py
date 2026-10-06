@@ -269,6 +269,12 @@ def plan(ctx, dates):
         day_kcal = sum(m["kcal"] for m in day_meals)
         day_protein = sum(m["protein"] for m in day_meals)
         open_slots = [slot for slot in MEAL_SLOTS if (d, slot) not in taken and (d, slot) not in ctx["skip"]]
+        # skipped slots (already past, or left empty on purpose) still count as their usual share,
+        # so a plan made in the evening doesn't put the whole day into dinner
+        for slot in MEAL_SLOTS:
+            if (d, slot) in ctx["skip"] and (d, slot) not in taken:
+                day_kcal += (kcal_target - snack_kcal) * SLOT_SHARE[slot]
+                day_protein += protein_target * SLOT_SHARE[slot]
 
         for slot in MEAL_SLOTS:
             if slot not in open_slots:

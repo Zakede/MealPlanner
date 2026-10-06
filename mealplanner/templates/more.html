@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}More · Meal Planner{% endblock %}
+{% block content %}
+<h1>More</h1>
+<div class="menu">
+  {% for endpoint, label, ico in [
+      ('plan.shopping', 'Shopping list', 'cart'),
+      ('schedule.edit', 'Schedule', 'clock'),
+      ('pantry.foods', 'Foods', 'leaf'),
+      ('recipes.boosters', 'Flavour boosters', 'spark'),
+      ('extras.snacks', 'Snacks & cravings', 'bowl'),
+      ('extras.eat_out', 'Eating out', 'star'),
+      ('settings.edit', 'Settings', 'settings'),
+  ] if has_endpoint(endpoint) %}
+  <a href="{{ url_for(endpoint) }}">{{ icon(ico) }}<span>{{ label }}</span></a>
+  {% endfor %}
+</div>
+{% endblock %}

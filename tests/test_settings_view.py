@@ -18,7 +18,7 @@ def test_defaults_need_age_and_sex(app, client):
         s = store.settings()
         assert s["height_cm"] == 190 and s["weight_kg"] == 85 and s["goal_weight_kg"] == 78
         assert store.targets(s) is None
-    assert b"Finish your profile" in client.get("/").data
+    assert b"Set up profile" in client.get("/").data
 
 
 def test_save_settings_computes_targets(app, client):
@@ -43,3 +43,26 @@ def test_imperial_input_stored_as_metric(app, client):
         s = store.settings()
         assert abs(s["height_cm"] - 190) < 0.5
         assert abs(s["weight_kg"] - 85) < 0.1
+
+
+def test_theme_change_applies_without_replanning(profile, client):
+    from datetime import date
+    from mealplanner import plans
+    with profile.app_context():
+        plans.generate_week(date(2026, 10, 5))
+        ids = {m["id"] for m in plans.meals_between(date(2026, 10, 7), date(2026, 10, 11))}
+    client.post("/settings/", data=form(theme="apothecary", mode="dark"))
+    page = client.get("/").data
+    assert b'data-palette="apothecary"' in page and b'data-mode="dark"' in page
+    with profile.app_context():
+        assert {m["id"] for m in plans.meals_between(date(2026, 10, 7), date(2026, 10, 11))} == ids
+
+
+def test_home_shows_widgets_and_day_list(profile, client):
+    client.post("/plan/generate")
+    page = client.get("/").data
+    assert b'class="tiles"' in page and b'class="day-list"' in page
+
+
+def test_more_page(client):
+    assert client.get("/more").status_code == 200

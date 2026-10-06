@@ -20,7 +20,9 @@ CREATE TABLE IF NOT EXISTS settings (
     spice_tolerance    INTEGER NOT NULL DEFAULT 4,
     flavor_likes       TEXT    NOT NULL DEFAULT '',
     cuisines_liked     TEXT    NOT NULL DEFAULT '',
-    cuisines_tired     TEXT    NOT NULL DEFAULT ''
+    cuisines_tired     TEXT    NOT NULL DEFAULT '',
+    theme              TEXT    NOT NULL DEFAULT 'wakatake',
+    mode               TEXT    NOT NULL DEFAULT 'system'
 );
 
 -- One row per weekday (0 = Monday).

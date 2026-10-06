@@ -2,80 +2,70 @@
 {% block title %}Plan · Meal Planner{% endblock %}
 {% block content %}
 {% set wk = 'next' if is_next else None %}
-<h1>{{ 'Next week' if is_next else 'This week' }}</h1>
+<div class="line" style="margin-bottom:12px">
+  <h1 style="margin:0">{{ 'Next week' if is_next else 'This week' }}</h1>
+  {% if has_plan %}<span class="status-pill {{ 'approved' if not drafts }}">{{ 'Draft' if drafts else 'Approved' }}</span>{% endif %}
+</div>
 <div class="actions">
   <a class="chip {{ 'ok' if not is_next }}" href="{{ url_for('plan.week') }}">This week</a>
   <a class="chip {{ 'ok' if is_next }}" href="{{ url_for('plan.week', week='next') }}">Next week</a>
 </div>
 
 {% if needs_profile %}
-  <div class="card callout"><p>Set your age and sex first so the planner knows your calorie target.</p>
-    <a class="btn" href="{{ url_for('settings.edit') }}">Open settings</a></div>
+  <div class="card empty"><p>Set your age and sex first.</p><a class="btn" href="{{ url_for('settings.edit') }}">Open settings</a></div>
+{% elif not has_plan %}
+  <div class="card empty">
+    <h2>Nothing planned yet</h2>
+    <p>Uses your pantry first and stays under ¥{{ '{:,}'.format(budget.remaining) }}.</p>
+    <form method="post" action="{{ url_for('plan.generate', week=wk) }}"><button class="btn">Plan my week</button></form>
+  </div>
 {% else %}
   {% include "_budget.html" %}
 
   <div class="actions">
-    <form method="post" action="{{ url_for('plan.generate', week=wk) }}">
-      <button class="btn {{ 'secondary' if has_plan }}" {% if has_plan %}data-confirm="Re-plan the rest of the week? Unapproved and approved meals from today on are replaced."{% endif %}>
-        {{ 'Re-plan' if has_plan else 'Plan my week' }}</button>
-    </form>
-    {% if flagged %}
-    <form method="post" action="{{ url_for('plan.replace', week=wk) }}"><button class="btn secondary">Replace {{ flagged }}</button></form>
-    {% endif %}
-    {% if drafts %}
-    <form method="post" action="{{ url_for('plan.approve', week=wk) }}"><button class="btn">Approve week</button></form>
-    {% elif has_plan %}
-    <a class="btn secondary" href="{{ url_for('plan.shopping', week=wk) }}">Shopping list</a>
-    {% endif %}
+    {% if drafts %}<form method="post" action="{{ url_for('plan.approve', week=wk) }}"><button class="btn">Approve{% if flagged %} + swap {{ flagged }}{% endif %}</button></form>
+    {% else %}<a class="btn" href="{{ url_for('plan.shopping', week=wk) }}">Shopping list</a>{% endif %}
+    {% if flagged %}<form method="post" action="{{ url_for('plan.replace', week=wk) }}"><button class="btn secondary">Swap {{ flagged }} now</button></form>{% endif %}
+    <form method="post" action="{{ url_for('plan.generate', week=wk) }}"><button class="btn secondary" data-confirm="Re-plan the rest of the week?">Re-plan</button></form>
   </div>
-  {% if not is_next and has_plan %}
+  {% if not is_next %}
   <div class="actions">
-    <form method="post" action="{{ url_for('plan.push_back') }}"><input type="hidden" name="days" value="1"><button class="btn small secondary">Push back 1 day</button></form>
-    <form method="post" action="{{ url_for('plan.push_back') }}"><input type="hidden" name="days" value="2"><button class="btn small secondary">Push back 2 days</button></form>
-    {% if can_undo %}<form method="post" action="{{ url_for('plan.undo') }}"><button class="btn small secondary">Undo</button></form>{% endif %}
+    <form method="post" action="{{ url_for('plan.push_back') }}"><input type="hidden" name="days" value="1"><button class="chip">Push back 1 day</button></form>
+    <form method="post" action="{{ url_for('plan.push_back') }}"><input type="hidden" name="days" value="2"><button class="chip">2 days</button></form>
+    {% if can_undo %}<form method="post" action="{{ url_for('plan.undo') }}"><button class="chip hot">Undo</button></form>{% endif %}
   </div>
   {% endif %}
 
-  {% for d in days %}
-  <div class="card {{ 'callout' if d.date == today }}">
-    <div class="line">
-      <h2>{{ d.date.strftime('%a') }} {{ d.date.day }} {{ d.date.strftime('%b') }}</h2>
-      {% if d.target %}
-      <span class="small {{ 'good' if d.protein >= d.target.protein_target * 0.9 else 'warn' }}">
-        {{ d.kcal }} / {{ d.target.kcal_target }} kcal · {{ d.protein }} / {{ d.target.protein_target }} g</span>
-      {% endif %}
+  {% for d in days if d.meals or d.date >= today %}
+    <div class="day-head {{ 'today' if d.date == today }}">
+      <h2>{{ 'Today' if d.date == today else d.date.strftime('%a') ~ ' ' ~ d.date.day }}</h2>
+      {% if d.target %}<span class="{{ 'warn' if d.protein < d.target.protein_target * 0.9 }}">{{ d.kcal }} kcal · {{ d.protein }} g</span>{% endif %}
     </div>
-    {% if d.target %}{% if d.target.gym %}<span class="chip ok">gym</span>{% endif %}<span class="chip">{{ d.target.effort }} effort</span>{% endif %}
-    {% if not d.meals %}<p class="muted">Nothing planned.</p>{% endif %}
-    <ul class="list">
+    <div class="day-list">
       {% for m in d.meals %}
-      <li>
-        <div class="line">
-          <span><span class="muted small">{{ m.slot }}{% if m.eat_time %} · {{ m.eat_time }}{% endif %}</span><br>
-            {% if m.recipe_id %}<a href="{{ url_for('recipes.view', recipe_id=m.recipe_id, portions=(m.cook_portions or m.portion)) }}"><b>{{ m.title }}</b></a>{% else %}<b>{{ m.title }}</b>{% endif %}
-          </span>
-          <span class="small">{{ m.kcal|round|int }} kcal<br>{{ m.protein|round|int }} g</span>
-        </div>
+      {% set editable = m.status in ('draft', 'approved') and m.kind != 'eat_out' %}
+      <div class="lp {{ 'done' if m.status in ('cooked', 'eaten', 'eaten_out', 'skipped') }} {{ 'flagged' if m.replace_flag }}">
+        <span class="t">{{ m.eat_time or m.slot }}</span>
         <div>
-          {% if m.kind == 'leftover' %}<span class="chip ok">leftover</span>{% endif %}
-          {% if m.kind == 'eat_out' %}<span class="chip soon">eat out</span>{% endif %}
-          {% if m.kind == 'konbini' %}<span class="chip soon">konbini</span>{% endif %}
-          {% if m.kind == 'empty' %}<span class="chip hot">empty</span>{% endif %}
-          {% if m.portion != 1 and m.kind not in ('eat_out', 'konbini', 'empty') %}<span class="chip">{{ '%g'|format(m.portion) }}×</span>{% endif %}
-          {% if m.buy_cost %}<span class="chip">buy ¥{{ m.buy_cost|int }}</span>{% endif %}
-          <span class="chip">{{ m.status }}</span>
-          {% if m.status in ('draft', 'approved') and m.kind != 'eat_out' %}
-          <form class="inline" method="post" action="{{ url_for('plan.toggle_replace', meal_id=m.id, week=wk) }}">
-            <input type="hidden" name="flag" value="{{ 0 if m.replace_flag else 1 }}">
-            <button class="chip {{ 'hot' if m.replace_flag }}" style="border:0;cursor:pointer">{{ 'will replace ✕' if m.replace_flag else 'replace' }}</button>
-          </form>
-          {% endif %}
+          {% if m.recipe_id %}<a href="{{ url_for('recipes.view', recipe_id=m.recipe_id, portions=m.portion) }}" style="color:inherit"><b>{{ m.title }}</b></a>{% else %}<b>{{ m.title }}</b>{% endif %}
+          <small>{{ m.kcal|round|int }} kcal · {{ m.protein|round|int }} g
+            {%- if m.kind == 'leftover' %}<span class="tag">leftover</span>{% endif %}
+            {%- if m.kind in ('eat_out', 'konbini') %}<span class="tag out">{{ 'eat out' if m.kind == 'eat_out' else 'konbini' }}</span>{% endif %}
+            {%- if m.cook_portions > m.portion and m.kind == 'cook' %}<span class="tag">batch ×{{ '%g'|format(m.cook_portions / m.portion) }}</span>{% endif %}
+            {%- if m.kind == 'empty' %}<span class="tag out">nothing fits</span>{% endif %}
+          </small>
         </div>
-        {% if m.note %}<div class="muted small">{{ m.note }}</div>{% endif %}
-      </li>
+        {% if editable %}
+        <form method="post" action="{{ url_for('plan.toggle_replace', meal_id=m.id, week=wk) }}">
+          <input type="hidden" name="flag" value="{{ 0 if m.replace_flag else 1 }}">
+          <button class="icon-btn" aria-label="{{ 'Keep' if m.replace_flag else 'Swap' }} {{ m.title }}" title="{{ 'Keep this' if m.replace_flag else 'Swap this' }}">{{ '✕' if m.replace_flag else '↻' }}</button>
+        </form>
+        {% else %}<span class="dot">✓</span>{% endif %}
+      </div>
+      {% else %}
+      <p class="muted" style="margin:0 4px">Nothing planned.</p>
       {% endfor %}
-    </ul>
-  </div>
+    </div>
   {% endfor %}
 {% endif %}
 {% endblock %}

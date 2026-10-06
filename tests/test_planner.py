@@ -230,3 +230,11 @@ def test_plan_pages_render(profile, client):
     for url in ("/plan/", "/plan/?week=next", "/plan/shopping", "/plan/api/week"):
         assert client.get(url).status_code == 200
     assert client.post("/plan/approve", follow_redirects=True).status_code == 200
+
+
+def test_evening_plan_does_not_stuff_dinner(profile):
+    profile.config["NOW"] = "17:50"
+    meals = generate(profile)
+    today = [m for m in meals if m["date"] == WED]
+    assert [m["slot"] for m in today] == ["dinner"]
+    assert today[0]["kcal"] < 1000
