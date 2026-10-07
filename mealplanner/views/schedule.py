@@ -2,6 +2,7 @@ import re
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 
+from .. import store
 from ..db import get_db, query
 from ..schedule import WEEKDAYS, slot_limits
 from . import settings as settings_view
@@ -49,15 +50,29 @@ def parse_day(form, wd):
     }
 
 
+def parse_mode(form):
+    """Regular hours or "it changes" (shifts, random days), and how many big cooks a week in that mode."""
+    s = store.settings()
+    mode = "flexible" if form.get("schedule_mode") == "flexible" else "fixed"
+    try:
+        prep = int(form.get("prep_days") or s.get("prep_days") or 0)
+    except ValueError:
+        raise ValueError("Big cook sessions must be a number")
+    return {"schedule_mode": mode, "prep_days": max(0, min(prep, 4))}
+
+
 @bp.route("/", methods=["GET", "POST"])
 def edit():
     if request.method == "POST":
         try:
             days = [parse_day(request.form, wd) for wd in range(7)]
+            mode = parse_mode(request.form)
         except ValueError as e:
             flash(str(e), "error")
         else:
             db = get_db()
+            db.execute("UPDATE settings SET schedule_mode = ?, prep_days = ? WHERE id = 1",
+                       (mode["schedule_mode"], mode["prep_days"]))
             for wd, d in enumerate(days):
                 cols = ", ".join(f"{k} = ?" for k in d)
                 db.execute(f"UPDATE schedule_days SET {cols} WHERE weekday = ?", (*d.values(), wd))
@@ -68,4 +83,4 @@ def edit():
     days = [dict(r) for r in query("SELECT * FROM schedule_days ORDER BY weekday")]
     for d in days:
         d["limits"] = slot_limits(d)
-    return render_template("schedule.html", days=days, names=WEEKDAYS, efforts=EFFORTS)
+    return render_template("schedule.html", days=days, names=WEEKDAYS, efforts=EFFORTS, s=store.settings())

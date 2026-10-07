@@ -87,6 +87,7 @@
     </label>
   </div>
   <p class="muted small">Activity multiplier ×{{ multiplier }}</p>
+  <a class="btn secondary wide" href="{{ url_for('schedule.edit') }}">Work hours &amp; schedule: {{ 'it changes' if s.schedule_mode == 'flexible' else 'regular hours' }} →</a>
 
   {{ prep_picker(s) }}
 

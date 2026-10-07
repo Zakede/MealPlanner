@@ -65,3 +65,19 @@ def test_half_work_hours_rejected(client):
     data["d2_work_end"] = ""
     resp = client.post("/schedule/", data=data, follow_redirects=True)
     assert b"both work start and end" in resp.data
+
+
+def test_switch_schedule_mode(app, client):
+    page = client.get("/schedule/").data
+    assert b'name="schedule_mode" value="flexible"' in page
+    data = schedule_form()
+    data.update(schedule_mode="flexible", prep_days="3")
+    assert b"Schedule saved" in client.post("/schedule/", data=data, follow_redirects=True).data
+    with app.app_context():
+        s = query("SELECT schedule_mode, prep_days FROM settings WHERE id = 1", one=True)
+        assert (s["schedule_mode"], s["prep_days"]) == ("flexible", 3)
+    assert b"it changes" in client.get("/settings/").data
+    data.update(schedule_mode="fixed")
+    client.post("/schedule/", data=data)
+    with app.app_context():
+        assert query("SELECT schedule_mode FROM settings WHERE id = 1", one=True)["schedule_mode"] == "fixed"

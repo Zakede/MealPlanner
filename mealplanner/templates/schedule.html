@@ -1,9 +1,30 @@
 {% extends "base.html" %}
-{% block title %}Schedule · Zettai{% endblock %}
+{% block title %}Schedule · Zettai<script>
+(() => {
+  const form = document.getElementById("sched-form");
+  const flexBox = form.querySelector(".flex-only");
+  const sync = () => { flexBox.hidden = form.querySelector('input[name="schedule_mode"]:checked')?.value !== "flexible"; };
+  form.querySelectorAll('input[name="schedule_mode"]').forEach(r => r.addEventListener("change", sync));
+  sync();
+})();
+</script>
+{% endblock %}
 {% block content %}
 <h1>Weekly schedule</h1>
 <p class="muted">Your usual week. Times are only a guide for reminders; meals still get planned whatever the time.</p>
-<form method="post" class="form">
+<form method="post" class="form" id="sched-form">
+  {% set flex = s.schedule_mode == 'flexible' %}
+  <h2>How your week works</h2>
+  <div class="opts two">
+    <label class="opt"><input type="radio" name="schedule_mode" value="fixed" {{ 'checked' if not flex }}><span><b>Regular hours</b><small>Same days most weeks</small></span></label>
+    <label class="opt"><input type="radio" name="schedule_mode" value="flexible" {{ 'checked' if flex }}><span><b>It changes</b><small>Shifts, random days</small></span></label>
+  </div>
+  <div class="flex-only" {{ 'hidden' if not flex }}>
+    <h2>Big cook sessions a week</h2>
+    <div class="opts seven">{% for n in range(5) %}<label class="opt"><input type="radio" name="prep_days" value="{{ n }}" {{ 'checked' if s.prep_days == n }}><span><b>{{ n }}</b></span></label>{% endfor %}</div>
+    <p class="muted small">Your hours change, so add work each week from the Plan page ("+ Add" → Activity) and the planner fits meals around it. The days below only set wake and meal times; work you leave in them still counts.</p>
+  </div>
+  <h2>Your usual days</h2>
   {% for d in days %}{% set p = 'd' ~ d.weekday ~ '_' %}
   <details class="card" {{ 'open' if loop.first }}>
     <summary class="sched-sum"><b>{{ names[d.weekday] }}</b>
@@ -40,4 +61,13 @@
   {% endfor %}
   <button class="btn wide">Save schedule</button>
 </form>
+<script>
+(() => {
+  const form = document.getElementById("sched-form");
+  const flexBox = form.querySelector(".flex-only");
+  const sync = () => { flexBox.hidden = form.querySelector('input[name="schedule_mode"]:checked')?.value !== "flexible"; };
+  form.querySelectorAll('input[name="schedule_mode"]').forEach(r => r.addEventListener("change", sync));
+  sync();
+})();
+</script>
 {% endblock %}
