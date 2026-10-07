@@ -63,6 +63,8 @@ MIGRATIONS = [
     ("settings", "prep_weekdays", "TEXT NOT NULL DEFAULT ''"),
     ("settings", "prep_covers", "TEXT NOT NULL DEFAULT 'lunch'"),
     ("settings", "walking", "TEXT NOT NULL DEFAULT 'little'"),
+    ("settings", "cuisines_loved", "TEXT NOT NULL DEFAULT ''"),
+    ("settings", "cuisines_custom", "TEXT NOT NULL DEFAULT ''"),
 ]
 
 

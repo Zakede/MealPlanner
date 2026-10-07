@@ -40,7 +40,9 @@ def recipe_score(recipe, prefs):
         score += 0.1 * sum(affinity.get(t, 0) for t in tags) / len(tags)
 
     cuisine = recipe.get("cuisine") or ""
-    if cuisine and cuisine in prefs.get("cuisines_liked", []):
+    if cuisine and cuisine in prefs.get("cuisines_loved", []):
+        score += 0.16
+    elif cuisine and cuisine in prefs.get("cuisines_liked", []):
         score += 0.08
     if cuisine and cuisine in prefs.get("cuisines_tired", []):
         score -= 0.15

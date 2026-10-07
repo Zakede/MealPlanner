@@ -4,9 +4,10 @@
 {% block content %}
 {% set k_left = kcal_target - kcal_eaten %}
 {% set p_left = protein_target - protein_eaten %}
-<div class="line rise">
-  <h1 style="margin:0">{{ on.strftime('%A') }}</h1>
-  <a class="btn" href="{{ url_for('foodlog.page') }}">+ Log food</a>
+<h1 class="rise" style="margin:0 0 10px">{{ on.strftime('%A') }}</h1>
+<div class="log-row rise">
+  <a class="btn" href="{{ url_for('foodlog.page') }}">{{ icon('plate') }}Log food</a>
+  <a class="btn" href="{{ url_for('extras.workouts', _anchor='log') }}">{{ icon('dumbbell') }}Log workout</a>
 </div>
 
 <div class="plate rise" style="--i:2">
@@ -76,7 +77,6 @@
       <form method="post" action="{{ url_for('foodlog.delete', entry_id=e.id) }}" class="badge-form"><button class="badge" aria-label="Remove {{ e.name }}">✕</button></form>
     </div>
   {% endfor %}
-  <a class="key add" href="{{ url_for('foodlog.page') }}">+ Log food</a>
 </div>
 {% endif %}
 
@@ -120,6 +120,11 @@
     <small>Weight</small>
     <span class="num-big">{{ last_weigh.kg|body if last_weigh else '—' }}<small> {{ body_unit() }}</small></span>
     <small>{% if last_weigh %}{{ 'Weigh in today' if last_weigh.date != on.isoformat() else 'Logged today' }}{% else %}Tap to log{% endif %}</small>
+  </a>
+  <a class="tile tile-wide" href="{{ url_for('extras.workouts') }}">
+    <small>Workout today</small>
+    <span class="num-big">{{ workout_min }}<small> min</small></span>
+    <small>{% if workout_min %}{{ workout_kinds }}{% else %}Nothing yet · tap to log{% endif %}{% if training_goal %} · {{ week_sessions }}/{{ training_goal }} this week{% endif %}</small>
   </a>
 </div>
 

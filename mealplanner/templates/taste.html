@@ -11,6 +11,24 @@
 </form>
 {% for h in hints %}<div class="flash flash-warn">{{ h }}</div>{% endfor %}
 
+{% set cz_all = cuisine_list(settings_now()) %}{% set cz_r = cuisine_ratings(settings_now()) %}
+<form method="post" action="{{ url_for('taste.cuisines') }}" class="card form" id="cuisines">
+  <h2>Cuisines</h2>
+  <p class="muted small">Love = often, Like = sometimes, No = skip for now. Recipe ideas and plans follow this.</p>
+  <div class="cz-list">
+    {% for c in cz_all %}{% set cur = cz_r.get(c, '') %}
+    <div class="cz-row"><span class="cz-name">{{ c|title }}</span>
+      <span class="cz-pick" role="radiogroup" aria-label="{{ c }}">
+        {% for v, lab in [('love', '♥'), ('like', 'Like'), ('', '–'), ('no', 'No')] %}
+        <input type="radio" name="cuisine_{{ c }}" value="{{ v }}" id="cz{{ loop.index }}{{ c|replace(' ', '_') }}" {{ 'checked' if cur == v }}><label for="cz{{ loop.index }}{{ c|replace(' ', '_') }}">{{ lab }}</label>
+        {% endfor %}
+      </span></div>
+    {% endfor %}
+  </div>
+  <label>Missing one? Add a cuisine<input name="new_cuisine" maxlength="30" placeholder="e.g. georgian, oaxacan, soul food"></label>
+  <button class="btn wide">Save cuisines</button>
+</form>
+
 {% if ranked %}
 <div class="card">
   <h2>Favourites so far</h2>

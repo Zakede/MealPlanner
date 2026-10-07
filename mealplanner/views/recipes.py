@@ -216,6 +216,48 @@ def add_booster():
     return redirect(url_for("recipes.boosters", _anchor=request.form.get("section") or None))
 
 
+@bp.route("/ask", methods=["GET", "POST"])
+def ask():
+    """Ask Zettai about new dishes, flavours, sauces and spices."""
+    from .. import ask as ask_mod, llm
+    from ..ai_budget import PER_PERSON_PER_DAY, used_today
+    from ..pricing import COUNTRIES, country_code
+    p = llm.provider()
+    question = (request.values.get("q") or "").strip()[:300]
+    answer, ideas = "", []
+    if request.method == "POST" and question:
+        if p is None:
+            flash("No AI is set up. Add a Gemini key in Settings → AI helper.", "error")
+        else:
+            s = store.settings()
+            try:
+                data = llm.extract_json(p.complete(ask_mod.build_prompt(question, s, COUNTRIES[country_code(s)][0])))
+                answer, ideas = ask_mod.clean(data)
+                if not ideas:
+                    flash("Didn't get usable ideas back. Try asking a little differently.", "error")
+            except llm.LLMError as e:
+                flash(f"Couldn't ask right now: {e}.", "error")
+    mine, _ = used_today() if p is not None else (0, 0)
+    return render_template("recipes/ask.html", available=p is not None, q=question, answer=answer, ideas=ideas,
+                           starters=ask_mod.STARTERS, used=mine, limit=PER_PERSON_PER_DAY)
+
+
+@bp.route("/ask/keep", methods=["POST"])
+def ask_keep():
+    """Save a sauce or spice idea from Ask into your own sauces."""
+    from ..db import execute
+    name = (request.form.get("name") or "").strip()[:60]
+    if name:
+        try:
+            kcal = max(0, min(500, int(float(request.form.get("kcal") or 0))))
+        except ValueError:
+            kcal = 0
+        execute("INSERT INTO my_condiments (name, kcal, serving, use, yen) VALUES (?, ?, ?, ?, 0)",
+                (name, kcal, "1 tbsp", (request.form.get("what") or "")[:160]))
+        flash(f"{name} saved to your sauces & spices.", "ok")
+    return redirect(url_for("recipes.ask", q=request.form.get("q") or None))
+
+
 @bp.route("/boosters/mine", methods=["POST"])
 def add_my_condiment():
     from ..db import execute
@@ -252,10 +294,22 @@ def ai():
     from .. import llm, recipe_ai, today
     p = llm.provider()
     if request.method == "GET":
-        return render_template("recipes/ai.html", available=p is not None, model=getattr(p, "model", ""))
+        s = store.settings()
+        from .. import cuisines as cz
+        return render_template("recipes/ai.html", available=p is not None, model=getattr(p, "model", ""),
+                               cuisines=cz.everything(s), ratings=cz.ratings(s))
 
     request_text = (request.form.get("request") or "").strip()[:300]
     s = store.settings()
+    cuisine = (request.form.get("cuisine") or "").strip().lower()[:30]
+    if cuisine == "surprise":
+        import random
+        from .. import cuisines as cz
+        r = cz.ratings(s)
+        pool = [c for c, v in r.items() if v == "love"] or [c for c, v in r.items() if v == "like"] or cz.ALL
+        cuisine = random.choice(pool)
+    if cuisine:
+        request_text = f"A {cuisine} dish. " + request_text
     targets = store.targets(s)
     kcal_hint = round(targets.kcal * 0.35) if targets else 600
     protein_hint = round(targets.protein_g * 0.35) if targets else 40
@@ -265,7 +319,9 @@ def ai():
         flash("No AI is set up. Add a Gemini key in Settings → AI helper.", "error")
         return redirect(url_for("recipes.ai"))
     try:
-        data = llm.extract_json(p.complete(recipe_ai.build_prompt(request_text, store.foods(), s,
+        from ..ai_budget import fresh
+        # ideas should differ each time you ask, so they skip the saved-answers cache
+        data = llm.extract_json(fresh(p).complete(recipe_ai.build_prompt(request_text, store.foods(), s,
                                                                    kcal_hint, protein_hint, expiring)))
     except llm.LLMError as e:
         flash(f"Couldn't get a recipe: {e}" + ("" if "Try again" in str(e) else ". Try again."), "error")

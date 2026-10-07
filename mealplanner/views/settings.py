@@ -25,7 +25,7 @@ NUMBER_RANGES = {
 }
 INT_FIELDS = {"age", "weekly_budget_yen", "eat_out_slots", "eat_out_budget_yen",
               "eat_out_kcal", "snack_kcal", "spice_tolerance"}
-TEXT_FIELDS = ["allergies", "dislikes", "flavor_likes", "cuisines_liked", "cuisines_tired"]
+TEXT_FIELDS = ["allergies", "dislikes", "flavor_likes"]
 THEMES = {"shokken": "Shokken"}
 MODES = {"dark": "Dark", "light": "Light", "system": "Follow phone"}
 LOOK_FIELDS = {"theme", "mode", "units", "gemini_key"}

@@ -132,8 +132,7 @@
 
   <h2>Taste</h2>
   <label>Flavours I like (tags)<input name="flavor_likes" value="{{ s.flavor_likes }}" placeholder="spicy, cheesy, garlicky, crunchy"></label>
-  <label>Cuisines I like<input name="cuisines_liked" value="{{ s.cuisines_liked }}" placeholder="korean, japanese"></label>
-  <label>Cuisines I'm tired of<input name="cuisines_tired" value="{{ s.cuisines_tired }}"></label>
+  <p class="small"><a href="{{ url_for('taste.index', _anchor='cuisines') }}">Cuisines: love, like or skip them, or add your own →</a></p>
 
   <h2>AI helper</h2>
   {% if shared_key %}

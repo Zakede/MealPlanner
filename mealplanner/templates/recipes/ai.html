@@ -8,6 +8,15 @@
 <form method="post" class="card form" id="ai-form">
   <label for="request">What do you feel like?</label>
   <input id="request" name="request" maxlength="300" placeholder="spicy chicken dinner, 15 minutes" autofocus>
+  <span class="lbl" style="margin-top:10px">Cuisine</span>
+  <div class="act-kinds kind-picks">
+    <label><input type="radio" name="cuisine" value="" checked><span>Any</span></label>
+    <label><input type="radio" name="cuisine" value="surprise"><span>Surprise me</span></label>
+    {% for c in cuisines if ratings.get(c) != 'no' %}
+    <label><input type="radio" name="cuisine" value="{{ c }}"><span>{{ '♥ ' if ratings.get(c) == 'love' }}{{ c|title }}</span></label>
+    {% endfor %}
+  </div>
+  <p class="small"><a href="{{ url_for('taste.index', _anchor='cuisines') }}">Rate cuisines or add your own →</a></p>
   <label class="small" style="margin-top:10px"><input type="checkbox" name="use_expiring" checked>Use what expires soon</label>
   <button class="btn wide" id="go">Get an idea</button>
   <p class="muted small" id="wait" hidden>Thinking… this takes about 15 seconds.</p>

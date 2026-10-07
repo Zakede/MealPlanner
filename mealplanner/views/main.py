@@ -40,6 +40,17 @@ def reminders(on, recipes_by_id):
     return out
 
 
+def workout_today(s, on):
+    from ..extras import label
+    rows = query("SELECT kind, minutes FROM workouts WHERE date = ?", (on.isoformat(),))
+    first, last = plans.current_week(on)
+    week = query("SELECT COUNT(DISTINCT date) n FROM workouts WHERE date BETWEEN ? AND ?",
+                 (first.isoformat(), last.isoformat()), one=True)["n"]
+    return {"workout_min": sum(r["minutes"] for r in rows),
+            "workout_kinds": ", ".join(dict.fromkeys(label(r["kind"]) for r in rows)),
+            "week_sessions": week, "training_goal": s.get("training_days") or 0}
+
+
 def try_something_new(s, on):
     """One food worth trying today (rotates daily; ?idea=n shows the next one)."""
     from .. import diet, discoveries
@@ -112,6 +123,7 @@ def home():
         water_ml=track_water(on),
         water_target=tracking.water_target_ml(s["weight_kg"]),
         last_weigh=query("SELECT * FROM weight_log ORDER BY date DESC LIMIT 1", one=True),
+        **workout_today(s, on),
         day=plans.build_days([on])[on],
     )
 

@@ -15,7 +15,7 @@ from ..schedule import WEEKDAYS
 bp = Blueprint("setup", __name__, url_prefix="/setup")
 
 FLAVORS = ["spicy", "garlicky", "cheesy", "sweet-savory", "crunchy", "fresh", "creamy", "comfort", "sour"]
-CUISINES = ["japanese", "korean", "chinese", "western", "italian", "mexican", "indian"]
+from ..cuisines import ALL as CUISINES  # noqa: E402
 PACES = [(0.25, "Gentle", "about 1 kg (2 lb) a month"), (0.5, "Steady", "about 2 kg (4 lb) a month"),
          (0.75, "Fast", "about 3 kg (7 lb) a month, the safe max")]
 

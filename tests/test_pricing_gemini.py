@@ -61,7 +61,8 @@ def test_provider_prefers_gemini_when_key_set(app, monkeypatch):
     with app.app_context():
         execute("UPDATE settings SET gemini_key = 'k' WHERE id = 1")
         p = llm.provider()
-        assert isinstance(p, llm.GeminiProvider) and p.key == "k"
+        # wrapped by the saver (cache + daily limits), Gemini underneath
+        assert isinstance(p.inner, llm.GeminiProvider) and p.inner.key == "k"
 
 
 def test_gemini_request_shape(tmp_path, monkeypatch):

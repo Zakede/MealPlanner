@@ -331,3 +331,27 @@ input[type="file"]::file-selector-button { font: 600 .72rem var(--text); text-tr
   background: transparent; color: var(--ink); border: 1px solid var(--line-strong); padding: 8px 12px; margin-right: 10px; cursor: pointer; }
 input[type="file"]::file-selector-button:hover { border-color: var(--fuji); color: var(--fuji); }
 
+/* home: the two log buttons, same size, side by side */
+.log-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+.log-row .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.log-row .btn .ico { width: 18px; height: 18px; }
+.tiles .tile-wide { grid-column: 1 / -1; }
+
+/* ask */
+.ask-answer { font-size: 1rem; margin: 6px 0 12px; }
+.ask-idea { border-left: 3px solid var(--fuji); }
+.ask-idea .tag { text-transform: uppercase; font-size: .65rem; letter-spacing: .08em; }
+
+/* cuisines */
+.cz-list { display: grid; gap: 6px; margin-bottom: 12px; }
+.cz-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 4px 0; border-bottom: 1px solid var(--line); }
+.cz-name { font-size: .88rem; text-transform: none; letter-spacing: 0; }
+.cz-pick { display: grid; grid-template-columns: repeat(4, 3.1em); border: 1px solid var(--line-strong); }
+.cz-pick input { position: absolute; opacity: 0; pointer-events: none; }
+.cz-pick label { margin: 0; display: grid; place-items: center; min-height: 32px; font-size: .7rem; cursor: pointer;
+  border-right: 1px solid var(--line); text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.cz-pick label:last-of-type { border-right: 0; }
+.cz-pick input:checked + label { background: var(--fuji); color: var(--on-fuji); }
+.cz-pick input[value="no"]:checked + label { background: var(--fuji-deep); }
+
+.cz-pick input[value=""]:checked + label { background: color-mix(in srgb, var(--ink) 8%, transparent); color: var(--ink); }

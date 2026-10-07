@@ -63,6 +63,11 @@ def create_app(config=None):
     app.before_request(auth.require_login)
     from . import units
     units.register(app)
+    from . import cuisines as _cz
+    app.add_template_global(_cz.everything, "cuisine_list")
+    app.add_template_global(_cz.ratings, "cuisine_ratings")
+    from .store import settings as _settings
+    app.add_template_global(_settings, "settings_now")
 
     @app.context_processor
     def nav():

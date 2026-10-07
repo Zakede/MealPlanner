@@ -1,8 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Sauces & spices · Zettai{% endblock %}
 {% block content %}
+{% from "_icons.html" import icon %}
 <h1>Sauces &amp; spices</h1>
 <p class="muted">Big flavour, few calories. Tap + to put one on this week's shopping list.</p>
+<p class="small"><a href="{{ url_for('recipes.ask', q='A new spice or sauce I should try') }}">{{ icon('search') }} Ask Zettai for something new →</a></p>
 <input type="search" id="boost-search" placeholder="Search: garlic, korean, dip, spicy…" aria-label="Search sauces and spices" style="margin-bottom:10px">
 
 <div class="actions boost-jump">

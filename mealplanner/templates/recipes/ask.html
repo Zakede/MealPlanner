@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}Ask Zettai · Zettai{% endblock %}
+{% block content %}
+<h1>Ask Zettai</h1>
+<p class="muted">New dishes, flavours, sauces or spices, picked for your diet and budget.</p>
+{% if not available %}
+<div class="card empty"><p>No AI set up yet. Add a Gemini key in Settings → AI helper.</p></div>
+{% else %}
+<form method="post" class="card form" id="ask-form">
+  <label for="q">What are you after?</label>
+  <textarea id="q" name="q" rows="3" maxlength="300" required placeholder="e.g. something Korean with tofu, or a spice to make eggs exciting">{{ q }}</textarea>
+  <div class="actions" style="margin:0">
+    {% for s in starters %}<button type="button" class="chip" data-fill="{{ s }}">{{ s }}</button>{% endfor %}
+  </div>
+  <button class="btn wide" id="ask-go">Ask</button>
+  <p class="muted small" id="ask-wait" hidden>Thinking… about 10 seconds.</p>
+  <p class="muted small" style="margin:0">{{ used }} of {{ limit }} AI requests used today. Asking the same thing again is free.</p>
+</form>
+
+{% if answer %}<p class="ask-answer">{{ answer }}</p>{% endif %}
+{% for i in ideas %}
+<div class="card ask-idea">
+  <div class="line"><span class="tag">{{ i.kind }}</span>{% if i.kcal %}<span class="muted small">about {{ i.kcal }} kcal</span>{% endif %}</div>
+  <h2 style="margin:8px 0 4px">{{ i.name }}</h2>
+  {% if i.what %}<p style="margin:0 0 4px">{{ i.what }}</p>{% endif %}
+  {% if i.why %}<p class="muted small" style="margin:0">{{ i.why }}</p>{% endif %}
+  <div class="actions" style="margin:10px 0 0">
+    {% if i.kind == 'dish' %}
+    <form method="post" action="{{ url_for('recipes.ai') }}"><input type="hidden" name="request" value="{{ i.name }}: {{ i.what }}"><button class="btn small">Make it a recipe</button></form>
+    {% elif i.kind in ('sauce', 'spice', 'flavour') %}
+    <form method="post" action="{{ url_for('recipes.ask_keep') }}"><input type="hidden" name="name" value="{{ i.name }}"><input type="hidden" name="what" value="{{ i.what }}"><input type="hidden" name="kcal" value="{{ i.kcal }}"><input type="hidden" name="q" value="{{ q }}"><button class="btn small">Save to my sauces</button></form>
+    <form method="post" action="{{ url_for('plan.extra') }}"><input type="hidden" name="name" value="{{ i.name }}"><button class="btn small secondary">Add to shopping list</button></form>
+    {% endif %}
+  </div>
+</div>
+{% endfor %}
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script>
+document.querySelectorAll("[data-fill]").forEach((b) => b.addEventListener("click", () => {
+  const q = document.getElementById("q"); q.value = b.dataset.fill; q.focus();
+}));
+const af = document.getElementById("ask-form");
+if (af) af.addEventListener("submit", () => {
+  document.getElementById("ask-go").disabled = true;
+  document.getElementById("ask-wait").hidden = false;
+});
+</script>
+{% endblock %}

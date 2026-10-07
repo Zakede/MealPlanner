@@ -4,7 +4,7 @@
 <h1>Recipes</h1>
 <div class="actions">
   <a class="btn" href="{{ url_for('recipes.ai_import') }}">+ Add a recipe</a>
-  <a class="btn secondary" href="{{ url_for('recipes.ai') }}">Give me an idea</a>
+  <a class="btn secondary" href="{{ url_for('recipes.ask') }}">Ask for ideas</a>
 </div>
 <details class="today-more" {{ 'open' if pref_filter or meal_type }}>
   <summary>Filter</summary>

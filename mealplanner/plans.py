@@ -97,6 +97,7 @@ def taste_context(recipes, s):
     base = {
         "flavor_likes": store.split_list(s["flavor_likes"]),
         "cuisines_liked": store.split_list(s["cuisines_liked"]),
+        "cuisines_loved": store.split_list(s.get("cuisines_loved")),
         "cuisines_tired": store.split_list(s["cuisines_tired"]),
         "ingredient_scores": ingredient_scores,
         "affinity": affinity,

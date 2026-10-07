@@ -52,6 +52,18 @@ def save_rules(form):
     return plans.refit_for_rules() if store.targets() is not None else 0
 
 
+@bp.route("/cuisines", methods=["POST"])
+def cuisines():
+    from .. import cuisines as cz
+    from ..db import execute
+    from .settings import on_settings_changed
+    values = cz.from_form(request.form, store.settings())
+    execute(f"UPDATE settings SET {', '.join(k + ' = ?' for k in values)} WHERE id = 1", tuple(values.values()))
+    on_settings_changed()
+    flash("Cuisines saved. Plans lean toward the ones you love.", "ok")
+    return redirect(url_for("taste.index", _anchor="cuisines"))
+
+
 @bp.route("/rules", methods=["POST"])
 def rules():
     changed = save_rules(request.form)

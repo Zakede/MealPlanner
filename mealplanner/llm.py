@@ -149,7 +149,9 @@ class GeminiProvider:
         first = model if model and model.startswith("gemini") else self.model
         models = [first] + [m for m in GEMINI_FALLBACKS if m != first]
         body = json.dumps({"contents": [{"role": "user", "parts": parts}],
-                           "generationConfig": {"responseMimeType": "application/json", "temperature": 0.4}}).encode()
+                           "generationConfig": {"responseMimeType": "application/json", "temperature": 0.4,
+                                                # short answers: JSON only, so a cap saves tokens without cutting real replies
+                                                "maxOutputTokens": 4096 if images else 2048}}).encode()
         last_error = "no Gemini model answered"
         for use in models:
             for attempt in range(len(RETRY_WAITS) + 1):
@@ -197,16 +199,17 @@ def provider():
 
     Tests put a fake one in app.config["LLM_PROVIDER"]; MEALPLANNER_LLM=none turns models off.
     """
+    from .ai_budget import Saver
     injected = current_app.config.get("LLM_PROVIDER")
     if injected is not None:
-        return injected
+        return Saver(injected) if current_app.config.get("AI_SAVER") else injected
     choice = os.environ.get("MEALPLANNER_LLM", "auto")
     if choice == "none":
         return None
     key = gemini_key()
     if key and choice in ("auto", "gemini"):
-        return GeminiProvider(key, model=os.environ.get("MEALPLANNER_GEMINI_MODEL"))
+        return Saver(GeminiProvider(key, model=os.environ.get("MEALPLANNER_GEMINI_MODEL")))
     if choice == "gemini":
         return None
     p = OpencodeProvider(model=os.environ.get("MEALPLANNER_LLM_MODEL"))
-    return p if p.available() else None
+    return Saver(p) if p.available() else None
