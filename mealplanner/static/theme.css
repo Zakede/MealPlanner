@@ -177,6 +177,9 @@ body { padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
 .step-badge, .drop-ico, .nudge-ico { background: var(--fuji); box-shadow: none; }
 .wdot { background: var(--line-strong); height: 4px; width: 18px; }
 .wdot.done { background: var(--fuji-deep); } .wdot.here { background: var(--fuji); width: 36px; }
+/* on a phone the dots give way first, then the step name trims, instead of running off the edge */
+.wizard-dots { flex: 1 1 auto; min-width: 0; } .wdot { flex: 0 1 18px; min-width: 5px; } .wdot.here { flex-basis: 36px; }
+.wizard-count { flex: 0 0 auto; max-width: 62%; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .wizard-progress { height: 2px; background: var(--line); } .wizard-progress i { background: var(--fuji); }
 .seg-tabs { background: transparent; border: 1px solid var(--line-strong); padding: 0; gap: 0; }
 .seg-tabs a { text-transform: uppercase; letter-spacing: .06em; font-size: .72rem; }
@@ -355,3 +358,16 @@ input[type="file"]::file-selector-button:hover { border-color: var(--fuji); colo
 .cz-pick input[value="no"]:checked + label { background: var(--fuji-deep); }
 
 .cz-pick input[value=""]:checked + label { background: color-mix(in srgb, var(--ink) 8%, transparent); color: var(--ink); }
+
+/* activities: ones you already have, and the kcal estimate */
+.act-saved { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.act-saved > span { flex-basis: 100%; }
+.act-saved .chip small { opacity: .7; margin-left: 4px; }
+.act-burn { color: inherit; opacity: .7; font-size: .72rem; white-space: nowrap; }
+.act-estimate { margin: 0; min-height: 1.2em; }
+
+/* ordered food: check each dish */
+.order-tick { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; color: var(--ink); }
+.order-tick .order-name { flex: 1; min-width: 0; font-weight: 700; }
+.order-sum { margin: 4px 0 0; }
+#order details { margin: 4px 0; } #order textarea { width: 100%; margin-top: 8px; }

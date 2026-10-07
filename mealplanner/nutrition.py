@@ -148,12 +148,25 @@ HARD_DAY_SNACK = 150
 HARD_DAY_PROTEIN = 10
 
 
+# Rough METs (energy vs. sitting still) for a stretch of each kind of activity.
+ACTIVITY_METS = {"desk": 1.5, "standing": 2.5, "physical": 3.5}
+GYM_MET = 5.0
+
+
+def activity_burn(bmr, intensity, hours, kind=None):
+    """About how many kcal an activity burns on top of resting, for showing next to it."""
+    if not bmr or hours <= 0:
+        return 0
+    met = GYM_MET if kind == "gym" else ACTIVITY_METS.get(intensity, ACTIVITY_METS["desk"])
+    return int(round(bmr / 24 * min(hours, 16) * (met - 1) / 10) * 10)
+
+
 def work_extra(bmr, base_job, day_job, hours):
     """Extra kcal for a workday that's more active than your usual job (or less, for a lighter day)."""
     if not day_job or day_job not in JOB_LEVELS or hours <= 0:
         return 0
-    base = JOB_LEVELS.get(base_job, JOB_LEVELS["desk"])[0]
-    return round(bmr * (JOB_LEVELS[day_job][0] - base) * min(hours, 12) / 8)
+    base = ACTIVITY_METS.get(base_job, ACTIVITY_METS["desk"])
+    return round(bmr / 24 * min(hours, 12) * (ACTIVITY_METS[day_job] - base))
 
 
 def is_hard_day(day_job, hours):

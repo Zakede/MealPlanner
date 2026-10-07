@@ -399,7 +399,7 @@ def plan(ctx, dates):
                     # that way does a meal get to use the money set aside for later
                     reserve = cheap_meal * max(0, meals_left - len(slots_for_batch))
                     # a prep batch buys several meals at once, so it's judged per meal it covers
-                    tight = check["buy"] > budget_left - reserve and not (prep and slots_for_batch)
+                    tight = check["buy"] > budget_left - reserve
                     sc = score(r, portion, target, check, ctx, d, chosen, day["gym"], budget_left,
                                meals_left + 1, protein_gap)
                     if slots_for_batch:

@@ -195,6 +195,21 @@ OVERRIDE_KEYS = ("effort", "gym", "away", "work_mode", "work_start", "work_end",
 work_of = planner.work_of
 
 
+def saved_activities(limit=8):
+    """Activities you've added before, newest first and without repeats, to add again in one tap."""
+    out, seen = [], set()
+    for r in query("SELECT * FROM activities ORDER BY id DESC"):
+        key = (r["label"].lower(), r["kind"], r["start"], r["end"], r["intensity"])
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append({"label": r["label"], "kind": r["kind"], "start": r["start"], "end": r["end"],
+                    "intensity": r["intensity"], "commute": r["commute_min"]})
+        if len(out) >= limit:
+            break
+    return out
+
+
 def set_override(on, **values):
     """Change parts of one date's override. None clears that part."""
     row = query("SELECT * FROM day_overrides WHERE date = ?", (on.isoformat(),), one=True)

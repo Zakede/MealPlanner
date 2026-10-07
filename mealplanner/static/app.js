@@ -138,6 +138,41 @@ document.querySelectorAll("[data-act-open]").forEach((btn) => {
     sel.value = effort[r.value] || "desk";
     sel.dispatchEvent(new Event("change"));
   }));
+  const sel = form.querySelector("select[name=intensity]");
+  const set = (name, value) => { const el = form.querySelector(`[name=${name}]`); if (el) el.value = value; };
+  // one you've added before: fill the form with it
+  form.querySelectorAll("[data-act-fill]").forEach((chip) => chip.addEventListener("click", () => {
+    const a = JSON.parse(chip.dataset.actFill);
+    const kind = form.querySelector(`input[name=kind][value="${a.kind}"]`);
+    if (kind) kind.checked = true;
+    set("label", a.label); set("start", a.start); set("end", a.end); set("commute", a.commute || 0);
+    sel.value = a.intensity; sel.dispatchEvent(new Event("change"));
+    form.querySelectorAll("[data-act-fill]").forEach((c) => c.classList.toggle("ok", c === chip));
+    burst(chip, 6);
+  }));
+  // guess how active it is from the name, until you pick it yourself
+  let picked = false;
+  sel.addEventListener("input", () => { picked = true; });
+  const words = [[/warehouse|construct|moving|mover|deliver|farm|clean|kitchen|cook|labou?r|factory|build|lift/i, "physical"],
+                 [/shift|konbini|store|shop|retail|wait|cafe|café|restaurant|bar|teach|nurse|cashier|barista|hospital|sales/i, "standing"],
+                 [/class|lecture|study|school|office|desk|meeting|exam|lab|remote/i, "desk"]];
+  form.querySelector("input[name=label]").addEventListener("input", (e) => {
+    if (picked) return;
+    const hit = words.find(([re]) => re.test(e.target.value));
+    if (hit && sel.value !== hit[1]) { sel.value = hit[1]; sel.dispatchEvent(new Event("change")); }
+  });
+  // live "about N kcal" for what's in the form (same numbers as nutrition.activity_burn)
+  const out = form.querySelector(".act-estimate"), bmr = +form.dataset.bmr;
+  const mets = { desk: 1.5, standing: 2.5, physical: 3.5 };
+  const estimate = () => {
+    if (!out) return;
+    const [sh, sm] = (form.start.value || "0:0").split(":").map(Number), [eh, em] = (form.end.value || "0:0").split(":").map(Number);
+    const hours = Math.min(16, Math.max(0, (eh * 60 + em - sh * 60 - sm) / 60));
+    const gym = form.querySelector("input[name=kind]:checked")?.value === "gym";
+    const kcal = Math.round(bmr / 24 * hours * ((gym ? 5 : mets[sel.value] || 1.5) - 1) / 10) * 10;
+    out.textContent = hours ? `Burns about ${kcal} kcal on top of resting.` : "";
+  };
+  form.addEventListener("input", estimate); form.addEventListener("change", estimate); estimate();
 });
 
 // ---- motion ----

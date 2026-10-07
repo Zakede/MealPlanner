@@ -450,7 +450,7 @@ details.meal > summary::after { display: none; }
 .key.person .avatar { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; font: 800 1.3rem var(--head);
   background: rgba(0, 0, 0, .18); margin-bottom: 6px; }
 .key.person[aria-current="true"] { outline: 3px solid var(--ink); outline-offset: 2px; }
-.seg-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; padding: 5px; border-radius: 14px; background: var(--panel); margin-bottom: 12px; }
+.seg-tabs { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 6px; padding: 5px; border-radius: 14px; background: var(--panel); margin-bottom: 12px; }
 .seg-tabs a { text-align: center; padding: 10px 6px; border-radius: 10px; color: var(--muted); font-weight: 700; font-size: .88rem; transition: background .25s var(--ease), color .2s; }
 .seg-tabs a.on { background: var(--fuji); color: var(--on-fuji); }
 .slot-pick { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: center; font-weight: 700; color: var(--muted); font-size: .85rem; margin-bottom: 12px; }

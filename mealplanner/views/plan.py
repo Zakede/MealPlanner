@@ -5,6 +5,7 @@ from flask import Blueprint, abort, flash, jsonify, redirect, render_template, r
 
 from .. import plans, store, today
 from ..db import execute
+from ..nutrition import activity_burn
 
 bp = Blueprint("plan", __name__, url_prefix="/plan")
 
@@ -19,6 +20,14 @@ def selected_week():
     if request.values.get("week") == "next":
         first += timedelta(days=7)
     return first
+
+
+def add_burn(info):
+    """Put an 'about N kcal' estimate on each activity of a day."""
+    t = store.targets()
+    for b in info["blocks"]:
+        b["burn"] = activity_burn(t.bmr, b["intensity"], b["hours"], b["kind"]) if t else 0
+    return info
 
 
 def back(first):
@@ -36,7 +45,8 @@ def week():
     meals = [m for d in days for m in d["meals"]]
     infos = plans.build_days([d["date"] for d in days])
     for d in days:
-        d["info"] = infos[d["date"]]
+        d["info"] = add_burn(infos[d["date"]])
+    t = store.targets()
     return render_template(
         "plan/week.html",
         first=first,
@@ -50,6 +60,8 @@ def week():
         needs_profile=store.targets() is None,
         job=store.settings().get("job") or "desk",
         kinds=ACTIVITY_KINDS,
+        saved=plans.saved_activities(),
+        bmr=round(t.bmr) if t else 0,
         can_undo=bool(plans.query("SELECT 1 FROM plan_actions WHERE undone = 0 LIMIT 1")),
     )
 
@@ -252,7 +264,7 @@ def day(day):
             flash(f"{on.strftime('%A')} saved.", "ok")
         current, _ = plans.current_week()
         return redirect(url_for("plan.week", week="next" if on >= current + timedelta(days=7) else None))
-    info = plans.build_days([on])[on]
+    info = add_burn(plans.build_days([on])[on])
     o = plans.override(on)
     target = plans.query("SELECT kcal_target, protein_target FROM plan_days WHERE date = ?", (on.isoformat(),), one=True)
     return render_template("plan/day.html", on=on, info=info, o=o, target=target, job=store.settings().get("job"))

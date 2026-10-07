@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Check your order · Zettai{% endblock %}
+{% block content %}
+<h1>Check your order</h1>
+<p class="muted">{{ header.place or 'Your order' }}{% if header.total %} · total {{ cur }}{{ '{:,}'.format(header.total) }}{% endif %}. Calories are estimates: fix anything you know better.</p>
+{% for w in warnings %}<div class="flash flash-warn">{{ w }}</div>{% endfor %}
+
+<form method="post" action="{{ url_for('foodlog.order_save') }}" id="order-form">
+  <input type="hidden" name="count" value="{{ rows|length }}">
+  <div class="day-list">
+    {% for r in rows %}{% set i = loop.index0 %}
+    <div class="card form receipt-row order-row" style="margin:0">
+      <label class="small order-tick">
+        <input type="checkbox" name="include_{{ i }}" {{ 'checked' if r.include }}>
+        <input name="name_{{ i }}" value="{{ r.name }}" aria-label="Item name" class="order-name">
+        <span class="tag {{ 'out' if r.confidence == 'low' }}">{{ r.confidence }}</span>
+      </label>
+      <div class="row3">
+        <label>kcal<input name="kcal_{{ i }}" type="number" inputmode="numeric" value="{{ r.kcal or '' }}" data-kcal></label>
+        <label>Protein g<input name="protein_{{ i }}" type="number" step="0.1" value="{{ r.protein }}"></label>
+        <label>{{ cur }}<input name="price_{{ i }}" type="number" inputmode="numeric" value="{{ r.price or '' }}"></label>
+      </div>
+      <div class="row">
+        <label>Carbs g<input name="carbs_{{ i }}" type="number" step="0.1" value="{{ r.carbs }}"></label>
+        <label>Fat g<input name="fat_{{ i }}" type="number" step="0.1" value="{{ r.fat }}"></label>
+      </div>
+    </div>
+    {% else %}
+    <div class="card empty"><p>No food found on that order.</p></div>
+    {% endfor %}
+  </div>
+
+  {% if rows %}
+  <div class="card form" style="margin-top:14px">
+    <h2>How much did you eat?</h2>
+    <div class="opts">
+      {% for v, label in [('1', 'All of it'), ('0.5', 'Half'), ('0.333', 'A third'), ('0.25', 'A quarter')] %}
+      <label class="opt"><input type="radio" name="share" value="{{ v }}" {{ 'checked' if loop.first }}><span><b>{{ label }}</b></span></label>
+      {% endfor %}
+    </div>
+    <label class="small" style="color:var(--ink)"><input type="checkbox" name="paid_all" checked> I paid for all of it</label>
+    <label>Which meal?<select name="slot">{% for s in slots %}<option value="{{ s }}" {{ 'selected' if s == slot }}>{{ s|capitalize }}</option>{% endfor %}</select></label>
+    <p class="order-sum" id="order-sum" aria-live="polite"></p>
+    <button class="btn wide">Log it</button>
+  </div>
+  {% endif %}
+</form>
+<p class="muted small"><a href="{{ url_for('foodlog.page', tab='order') }}">Try another receipt</a></p>
+{% endblock %}
+{% block scripts %}
+<script>
+(() => {
+  const form = document.getElementById("order-form"), out = document.getElementById("order-sum");
+  if (!out) return;
+  const sum = () => {
+    const share = +(form.querySelector("input[name=share]:checked")?.value || 1);
+    let kcal = 0;
+    form.querySelectorAll(".order-row").forEach((row) => {
+      if (row.querySelector("input[type=checkbox]").checked) kcal += +(row.querySelector("[data-kcal]").value || 0);
+    });
+    out.innerHTML = `<b>${Math.round(kcal * share).toLocaleString()} kcal</b> goes on today`;
+  };
+  form.addEventListener("input", sum); form.addEventListener("change", sum); sum();
+})();
+</script>
+{% endblock %}

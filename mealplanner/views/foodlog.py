@@ -1,6 +1,9 @@
+import os
+import tempfile
+
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 
-from .. import llm, logbook, store, today
+from .. import llm, logbook, orders, store, today
 from ..db import execute, query
 from ..pricing import currency
 
@@ -150,3 +153,55 @@ def delete(entry_id):
     execute("DELETE FROM food_log WHERE id = ?", (entry_id,))
     flash("Removed.", "ok")
     return redirect(request.referrer or url_for("foodlog.page"))
+
+
+@bp.route("/order", methods=["POST"])
+def order():
+    """Read a receipt of food you ordered (photo, screenshot or pasted text) and guess its calories."""
+    from .receipts import IMAGE_TYPES, MAX_UPLOAD, vision_model
+    p = llm.provider()
+    if p is None:
+        flash("Add a Gemini key in Settings to read order receipts, or type the food in yourself.", "error")
+        return redirect(url_for("foodlog.page", tab="order"))
+    photo, text = request.files.get("photo"), (request.form.get("text") or "").strip()
+    prompt = orders.build_prompt(currency(store.settings()), text=None if photo and photo.filename else text)
+    try:
+        if photo and photo.filename:
+            ext = os.path.splitext(photo.filename)[1].lower() or ".jpg"
+            data = photo.read(MAX_UPLOAD + 1)
+            if ext not in IMAGE_TYPES or len(data) > MAX_UPLOAD:
+                flash("Use a JPG, PNG or WebP photo under 12 MB.", "error")
+                return redirect(url_for("foodlog.page", tab="order"))
+            with tempfile.TemporaryDirectory(prefix="zettai-order-") as work:
+                path = os.path.join(work, "order" + ext)
+                with open(path, "wb") as f:
+                    f.write(data)
+                reply = p.complete(prompt, images=[path], model=vision_model())
+        elif text:
+            reply = p.complete(prompt)
+        else:
+            flash("Add a photo or screenshot of the order, or paste its text.", "error")
+            return redirect(url_for("foodlog.page", tab="order"))
+        rows, header, warnings = orders.rows_from_reply(llm.extract_json(reply))
+    except llm.LLMError as e:
+        flash(f"Couldn't read the order: {e}.", "error")
+        return redirect(url_for("foodlog.page", tab="order"))
+    return render_template("log_order.html", rows=rows, header=header, warnings=warnings,
+                           slots=SLOTS, slot=guess_slot())
+
+
+@bp.route("/order/save", methods=["POST"])
+def order_save():
+    entries, errors = orders.entries_from_form(request.form)
+    for e in errors:
+        flash(e, "error")
+    if not entries:
+        flash("Nothing was ticked, so nothing was logged.", "error")
+        return redirect(url_for("foodlog.page", tab="order"))
+    slot = request.form.get("slot") if request.form.get("slot") in SLOTS else guess_slot()
+    for e in entries:
+        logbook.log_food(today(), e["name"], e["kcal"], e["protein"], e["carbs"], e["fat"], e["yen"],
+                         slot=slot, source="order")
+    kcal = sum(e["kcal"] for e in entries)
+    flash(f"Logged {len(entries)} item{'s' if len(entries) != 1 else ''} from your order, {kcal} kcal.", "ok")
+    return redirect(url_for("main.home"))

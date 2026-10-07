@@ -11,7 +11,7 @@
   <h2>Activities</h2>
   <ul class="list">
     {% for b in acts %}
-    <li class="line"><span><b>{{ b.label }}</b> <span class="muted small">{{ b.start }}–{{ b.end }}{{ ' · every ' ~ on.strftime('%A') if b.weekly }}</span></span>
+    <li class="line"><span><b>{{ b.label }}</b> <span class="muted small">{{ b.start }}–{{ b.end }}{{ ' · every ' ~ on.strftime('%A') if b.weekly }}{{ ' · ~' ~ b.burn ~ ' kcal' if b.burn }}</span></span>
       <span style="display:flex;gap:4px">
         {% if b.weekly %}<form method="post" action="{{ url_for('plan.remove_activity', activity_id=b.id) }}"><input type="hidden" name="date" value="{{ on.isoformat() }}"><button class="chip">Skip this day</button></form>{% endif %}
         <form method="post" action="{{ url_for('plan.remove_activity', activity_id=b.id) }}"><input type="hidden" name="date" value="{{ on.isoformat() }}"><input type="hidden" name="scope" value="all"><button class="chip hot" {% if b.weekly %}data-confirm="Remove {{ b.label }} from every {{ on.strftime('%A') }}?"{% endif %}>{{ 'Every week' if b.weekly else 'Remove' }}</button></form>

@@ -1,11 +1,12 @@
 {% extends "base.html" %}
 {% block title %}Log food · Zettai{% endblock %}
 {% block content %}
+{% from "_icons.html" import icon %}
 <h1 class="rise">Log food</h1>
 <p class="muted">Anything you ate that wasn't in the plan. It counts toward today and your budget.</p>
 
 <div class="seg-tabs" role="tablist">
-  {% for key, label in [('picks', 'Konbini & chains'), ('mine', 'My foods'), ('type', 'Type it')] %}
+  {% for key, label in [('picks', 'Konbini & chains'), ('mine', 'My foods'), ('type', 'Type it'), ('order', 'Ordered food')] %}
   <a role="tab" href="{{ url_for('foodlog.page', tab=key) }}" class="{{ 'on' if tab == key }}" aria-selected="{{ 'true' if tab == key else 'false' }}" data-tab="{{ key }}">{{ label }}</a>
   {% endfor %}
 </div>
@@ -77,6 +78,38 @@
   </form>
 </section>
 
+<section class="tab-panel" data-panel="order" {% if tab != 'order' %}hidden{% endif %}>
+  {% if ai %}
+  <form method="post" action="{{ url_for('foodlog.order') }}" enctype="multipart/form-data" class="card form" id="order">
+    <h2>Food you ordered</h2>
+    <p class="muted small">Delivery, takeout or a restaurant bill. Add the receipt or a screenshot of the order and the calories get estimated for each dish. You check them before anything is logged.</p>
+    <input id="order-photo" type="file" name="photo" accept="image/*" class="rc-file">
+    <input id="order-camera" type="file" accept="image/*" capture="environment" class="rc-file">
+    <div class="drop" id="order-drop" tabindex="0" role="button" aria-label="Add an order receipt: tap, drop or paste">
+      <div class="drop-empty">
+        <span class="drop-ico">{{ icon('receipt') }}</span>
+        <b>Drop the receipt here</b>
+        <span class="muted small">or paste a screenshot with <kbd>Ctrl</kbd> + <kbd>V</kbd></span>
+        <span class="drop-actions">
+          <label class="btn small" for="order-camera">Take a photo</label>
+          <label class="btn small secondary" for="order-photo">Choose a file</label>
+        </span>
+      </div>
+      <div class="drop-preview" hidden><img id="order-preview" alt="Order preview"><span class="scan" aria-hidden="true"></span></div>
+    </div>
+    <details>
+      <summary class="small">Or paste the order text (from an email or the app)</summary>
+      <textarea name="text" rows="5" placeholder="Big Mac set ×1 ¥890&#10;Chicken McNuggets 5pc ¥390"></textarea>
+    </details>
+    <button class="btn wide" id="order-go">Estimate calories</button>
+    <p class="rc-wait" id="order-wait" hidden><span class="dots"><i></i><i></i><i></i></span> Reading the order, about 10–30 seconds</p>
+  </form>
+  {% else %}
+  <div class="card empty"><p>Reading order receipts needs the AI helper. Add a Gemini key in Settings, or type the food in yourself.</p>
+    <a class="btn" href="{{ url_for('settings.edit') }}#ai">Set up the AI helper</a></div>
+  {% endif %}
+</section>
+
 {% if today_log %}
 <h2 style="margin:18px 2px 8px">Logged today</h2>
 <div class="day-list">
@@ -109,6 +142,36 @@
     const term = q.value.trim().toLowerCase();
     document.querySelectorAll("#pick-list .pick-row").forEach((row) => row.hidden = term && !row.dataset.name.includes(term));
   });
+  // order receipt: tap, drop, camera or paste a picture
+  const order = document.getElementById("order");
+  if (order) {
+    const file = document.getElementById("order-photo"), drop = document.getElementById("order-drop");
+    const use = (f) => {
+      if (!f || !f.type.startsWith("image/")) return;
+      const dt = new DataTransfer();
+      dt.items.add(new File([f], f.name && f.name !== "image.png" ? f.name : "order-" + Date.now() + ".png", { type: f.type }));
+      file.files = dt.files;
+      document.getElementById("order-preview").src = URL.createObjectURL(f);
+      drop.querySelector(".drop-empty").hidden = true; drop.querySelector(".drop-preview").hidden = false;
+      drop.classList.add("has");
+    };
+    file.addEventListener("change", () => use(file.files[0]));
+    document.getElementById("order-camera").addEventListener("change", (e) => use(e.target.files[0]));
+    drop.addEventListener("click", (e) => { if (!drop.classList.contains("has") && !e.target.closest("label")) file.click(); });
+    drop.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); file.click(); } });
+    ["dragenter", "dragover"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add("over"); }));
+    ["dragleave", "drop"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.remove("over"); }));
+    drop.addEventListener("drop", (e) => use(e.dataTransfer.files[0]));
+    document.addEventListener("paste", (e) => {
+      if (order.closest(".tab-panel").hidden) return;
+      const item = [...(e.clipboardData?.items || [])].find((i) => i.type.startsWith("image/"));
+      if (item) { e.preventDefault(); use(item.getAsFile()); }
+    });
+    order.addEventListener("submit", () => {
+      document.getElementById("order-go").disabled = true; drop.classList.add("reading");
+      document.getElementById("order-wait").hidden = false;
+    });
+  }
   document.getElementById("ask")?.addEventListener("submit", () => {
     document.getElementById("ask-go").disabled = true;
     document.getElementById("ask-wait").hidden = false;

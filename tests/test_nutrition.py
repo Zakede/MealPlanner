@@ -102,7 +102,7 @@ def test_hard_workdays_get_more_food():
     phys, p_phys = day_targets(t, False, 0, "male", work={"job": "physical", "hours": 8, "base_job": "desk"})
     long_desk, _ = day_targets(t, False, 0, "male", work={"job": "desk", "hours": 11, "base_job": "desk"})
     assert desk == rest < feet < phys
-    # physical: 1917.5 x 0.3 extra plus half the deficit given back
-    assert phys - rest == pytest.approx(round(1917.5 * 0.3) + (t.tdee - t.kcal) // 2, abs=2)
+    # physical: 8 h at 2 METs over a desk (1917.5 / 24 per MET-hour) plus half the deficit given back
+    assert phys - rest == pytest.approx(round(1917.5 / 24 * 8 * 2) + (t.tdee - t.kcal) // 2, abs=2)
     assert p_phys == t.protein_g + 10
     assert long_desk > rest      # a 11-hour day is a hard day even at a desk

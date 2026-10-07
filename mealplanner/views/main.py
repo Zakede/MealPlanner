@@ -23,7 +23,9 @@ def today_targets(s, targets, on):
         return row["kcal_target"], row["protein_target"]
     sched = {r["weekday"]: dict(r) for r in query("SELECT * FROM schedule_days")}
     gym_days = sum(1 for d in sched.values() if d["gym"])
-    return day_targets(targets, sched[on.weekday()]["gym"], gym_days, s["sex"])
+    day = plans.build_days([on], s)[on]
+    # work, school and shifts count even before the week is planned
+    return day_targets(targets, day["gym"], gym_days, s["sex"], work=plans.work_of(day, s))
 
 
 def reminders(on, recipes_by_id):

@@ -56,7 +56,7 @@
       {% for b in i.blocks %}
       <span class="act k-{{ b.kind }}">
         <i class="act-mark">{{ icon(marks.get(b.kind, 'spark')) }}</i>
-        <span><b>{{ b.label }}</b> {{ b.start }}–{{ b.end }}{% if b.intensity != 'desk' and b.kind != 'gym' %} · {{ {'standing': 'on feet', 'physical': 'physical'}[b.intensity] }}{% endif %}{% if b.weekly %} <span class="act-rep" title="Every week">↻</span>{% endif %}</span>
+        <span><b>{{ b.label }}</b> {{ b.start }}–{{ b.end }}{% if b.intensity != 'desk' and b.kind != 'gym' %} · {{ {'standing': 'on feet', 'physical': 'physical'}[b.intensity] }}{% endif %}{% if b.burn %} <span class="act-burn" title="About how much this burns on top of resting">~{{ b.burn }} kcal</span>{% endif %}{% if b.weekly %} <span class="act-rep" title="Every week">↻</span>{% endif %}</span>
         {% if b.id %}
         <form method="post" action="{{ url_for('plan.remove_activity', activity_id=b.id) }}"><input type="hidden" name="date" value="{{ d.date.isoformat() }}"><button class="act-x" aria-label="Remove {{ b.label }}{{ ' this day' if b.weekly }}">×</button></form>
         {% else %}
@@ -69,8 +69,16 @@
       {% if i.effort == 'full' %}<span class="tag">big cook</span>{% elif i.effort == 'none' %}<span class="tag soft">no cooking</span>{% endif %}
       {% if i.note %}<span class="muted small">· {{ i.note }}</span>{% endif %}
     </div>
-    <form method="post" action="{{ url_for('plan.add_activity', day=d.date.isoformat()) }}" class="act-form card" hidden>
+    <form method="post" action="{{ url_for('plan.add_activity', day=d.date.isoformat()) }}" class="act-form card" data-bmr="{{ bmr }}" hidden>
       <input type="hidden" name="week" value="{{ wk or '' }}">
+      {% if saved %}
+      <div class="act-saved">
+        <span class="muted small">Add one you have</span>
+        {% for a in saved %}
+        <button type="button" class="chip" data-act-fill='{{ a|tojson|forceescape }}'>{{ a.label }} <small>{{ a.start }}–{{ a.end }}</small></button>
+        {% endfor %}
+      </div>
+      {% endif %}
       <div class="act-kinds">
         {% for k, label in kinds.items() %}
         <label><input type="radio" name="kind" value="{{ k }}" {{ 'checked' if loop.first }}><span><i>{{ icon(marks[k]) }}</i>{{ label }}</span></label>
@@ -88,6 +96,7 @@
         </select>
         <label class="act-weekly"><input type="checkbox" name="weekly" value="1">Every {{ d.date.strftime('%A') }}</label>
       </div>
+      {% if bmr %}<p class="act-estimate muted small" aria-live="polite"></p>{% endif %}
       <div class="act-row end">
         <button type="button" class="chip" data-act-cancel>Cancel</button>
         <button class="btn small">Add to {{ d.date.strftime('%a') }}</button>
