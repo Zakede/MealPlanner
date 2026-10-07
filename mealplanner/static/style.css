@@ -488,7 +488,7 @@ details.meal > summary::after { display: none; }
 @media (max-width: 400px) { .bought-form input { width: 58px; } .shop-row { grid-template-columns: 46px minmax(0, 1fr) auto; } }
 
 /* Taste boosters guide */
-.boost-jump { position: sticky; top: 0; z-index: 2; background: var(--body); padding: 4px 0 8px; margin-bottom: 4px; }
+.boost-jump { padding: 4px 0 8px; margin-bottom: 4px; }
 .boost-sec { scroll-margin-top: 56px; }
 .boost-list { list-style: none; margin: 8px 0 0; padding: 0; }
 .boost { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 2px solid var(--line); }
