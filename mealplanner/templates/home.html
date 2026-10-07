@@ -77,6 +77,13 @@
       <form method="post" action="{{ url_for('foodlog.delete', entry_id=e.id) }}" class="badge-form"><button class="badge" aria-label="Remove {{ e.name }}">✕</button></form>
     </div>
   {% endfor %}
+  <div class="key add add-menu">
+    <a class="add-main" href="{{ url_for('foodlog.page') }}" data-add-toggle aria-expanded="false">+ Add</a>
+    <div class="add-choices" hidden>
+      <a href="{{ url_for('foodlog.page') }}"><b>Food</b><small>a meal, snack or drink</small></a>
+      <a href="{{ url_for('extras.workouts', _anchor='log') }}"><b>Workout / gym</b><small>training, a walk, sport…</small></a>
+    </div>
+  </div>
 </div>
 {% endif %}
 
