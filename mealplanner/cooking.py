@@ -74,16 +74,33 @@ def finish_cooking(meal, freeze=False):
     extra = round(cook_portions - meal["portion"], 2)
     leftover_id = None
     if extra > 0.01:
-        days = FREEZER_DAYS if freeze else recipe["fridge_days"]
         s = recipe["per_serving"]
-        leftover_id = db.execute(
-            """INSERT INTO leftovers (recipe_id, cook_meal_id, title, portions, kcal, protein, carbs, fat,
-                   cooked_on, safe_until, location) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (recipe["id"], meal["id"], recipe["name"], extra, s["kcal"], s["protein"], s["carbs"], s["fat"],
-             on.isoformat(), (on + timedelta(days=days)).isoformat(), "freezer" if freeze else "fridge"),
-        ).lastrowid
-        # planned leftover meals from this cook now draw from the real leftover
-        db.execute("UPDATE plan_meals SET leftover_id = ? WHERE cook_group = ?", (leftover_id, meal["id"]))
+
+        def store_portions(portions, frozen):
+            days = FREEZER_DAYS if frozen else recipe["fridge_days"]
+            return db.execute(
+                """INSERT INTO leftovers (recipe_id, cook_meal_id, title, portions, kcal, protein, carbs, fat,
+                       cooked_on, safe_until, location) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (recipe["id"], meal["id"], recipe["name"], portions, s["kcal"], s["protein"], s["carbs"], s["fat"],
+                 on.isoformat(), (on + timedelta(days=days)).isoformat(), "freezer" if frozen else "fridge"),
+            ).lastrowid
+
+        # meal-prep boxes planned past the fridge life go straight in the freezer
+        boxes = [dict(r) for r in query("SELECT id, date, portion FROM plan_meals WHERE cook_group = ?"
+                                        " AND status IN ('draft', 'approved')", (meal["id"],))]
+        fridge_until = on + timedelta(days=recipe["fridge_days"])
+        late = [b for b in boxes if datetime.fromisoformat(b["date"]).date() > fridge_until]
+        late_portions = round(min(extra, sum(b["portion"] for b in late)), 2)
+        if late and not freeze and late_portions < extra - 0.01:
+            leftover_id = store_portions(round(extra - late_portions, 2), False)
+            frozen_id = store_portions(late_portions, True)
+            db.execute("UPDATE plan_meals SET leftover_id = ? WHERE cook_group = ?", (leftover_id, meal["id"]))
+            db.execute(f"UPDATE plan_meals SET leftover_id = ? WHERE id IN ({','.join('?' * len(late))})",
+                       (frozen_id, *[b["id"] for b in late]))
+        else:
+            leftover_id = store_portions(extra, freeze or bool(late))
+            # planned leftover meals from this cook now draw from the real leftover
+            db.execute("UPDATE plan_meals SET leftover_id = ? WHERE cook_group = ?", (leftover_id, meal["id"]))
     db.commit()
     return {"missing": missing, "leftover_portions": extra, "leftover_id": leftover_id}
 
@@ -117,7 +134,15 @@ def skip(meal):
     return len(ids)
 
 
+EXPIRED_GRACE_DAYS = 2   # past its date: a "toss it" reminder for 2 days, then it's cleared away
+
+
 def leftovers():
+    on = get_today()
+    db = get_db()
+    db.execute("UPDATE leftovers SET portions = 0 WHERE portions > 0 AND safe_until < ?",
+               ((on - timedelta(days=EXPIRED_GRACE_DAYS)).isoformat(),))
+    db.commit()
     rows = query("SELECT * FROM leftovers WHERE portions > 0 ORDER BY safe_until")
     out = []
     on = get_today()

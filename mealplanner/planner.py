@@ -26,6 +26,7 @@ COOLDOWN_DAYS = 4
 FAVORITE_COOLDOWN_DAYS = 2
 MAX_BATCH_MEALS = 4
 PREP_MAX_DAYS = 6       # a meal prep day covers at most the next six days
+PREP_MAX_BOXES = 3      # boxes per prep dish, so the week has two dishes instead of one six times
 EAT_OUT_PROTEIN_GUESS = 30
 PACKABLE_MAX_ACTIVE = 10
 
@@ -322,6 +323,10 @@ def plan(ctx, dates):
         }
 
     meals_left = sum(1 for d in dates for slot in MEAL_SLOTS if (d, slot) not in taken)
+    # what a cheap meal costs at this person's portion size: a low yen-per-kcal times a typical meal
+    per_kcal = sorted(r["per_serving"]["cost"] / r["per_serving"]["kcal"] for r in recipes if r["per_serving"]["kcal"])
+    meal_kcal = (ctx["targets"].kcal if ctx.get("targets") else 2000) * 0.3
+    cheap_meal = 1.3 * per_kcal[len(per_kcal) // 4] * meal_kcal if per_kcal else 0
     next_key = 0
 
     for d in dates:
@@ -369,30 +374,47 @@ def plan(ctx, dates):
                             **{m: lo[m] * portion for m in MACROS}}
 
             if meal is None:
-                best = None
+                best = squeezed = None
                 excluded = ctx["exclude"].get((d, slot), set())
                 for r in recipes:
                     if r["id"] in excluded or not fits_slot(r, slot, limits, d, today):
                         continue
                     portion = best_portion(r["per_serving"]["kcal"], target)
-                    prep = day.get("prep_day") and (slot == "lunch" or s.get("prep_covers") == "lunch_dinner")
+                    # prep day: the lunch cook boxes up the next lunches; the dinner cook is a second prep dish,
+                    # for later lunches ("lunch" mode) or the next dinners ("lunch_dinner"), so boxes don't repeat
+                    prep = day.get("prep_day") and slot in ("lunch", "dinner")
+                    box_slot = "lunch" if s.get("prep_covers") != "lunch_dinner" else slot
                     batch = (r["batch_ok"] and slot != "breakfast" and (prep or not busy(day))
                              and not limits[slot]["away"])
                     cook_portions = portion
                     slots_for_batch = []
                     if batch:
-                        slots_for_batch = (prep_slots(ctx, dates, d, slot, r, taken, reserved) if prep
+                        slots_for_batch = (prep_slots(ctx, dates, d, box_slot, r, taken, reserved) if prep
                                            else batch_slots(ctx, dates, d, r, taken, reserved, chosen))
                         cook_portions = portion * (1 + len(slots_for_batch))
                     check = purchase_check(r, cook_portions, pantry, d)
                     if check["buy"] > budget_left:
                         continue
+                    # keep enough back for the rest of the week at a cheap-meal price; only if nothing fits
+                    # that way does a meal get to use the money set aside for later
+                    reserve = cheap_meal * max(0, meals_left - len(slots_for_batch))
+                    # a prep batch buys several meals at once, so it's judged per meal it covers
+                    tight = check["buy"] > budget_left - reserve and not (prep and slots_for_batch)
                     sc = score(r, portion, target, check, ctx, d, chosen, day["gym"], budget_left,
                                meals_left + 1, protein_gap)
                     if slots_for_batch:
                         sc += 0.6 if prep else 0.1   # on a prep day, batching is the point
-                    if best is None or sc > best[0]:
-                        best = (sc, r, portion, cook_portions, check, slots_for_batch, prep)
+                    # pace the week: a meal (or a batch, per meal it covers) shouldn't eat far more than its share
+                    fair = budget_left / max(1, meals_left + 1) * (1 + len(slots_for_batch))
+                    if check["buy"] > 1.6 * fair:
+                        sc -= 0.3
+                    pick = (sc, r, portion, cook_portions, check, slots_for_batch, prep)
+                    if tight:
+                        if squeezed is None or check["buy"] < squeezed[4]["buy"]:
+                            squeezed = pick
+                    elif best is None or sc > best[0]:
+                        best = pick
+                best = best or squeezed
 
                 if best:
                     _, r, portion, cook_portions, check, slots_for_batch, prep = best
@@ -443,7 +465,9 @@ def plan(ctx, dates):
                 meal = {"date": d, "slot": slot, "kind": "empty", "recipe_id": None, "portion": 0,
                         "cook_portions": 0, "title": "Nothing fits", "kcal": 0, "protein": 0, "carbs": 0,
                         "fat": 0, "cost": 0, "buy_cost": 0,
-                        "note": "No recipe fits the time, budget and filters. Add a recipe or loosen settings."}
+                        "note": ("The week's budget is used up here. Raise the budget, plan one less eat-out, "
+                                 "or eat from your pantry." if budget_left < cheap_meal else
+                                 "No recipe fits the time and filters. Add a recipe or loosen settings.")}
 
             meal["eat_time"] = eat_time(day, slot)
             meal.setdefault("status", "draft")
@@ -511,6 +535,8 @@ def prep_slots(ctx, dates, cook_date, slot, recipe, taken, reserved):
         if slot_limits(day)[slot]["away"] and not recipe["portable"]:
             continue
         out.append((d, slot))
+        if len(out) >= PREP_MAX_BOXES:
+            break
     return out
 
 

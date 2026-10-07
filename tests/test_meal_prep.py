@@ -36,13 +36,20 @@ def test_lunch_only_prep_keeps_dinners_fresh(profile):
     assert boxes and all(m["slot"] == "lunch" for m in boxes)
 
 
-def test_late_boxes_go_in_the_freezer_or_stop_without_one(profile):
-    _, _, meals = _setup(profile)
+def test_two_prep_dishes_and_late_boxes_go_in_the_freezer(profile):
+    # "lunches" prep: the Sunday lunch cook boxes Mon-Wed lunches, the Sunday dinner cook is a second dish
+    # for Thu-Sat lunches, which are past fridge life, so those boxes are frozen
+    first, _, meals = _setup(profile, covers="lunch")
+    cooks = {m["title"] for m in meals if m["date"] == first.isoformat() and "Meal prep" in (m["note"] or "")}
+    assert len(cooks) == 2
+    boxes = [m for m in meals if "From the Sun prep" in (m["note"] or "")]
+    assert all(m["slot"] == "lunch" for m in boxes) and len({m["title"] for m in boxes}) == 2
+    assert max(sum(1 for b in boxes if b["title"] == t) for t in cooks) <= 3
     late = [m for m in meals if "freeze this box" in (m["note"] or "")]
     assert late                                             # fridge life is ~3 days, the week is longer
     with profile.app_context():
         execute("UPDATE settings SET appliances = 'stove,microwave,rice_cooker' WHERE id = 1")
-    _, _, meals = _setup(profile)
+    _, _, meals = _setup(profile, covers="lunch")
     assert not [m for m in meals if "freeze this box" in (m["note"] or "")]
 
 
@@ -56,3 +63,35 @@ def test_setup_and_settings_save_the_prep_picker(profile, client):
         assert store.week_start() == 2
     page = client.get("/settings/").data.decode()
     assert "Meal prep day" in page and 'name="prep_2" id="prep2" checked' in page
+
+
+def test_cooking_prep_freezes_the_late_boxes(profile, client):
+    first, _, meals = _setup(profile, covers="lunch")
+    dinner_prep = next(m for m in meals if m["date"] == first.isoformat() and m["slot"] == "dinner"
+                       and "Meal prep" in (m["note"] or ""))
+    client.post(f"/cook/{dinner_prep['id']}/done")
+    with profile.app_context():
+        rows = query("SELECT location, portions, safe_until FROM leftovers ORDER BY location")
+    assert {r["location"] for r in rows} == {"freezer"} or "freezer" in {r["location"] for r in rows}
+    frozen = [r for r in rows if r["location"] == "freezer"]
+    assert frozen and frozen[0]["safe_until"] > "2026-10-30"
+
+
+def test_normal_budget_never_leaves_a_day_empty(profile):
+    profile.config["TODAY"] = "2026-10-11"
+    with profile.app_context():
+        execute("UPDATE settings SET prep_weekdays = '6', prep_covers = 'lunch', eat_out_slots = 2,"
+                " weekly_budget_yen = 8000 WHERE id = 1")
+        first, last = plans.current_week()
+        plans.generate_week(first)
+        assert not query("SELECT 1 FROM plan_meals WHERE kind = 'empty'")
+
+
+def test_expired_leftovers_clear_themselves(profile, client):
+    with profile.app_context():
+        execute("INSERT INTO leftovers (title, portions, kcal, protein, carbs, fat, cooked_on, safe_until)"
+                " VALUES ('Old curry', 1, 500, 30, 50, 10, '2026-09-30', '2026-10-03')")
+        execute("INSERT INTO leftovers (title, portions, kcal, protein, carbs, fat, cooked_on, safe_until)"
+                " VALUES ('Yesterday soup', 1, 300, 20, 30, 5, '2026-10-04', '2026-10-06')")
+    page = client.get("/").data.decode()
+    assert "Toss the leftover Yesterday soup" in page and "Old curry" not in page

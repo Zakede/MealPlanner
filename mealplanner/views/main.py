@@ -34,9 +34,12 @@ def reminders(on, recipes_by_id):
     for item in store.pantry_items(on):
         if item["days_left"] is not None and 0 <= item["days_left"] <= 1:
             out.append(f"{item['name']} expires {'today' if item['days_left'] == 0 else 'tomorrow'}")
-    for lo in query("SELECT * FROM leftovers WHERE portions > 0 AND safe_until <= ?",
-                    ((on + timedelta(days=1)).isoformat(),)):
-        out.append(f"Eat the leftover {lo['title']} by {lo['safe_until']}")
+    from ..cooking import leftovers
+    for lo in leftovers():           # also clears ones well past their date
+        if lo["days_left"] < 0:
+            out.append(f"Toss the leftover {lo['title']}: it was good until {lo['safe_until']}")
+        elif lo["days_left"] <= 1:
+            out.append(f"Eat the leftover {lo['title']} by {lo['safe_until']}")
     return out
 
 
