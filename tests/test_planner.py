@@ -5,6 +5,7 @@ import pytest
 from mealplanner import budget, plans, store
 from mealplanner.db import execute, query
 from mealplanner.planner import PantrySim, best_portion, konbini_combo
+from mealplanner.schedule import slot_limits
 
 WED = date(2026, 10, 7)
 MON = date(2026, 10, 5)
@@ -239,3 +240,18 @@ def test_evening_plan_still_fills_the_whole_day(profile):
     today = [m for m in meals if m["date"] == WED]
     assert {"breakfast", "lunch", "dinner"} <= {m["slot"] for m in today}
     assert next(m for m in today if m["slot"] == "dinner")["kcal"] < 1000
+
+
+def test_eat_out_never_during_work(profile):
+    with profile.app_context():
+        execute("UPDATE settings SET eat_out_slots = 6, weekly_budget_yen = 30000 WHERE id = 1")
+        ctx = plans.load_context(MON, MON + timedelta(days=6))
+    meals = generate(profile)
+    eat_out = [m for m in meals if m["kind"] == "eat_out"]
+    assert eat_out
+    for m in eat_out:
+        day = ctx["days"].get(m["date"]) or ctx["schedule"][m["date"].weekday()]
+        assert day["away"] or not slot_limits(day)[m["slot"]]["away"], (m["date"], m["slot"])
+    # free-day dinners come before anything on a work day
+    weekend = [m for m in eat_out if m["date"].weekday() >= 5 and m["slot"] == "dinner"]
+    assert len(weekend) == 2

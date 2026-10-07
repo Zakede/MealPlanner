@@ -254,7 +254,10 @@ def eat_time(day, slot):
 
 
 def reserve_eat_out(ctx, dates, taken):
-    """Place reserved eat-out slots: away days first, then the latest dinners."""
+    """Place reserved eat-out slots: out-all-day days first, then free-day dinners, then the rest.
+
+    Never during work or another activity: you can't go out for a meal in the middle of a shift.
+    """
     count = ctx["eat_out_slots_left"]
     if count <= 0:
         return []
@@ -262,10 +265,16 @@ def reserve_eat_out(ctx, dates, taken):
     for d in dates:
         day = day_info(ctx, d)
         lim = slot_limits(day)
+        has_plans = any(b.get("kind") != "gym" for b in day.get("blocks") or [])
         for slot in ("dinner", "lunch"):
             if (d, slot) in taken or (d, slot) in ctx["skip"]:
                 continue
-            rank = 0 if lim[slot]["away"] else (1 if slot == "dinner" else 2)
+            if day["away"]:
+                rank = 0
+            elif lim[slot]["away"]:
+                continue   # eaten at work / during an activity
+            else:
+                rank = (1 if slot == "dinner" else 3) + (1 if has_plans else 0)
             candidates.append((rank, -d.toordinal(), d, slot))
     candidates.sort()
     return [(d, slot) for _, _, d, slot in candidates[:count]]
