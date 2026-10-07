@@ -21,11 +21,21 @@ def today_targets(s, targets, on):
     row = query("SELECT * FROM plan_days WHERE date = ?", (on.isoformat(),), one=True)
     if row:
         return row["kcal_target"], row["protein_target"]
-    sched = {r["weekday"]: dict(r) for r in query("SELECT * FROM schedule_days")}
-    gym_days = sum(1 for d in sched.values() if d["gym"])
+    gym_days = plans.gym_days_per_week(s)
     day = plans.build_days([on], s)[on]
     # work, school and shifts count even before the week is planned
     return day_targets(targets, day["gym"], gym_days, s["sex"], work=plans.work_of(day, s))
+
+
+def eaten_today(on, meals=None):
+    """(eaten plan meals, food log rows, eat-out rows, kcal, protein) for one day."""
+    meals = plans.meals_between(on, on) if meals is None else meals
+    eaten = [m for m in meals if m["status"] in ("cooked", "eaten")]
+    extras = query("SELECT * FROM food_log WHERE date = ? ORDER BY id", (on.isoformat(),))
+    out = query("SELECT * FROM eating_out_log WHERE date = ?", (on.isoformat(),))
+    kcal = round(sum(m["kcal"] for m in eaten) + sum(e["kcal"] for e in extras) + sum(e["kcal"] for e in out))
+    protein = round(sum(m["protein"] for m in eaten) + sum(e["protein"] for e in extras) + sum(e["protein"] for e in out))
+    return eaten, extras, out, kcal, protein
 
 
 def reminders(on, recipes_by_id):
@@ -43,6 +53,17 @@ def reminders(on, recipes_by_id):
         elif lo["days_left"] <= 1:
             out.append(f"Eat the leftover {lo['title']} by {lo['safe_until']}")
     return out
+
+
+WORKOUT_EAT_BACK = 0.5   # workout burn estimates run high, so only half goes back on the plate
+
+
+def workout_eat_back(on, gym_planned):
+    """Extra kcal today for logged workouts, minus what a planned gym day already added."""
+    from ..nutrition import GYM_DAY_EXTRA_KCAL
+    burned = sum(r["kcal"] for r in query("SELECT kcal FROM workouts WHERE date = ?", (on.isoformat(),)))
+    back = round(burned * WORKOUT_EAT_BACK) - (GYM_DAY_EXTRA_KCAL if gym_planned else 0)
+    return burned, max(0, back // 10 * 10)
 
 
 def workout_today(s, on):
@@ -92,12 +113,10 @@ def home():
     recipes_by_id = {r["id"]: r for r in store.recipes()}
     meals = plans.meals_between(on, on)
     kcal_target, protein_target = today_targets(s, targets, on)
-    eaten = [m for m in meals if m["status"] in ("cooked", "eaten")]
-    extras = query("SELECT * FROM food_log WHERE date = ? ORDER BY id", (on.isoformat(),))
-    out = query("SELECT * FROM eating_out_log WHERE date = ?", (on.isoformat(),))
-    kcal_eaten = round(sum(m["kcal"] for m in eaten) + sum(e["kcal"] for e in extras) + sum(e["kcal"] for e in out))
-    protein_eaten = round(sum(m["protein"] for m in eaten) + sum(e["protein"] for e in extras)
-                          + sum(e["protein"] for e in out))
+    gym_planned = bool(plans.build_days([on], s)[on]["gym"])
+    burned, eat_back = workout_eat_back(on, gym_planned)
+    kcal_target += eat_back
+    eaten, extras, out, kcal_eaten, protein_eaten = eaten_today(on, meals)
 
     # the next meal is the first one not eaten yet; meal times are only a suggestion
     upcoming = [m for m in meals if m["status"] not in DONE and m["kind"] != "empty"]
@@ -114,7 +133,7 @@ def home():
         meals=meals,
         next_meal=next_meal,
         start_at=start_at,
-        kcal_target=kcal_target,
+        kcal_target=kcal_target, burned=burned, eat_back=eat_back,
         protein_target=protein_target,
         kcal_eaten=kcal_eaten,
         protein_eaten=protein_eaten,

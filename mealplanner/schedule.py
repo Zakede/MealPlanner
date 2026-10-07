@@ -32,6 +32,49 @@ def blocks(day):
     return sorted((minutes(a) - c, minutes(b) + c) for a, b, c in raw if minutes(b) > minutes(a))
 
 
+# how far a meal can slide to dodge a busy stretch, and how long after getting home a moved dinner is
+SHIFT_MAX = {"lunch": 120, "dinner": 150}
+HOME_BEFORE = {"lunch": 15, "dinner": 30}
+LATEST_DINNER = 22 * 60 + 30
+EARLIEST_BREAKFAST = 4 * 60
+
+
+def fit_meal_times(day):
+    """Move meal times around the day's activities. Changes `day` and returns notes like
+    "Dinner 20:20, after Gym". A meal deep inside a long stretch stays put and is packed instead."""
+    stretches = sorted(((minutes(b["start"]) - (b.get("commute") or 0), minutes(b["end"]) + (b.get("commute") or 0),
+                         b["label"]) for b in day.get("blocks") or [] if minutes(b["end"]) > minutes(b["start"])))
+    notes = []
+    if not stretches:
+        return notes
+
+    def covering(t):
+        return next(((a, b, label) for a, b, label in stretches if a <= t < b), None)
+
+    bt = minutes(day["breakfast_time"])
+    hit = covering(bt)
+    if hit and hit[0] - 20 >= EARLIEST_BREAKFAST:
+        bt = hit[0] - 20
+        day["breakfast_time"] = hhmm(bt)
+        day["wake"] = hhmm(min(minutes(day["wake"]) or 7 * 60, bt - 20))
+        notes.append(f"Breakfast {day['breakfast_time']}, before {hit[2]}")
+    for slot in ("lunch", "dinner"):
+        t = minutes(day[f"{slot}_time"])
+        hit = covering(t)
+        if not hit:
+            continue
+        # follow on from anything that starts right after (gym after work)
+        end = hit[1]
+        for a, b, _ in stretches:
+            if a <= end + 15 and b > end:
+                end = b
+        moved = end + HOME_BEFORE[slot]
+        if moved - t <= SHIFT_MAX[slot] and (slot == "lunch" or moved <= LATEST_DINNER):
+            day[f"{slot}_time"] = hhmm(moved)
+            notes.append(f"{slot.capitalize()} {day[slot + '_time']}, after {hit[2]}")
+    return notes
+
+
 def slot_limits(day):
     """Max cooking minutes per slot, and whether the slot is eaten away from home."""
     wake = minutes(day["wake"]) or 7 * 60

@@ -196,21 +196,44 @@ def day_targets(targets, gym, gym_days_per_week, sex, work=None):
     physical, or 10+ busy hours) half the deficit is given back so you don't run on empty.
     Returns (kcal, protein_g).
     """
+    kcal, protein, _ = day_target_parts(targets, gym, gym_days_per_week, sex, work)
+    return kcal, protein
+
+
+def day_target_parts(targets, gym, gym_days_per_week, sex, work=None):
+    """day_targets plus the reasons: (kcal, protein, [(label, kcal change)])."""
     kcal, protein = targets.kcal, targets.protein_g
-    if gym_days_per_week not in (0, 7):
+    parts = [("Your usual day", targets.kcal)]
+    if gym and gym_days_per_week in (0, 7):
+        # gym that only shows up as an activity (or every day): it still needs feeding
+        if gym_days_per_week == 0:
+            kcal, protein = kcal + GYM_DAY_EXTRA_KCAL, protein + GYM_DAY_EXTRA_PROTEIN
+            parts.append(("Gym", GYM_DAY_EXTRA_KCAL))
+    elif gym_days_per_week not in (0, 7):
         if gym:
             kcal, protein = kcal + GYM_DAY_EXTRA_KCAL, protein + GYM_DAY_EXTRA_PROTEIN
+            parts.append(("Gym day", GYM_DAY_EXTRA_KCAL))
         else:
             rest_days = 7 - gym_days_per_week
-            kcal = round(kcal - GYM_DAY_EXTRA_KCAL * gym_days_per_week / rest_days)
-    parts = work_blocks(work)
-    if parts:
+            less = round(GYM_DAY_EXTRA_KCAL * gym_days_per_week / rest_days)
+            kcal -= less
+            parts.append(("Rest day (gym days get more)", -less))
+    blocks = work_blocks(work)
+    if blocks:
         base = work.get("base_job")
-        kcal += sum(work_extra(targets.bmr, base, j, h) for j, h in parts)
+        extra = sum(work_extra(targets.bmr, base, j, h) for j, h in blocks)
+        if extra:
+            kcal += extra
+            parts.append(("More active than usual" if extra > 0 else "Quieter than usual", extra))
         if is_hard(work):
-            kcal += max(0, targets.tdee - targets.kcal) // 2
+            back = max(0, targets.tdee - targets.kcal) // 2
+            kcal += back
             protein += HARD_DAY_PROTEIN
-    return max(CALORIE_FLOOR[sex], round(kcal)), protein
+            parts.append(("Hard day: half the deficit back", back))
+    final = max(CALORIE_FLOOR[sex], round(kcal))
+    if final != round(kcal):
+        parts.append(("Safe minimum", final - round(kcal)))
+    return final, protein, parts
 
 
 def kg_to_lb(kg):

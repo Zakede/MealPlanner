@@ -7,7 +7,7 @@ from flask import current_app
 from . import budget, food_rules, planner, store, today as get_today
 from .db import execute, get_db, query
 from .nutrition import day_targets
-from .schedule import minutes
+from .schedule import fit_meal_times, minutes
 from .taste import is_favorite, recipe_score, tag_affinity
 
 EDITABLE = ("draft", "approved")
@@ -181,6 +181,7 @@ def build_days(dates, s=None):
                 if a["kind"] == "gym":
                     day["gym"] = 1
         day["blocks"] = sorted(blocks, key=lambda b: b["start"])
+        day["moved"] = fit_meal_times(day)
         day["prep"] = d in prep or (o is not None and o["effort"] == "full")
         # a meal prep day cooks for the days up to the next one, unless that date was changed by hand
         day["prep_day"] = d.weekday() in prep_weekdays and not (o is not None and o["effort"] not in (None, "full"))
@@ -338,11 +339,28 @@ def save_meals(meals):
     db.commit()
 
 
+def gym_days_per_week(s):
+    if s.get("schedule_mode") != "flexible":
+        return sum(1 for d in weekday_schedule().values() if d["gym"])
+    return max(1, s.get("training_days") or 0)
+
+
+def target_parts(on):
+    """Why a day's target is what it is: [(label, kcal)], or [] before setup."""
+    from .nutrition import day_target_parts
+    s = store.settings()
+    targets = store.targets(s)
+    if targets is None:
+        return []
+    day = build_days([on], s)[on]
+    return day_target_parts(targets, day["gym"], gym_days_per_week(s), s["sex"], work=work_of(day, s))[2]
+
+
 def save_plan_days(dates):
     s = store.settings()
     targets = store.targets(s)
     days = build_days(sorted(dates), s)
-    gym_days = sum(1 for d in weekday_schedule().values() if d["gym"]) if s.get("schedule_mode") != "flexible"         else max(1, s.get("training_days") or 0)
+    gym_days = gym_days_per_week(s)
     db = get_db()
     for d in dates:
         day = days[d]

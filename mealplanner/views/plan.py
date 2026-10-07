@@ -267,7 +267,8 @@ def day(day):
     info = add_burn(plans.build_days([on])[on])
     o = plans.override(on)
     target = plans.query("SELECT kcal_target, protein_target FROM plan_days WHERE date = ?", (on.isoformat(),), one=True)
-    return render_template("plan/day.html", on=on, info=info, o=o, target=target, job=store.settings().get("job"))
+    return render_template("plan/day.html", on=on, info=info, o=o, target=target, job=store.settings().get("job"),
+                           parts=plans.target_parts(on))
 
 
 @bp.route("/day/<day>/work", methods=["POST"])
@@ -320,7 +321,7 @@ def add_activity(day):
     f = request.form
     hhmm = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
     start, end = f.get("start", ""), f.get("end", "")
-    if not (hhmm.match(start) and hhmm.match(end)) or end <= start:
+    if not (hhmm.match(start) and hhmm.match(end)) or end == start:
         flash("Give it a start and an end time, like 09:00 and 15:00.", "error")
         return redirect(url_for("plan.week", week=f.get("week") or None))
     kind = f.get("kind") if f.get("kind") in ACTIVITY_KINDS else "other"
@@ -337,12 +338,21 @@ def add_activity(day):
             execute("UPDATE schedule_days SET work_start = NULL, work_end = NULL WHERE weekday = ?", (on.weekday(),))
         else:
             plans.set_override(on, work_mode="off", work_start=None, work_end=None, commute_min=None, work_kind=None)
-    execute("INSERT INTO activities (date, weekday, label, kind, start, end, intensity, commute_min)"
-            " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (None if weekly else on.isoformat(), on.weekday() if weekly else None, label, kind, start, end,
-             intensity, commute))
+    # a night shift (22:00–06:00) is two parts: to midnight, then the early hours of the next day
+    nxt = on + timedelta(days=1)
+    parts = [(on, start, end)] if end > start else [(on, start, "23:59"), (nxt, "00:00", end)]
+    clashes = []
+    for day_, a, b in parts:
+        clashes += [x["label"] for x in plans.build_days([day_])[day_]["blocks"] if x["start"] < b and a < x["end"]]
+        execute("INSERT INTO activities (date, weekday, label, kind, start, end, intensity, commute_min)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (None if weekly else day_.isoformat(), day_.weekday() if weekly else None, label, kind, a, b,
+                 intensity, commute))
+    if clashes:
+        flash(f"Heads up: {label} overlaps {', '.join(dict.fromkeys(clashes))}. Remove one if that's a mistake.", "error")
     when = f"every {on.strftime('%A')}" if weekly else on.strftime("%A")
-    return after_day_change(on, f"{label} {start}–{end} added {when}")
+    overnight = f", running into {nxt.strftime('%A')} morning" if len(parts) > 1 else ""
+    return after_day_change(on, f"{label} {start}–{end} added {when}{overnight}")
 
 
 @bp.route("/activity/<int:activity_id>/remove", methods=["POST"])

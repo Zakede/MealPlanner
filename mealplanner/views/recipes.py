@@ -216,6 +216,34 @@ def add_booster():
     return redirect(url_for("recipes.boosters", _anchor=request.form.get("section") or None))
 
 
+def ask_today(s, question=""):
+    """Today's numbers, activities, pantry and dishes for Ask, so 'what should I eat now' or
+    'I ran out of X for tonight' gets a real answer."""
+    from .. import ask as ask_mod, plans, today as get_today
+    from .main import eaten_today, today_targets
+    t = store.targets(s)
+    if t is None:
+        return ""
+    on = get_today()
+    kcal_target, protein_target = today_targets(s, t, on)
+    *_, kcal_eaten, protein_eaten = eaten_today(on)
+    day = plans.build_days([on], s)[on]
+    acts = [f"{b['label']} {b['start']}-{b['end']}" for b in day["blocks"]]
+    pantry = [i["name"] for i in sorted(store.pantry_items(on), key=lambda i: (i["days_left"] is None, i["days_left"] or 0))]
+    from datetime import timedelta
+    from ..staples import at_home, load as load_staples
+    have = {}
+    for item in store.pantry_items(on):
+        have[item["food_id"]] = have.get(item["food_id"], 0) + (item["grams"] or 0)
+    by_id = {r["id"]: r for r in store.recipes()}
+    upcoming = [(by_id[m["recipe_id"]], f"planned {m['slot']} {'today' if m['date'] == on else 'tomorrow'}")
+                for m in plans.meals_between(on, on + timedelta(days=1))
+                if m["kind"] == "cook" and m["recipe_id"] in by_id and m["status"] in ("draft", "approved")]
+    return "\n".join([
+        ask_mod.today_context(max(0, kcal_target - kcal_eaten), max(0, protein_target - protein_eaten), pantry, acts),
+        ask_mod.recipe_context(question, list(by_id.values()), upcoming, have, at_home(load_staples(s)))])
+
+
 @bp.route("/ask", methods=["GET", "POST"])
 def ask():
     """Ask Zettai about new dishes, flavours, sauces and spices."""
@@ -224,22 +252,26 @@ def ask():
     from ..pricing import COUNTRIES, country_code
     p = llm.provider()
     question = (request.values.get("q") or "").strip()[:300]
+    if not question and request.args.get("missing") and request.args.get("dish"):
+        # from the cook page: "Ran out of something?"
+        question = f"I'm making {request.args['dish'][:80]} and I've run out of {request.args['missing'][:60]}. What can I use instead?"
     answer, ideas = "", []
-    if request.method == "POST" and question:
+    if (request.method == "POST" or request.args.get("missing")) and question:
         if p is None:
             flash("No AI is set up. Add a Gemini key in Settings → AI helper.", "error")
         else:
             s = store.settings()
             try:
-                data = llm.extract_json(p.complete(ask_mod.build_prompt(question, s, COUNTRIES[country_code(s)][0])))
-                answer, ideas = ask_mod.clean(data)
-                if not ideas:
+                prompt = ask_mod.build_prompt(question, s, COUNTRIES[country_code(s)][0], today=ask_today(s, question))
+                answer, ideas = ask_mod.clean(llm.extract_json(p.complete(prompt)))
+                if not ideas and not answer:
                     flash("Didn't get usable ideas back. Try asking a little differently.", "error")
             except llm.LLMError as e:
                 flash(f"Couldn't ask right now: {e}.", "error")
     mine, _ = used_today() if p is not None else (0, 0)
     return render_template("recipes/ask.html", available=p is not None, q=question, answer=answer, ideas=ideas,
-                           starters=ask_mod.STARTERS, used=mine, limit=PER_PERSON_PER_DAY)
+                           starters=ask_mod.STARTERS, used=mine, limit=PER_PERSON_PER_DAY,
+                           mine={r["name"].lower(): r["id"] for r in store.recipes()})
 
 
 @bp.route("/ask/keep", methods=["POST"])

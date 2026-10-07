@@ -14,6 +14,7 @@
   <div>
     <span class="lbl">kcal left</span>
     <span class="num-big {{ 'bad' if k_left < 0 }}">{{ k_left }}</span>
+    {% if eat_back %}<small class="muted small">+{{ eat_back }} for today's workout ({{ burned }} burned, half eaten back)</small>{% endif %}
   </div>
   <a class="stamp {{ 'over' if budget.over }}" href="{{ url_for('extras.spending') }}" aria-label="Budget left this week">Left<b>{{ cur }}{{ '{:,}'.format(budget.remaining) }}</b></a>
   <div class="bars">
@@ -86,6 +87,11 @@
   </div>
 </div>
 {% endif %}
+
+<form method="post" action="{{ url_for('recipes.ask') }}" class="card form home-ask">
+  <label for="home-q" class="lbl">Ask Zettai</label>
+  <div class="chip-entry"><input id="home-q" name="q" maxlength="300" required placeholder="Out of eggs for dinner? What can I eat now?"><button class="btn small">Ask</button></div>
+</form>
 
 {% if idea %}
 <div class="card idea rise" style="--i:4" id="idea">

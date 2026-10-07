@@ -28,6 +28,14 @@
     {% endfor %}
     {% if booster %}<li><div class="line"><span>+ {{ booster.name }} <small class="muted">(flavour boost)</small></span><b>{{ (booster.grams|round|int)|amount }}</b></div></li>{% endif %}
   </ul>
+  <form method="get" action="{{ url_for('recipes.ask') }}" class="ask-missing">
+    <label class="muted small" for="missing">Ran out of something?</label>
+    <div class="chip-entry">
+      <select id="missing" name="missing" aria-label="Which ingredient">{% for i in r.ingredients %}<option>{{ i.name }}</option>{% endfor %}</select>
+      <input type="hidden" name="dish" value="{{ r.name }}">
+      <button class="btn small secondary">Ask what to use</button>
+    </div>
+  </form>
 </div>
 
 {% if steps %}

@@ -4,6 +4,15 @@
 <h1>{{ on.strftime('%A') }}</h1>
 <p class="muted">Tell the app what this day looks like. This day and the rest of the week re-plan around it.</p>
 {% if target %}<div class="plate"><div><span class="lbl">Target for this day</span><span class="num-big" style="font-size:2.2rem">{{ target.kcal_target }}<small style="font: 700 .9rem var(--text)"> kcal · {{ target.protein_target }} g protein</small></span></div></div>{% endif %}
+{% if parts|length > 1 %}
+<details class="card target-why">
+  <summary><b>Why this target</b></summary>
+  <ul class="list">
+    {% for label, k in parts %}<li class="line"><span>{{ label }}</span><b>{{ ('+' if k > 0 and not loop.first else '') ~ k }} kcal</b></li>{% endfor %}
+  </ul>
+</details>
+{% endif %}
+{% if info.moved %}<div class="card"><h2>Meal times today</h2>{% for n in info.moved %}<p class="muted small" style="margin:4px 0">{{ n }}</p>{% endfor %}</div>{% endif %}
 
 {% set acts = info.blocks|selectattr('id')|list %}
 {% if acts %}

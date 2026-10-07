@@ -67,7 +67,7 @@
       {% if i.gym %}<span class="tag">gym</span>{% endif %}
       {% if i.away %}<span class="tag out">out</span>{% endif %}
       {% if i.effort == 'full' %}<span class="tag">big cook</span>{% elif i.effort == 'none' %}<span class="tag soft">no cooking</span>{% endif %}
-      {% if i.note %}<span class="muted small">· {{ i.note }}</span>{% endif %}
+      {% if i.note %}<span class="muted small">· {{ i.note }}</span>{% endif %}{% for n in i.moved %}<span class="tag soft">{{ n }}</span>{% endfor %}
     </div>
     <form method="post" action="{{ url_for('plan.add_activity', day=d.date.isoformat()) }}" class="act-form card" data-bmr="{{ bmr }}" hidden>
       <input type="hidden" name="week" value="{{ wk or '' }}">
