@@ -536,6 +536,22 @@ def buy_for_day(first, food_id, grams, price):
     db.commit()
 
 
+def unbuy(first, food_id):
+    """Undo a 'bought' or 'have it' from this week's list: take that amount back out of the pantry."""
+    row = query("SELECT * FROM shopping_list WHERE week_start = ? AND food_id = ? AND checked = 1 ORDER BY id DESC",
+                (first.isoformat(), food_id), one=True)
+    if not row:
+        return False
+    db = get_db()
+    lot = query("SELECT id FROM pantry_items WHERE food_id = ? AND unit = 'g' AND abs(quantity - ?) < 1"
+                " ORDER BY id DESC LIMIT 1", (food_id, row["grams"]), one=True)
+    if lot:
+        db.execute("DELETE FROM pantry_items WHERE id = ?", (lot["id"],))
+    db.execute("UPDATE shopping_list SET checked = 0 WHERE id = ?", (row["id"],))
+    db.commit()
+    return True
+
+
 def shopping_preview(first):
     """The list a draft plan would need, without saving anything."""
     need = shopping_needs(first, statuses=("draft", "approved"))

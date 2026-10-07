@@ -526,6 +526,15 @@ def finish_shopping():
     return redirect(url_for("plan.shopping", week=request.values.get("week"), day=request.values.get("day")))
 
 
+@bp.route("/shopping/undo/<int:food_id>", methods=["POST"])
+def unbuy(food_id):
+    """Put an item you marked by mistake back on the list."""
+    if plans.unbuy(selected_week(), food_id):
+        food = store.food(food_id)
+        flash(f"{food['name'] if food else 'That'} is back on the list.", "ok")
+    return redirect(url_for("plan.shopping", week=request.values.get("week"), day=request.values.get("day")))
+
+
 @bp.route("/food-info/<int:food_id>")
 def food_info(food_id):
     """'What's this?' on the shopping list: what a food is and where to find it."""

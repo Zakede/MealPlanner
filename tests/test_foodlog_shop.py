@@ -206,3 +206,21 @@ def test_whats_this_without_ai_still_explains(profile, client):
         food = query("SELECT id, name FROM foods WHERE category = 'soy' LIMIT 1", one=True)
     data = client.get(f"/plan/food-info/{food['id']}").get_json()
     assert food["name"] in data["text"] and "soy" in data["text"]
+
+
+def test_undo_puts_an_item_back_on_the_list(profile, client):
+    client.post("/plan/generate")
+    client.post("/plan/approve")
+    with profile.app_context():
+        item = dict(query("SELECT * FROM shopping_list WHERE week_start = ? AND checked = 0 LIMIT 1",
+                          (MON.isoformat(),), one=True))
+        lots = query("SELECT COUNT(*) n FROM pantry_items", one=True)["n"]
+    client.post("/plan/shopping/finish", data={f"act_{item['food_id']}": "have", f"grams_{item['food_id']}": item["grams"],
+                                               f"est_{item['food_id']}": item["est_cost"]})
+    page = client.get("/plan/shopping").data.decode()
+    assert "Undo" in page and "To buy" in page
+    resp = client.post(f"/plan/shopping/undo/{item['food_id']}", follow_redirects=True)
+    assert b"is back on the list" in resp.data
+    with profile.app_context():
+        assert query("SELECT checked FROM shopping_list WHERE id = ?", (item["id"],), one=True)["checked"] == 0
+        assert query("SELECT COUNT(*) n FROM pantry_items", one=True)["n"] == lots

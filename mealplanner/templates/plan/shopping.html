@@ -60,10 +60,11 @@
   {% for i in rows %}
   <div class="lp shop-row {{ 'done' if i.checked }}" data-food="{{ i.food_id }}">
     <span class="t">{{ i.buy }}</span>
-    <div><b>{% if i.checked %}<s>{{ i.name }}</s>{% else %}{{ i.name }}{% endif %}</b><small>{{ i.grams|int }} g needed · about {{ cur }}{{ i.est_cost|int }}
+    <div><b>{% if i.checked %}<s>{{ i.name }}</s>{% else %}{{ i.name }}{% endif %}</b>{% if not i.checked %} <span class="shop-state">To buy</span>{% endif %}<small>{{ i.grams|int }} g needed · about {{ cur }}{{ i.est_cost|int }}
       · <button type="button" class="link-btn" data-info="{{ i.food_id }}" data-name="{{ i.name }}">What's this?</button></small></div>
     <span class="row-actions">
       {% if i.checked %}<span class="tag">in pantry</span>
+      <button class="chip" formaction="{{ url_for('plan.unbuy', food_id=i.food_id, week=wk, day=day.isoformat() if day else None) }}" formnovalidate aria-label="Put {{ i.name }} back on the list">Undo</button>
       {% else %}
       <input type="hidden" name="grams_{{ i.food_id }}" value="{{ i.grams|int }}"><input type="hidden" name="est_{{ i.food_id }}" value="{{ i.est_cost|int }}">
       <span class="shop-pick" role="radiogroup" aria-label="{{ i.name }}">
@@ -159,17 +160,20 @@ document.getElementById("share")?.addEventListener("click", async (e) => {
   };
   const count = document.getElementById("shop-count");
   const refresh = () => {
-    const n = { bought: 0, have: 0, skip: 0 };
+    const n = { bought: 0, have: 0, skip: 0, left: 0 };
     form.querySelectorAll(".shop-row[data-food]").forEach((row) => {
       const picked = row.querySelector("input[type=radio]:checked");
       row.classList.remove("is-bought", "is-have", "is-skip");
       const price = row.querySelector(".shop-price");
       if (price) price.hidden = !(picked && picked.value === "bought");
-      if (picked) { row.classList.add("is-" + picked.value); n[picked.value]++; }
+      if (picked) { row.classList.add("is-" + picked.value); n[picked.value]++; } else n.left++;
+      const state = row.querySelector(".shop-state");
+      if (state) state.textContent = picked ? { bought: "Bought", have: "At home", skip: "Skipping" }[picked.value] : "To buy";
     });
     const got = form.querySelectorAll("input[name^=got_extra_]:checked").length;
     const bits = [n.bought + got && `${n.bought + got} bought`, n.have && `${n.have} at home`, n.skip && `${n.skip} skipped`].filter(Boolean);
-    if (count) count.textContent = bits.length ? bits.join(" · ") : "Nothing marked yet";
+    if (n.left) bits.push(`${n.left} still to buy`);
+    if (count) count.textContent = bits.join(" · ") || "All done";
     const saved = {};
     form.querySelectorAll("input[type=radio]:checked, input[name^=got_extra_]:checked").forEach((i) => { saved[i.name] = i.value; });
     form.querySelectorAll(".shop-price").forEach((i) => { if (i.value) saved[i.name] = i.value; });
@@ -181,10 +185,17 @@ document.getElementById("share")?.addEventListener("click", async (e) => {
     if (!el) return;
     if (el.type === "radio" || el.type === "checkbox") el.checked = true; else el.value = value;
   });
-  // tap the picked one again to clear it
-  form.querySelectorAll(".shop-pick input[type=radio]").forEach((r) => {
-    r.addEventListener("pointerdown", () => { r.dataset.was = r.checked ? "1" : ""; });
-    r.addEventListener("click", () => { if (r.dataset.was) { r.checked = false; r.dataset.was = ""; refresh(); } });
+  // tap the picked one again to clear it: back to "to buy". The tap lands on the label, not the hidden radio.
+  form.querySelectorAll(".shop-pick label").forEach((label) => {
+    const input = label.querySelector("input[type=radio]");
+    if (!input) return;
+    label.addEventListener("click", (e) => {
+      // the browser's own follow-up click on the radio bubbles here too; only the real tap counts
+      if (e.target === input || !input.checked) return;
+      e.preventDefault();
+      input.checked = false;
+      refresh();
+    });
   });
   form.addEventListener("change", refresh);
   form.addEventListener("input", (e) => { if (e.target.classList.contains("shop-price")) refresh(); });

@@ -407,3 +407,9 @@ input[type="file"]::file-selector-button:hover { border-color: var(--fuji); colo
 .shop-finish span { font-size: .8rem; }
 
 .shop-legend .muted { font-size: inherit; }
+.shop-state { display: inline-block; margin-left: 6px; padding: 1px 6px; font-size: .62rem; text-transform: uppercase;
+  letter-spacing: .05em; border: 1px solid var(--line-strong); color: var(--muted); vertical-align: middle; }
+.is-bought .shop-state, .is-have .shop-state { border-color: var(--fuji); color: var(--fuji); }
+.is-skip .shop-state { border-color: var(--seal, #e5566e); color: var(--seal, #e5566e); }
+.shop-row.is-bought b, .shop-row.is-have b, .shop-row.is-skip b { text-decoration: line-through; }
+.shop-row .shop-state { text-decoration: none; }
