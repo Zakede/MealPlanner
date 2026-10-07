@@ -371,3 +371,13 @@ input[type="file"]::file-selector-button:hover { border-color: var(--fuji); colo
 .order-tick .order-name { flex: 1; min-width: 0; font-weight: 700; }
 .order-sum { margin: 4px 0 0; }
 #order details { margin: 4px 0; } #order textarea { width: 100%; margin-top: 8px; }
+
+/* in-page "are you sure?" box */
+.ask-box { border: 1px solid var(--line-strong); background: var(--panel, #111); color: var(--ink); padding: 20px;
+  width: min(92vw, 380px); border-radius: 0; }
+.ask-box::backdrop { background: rgb(0 0 0 / .6); }
+.ask-box-msg { margin: 0 0 16px; line-height: 1.5; }
+.ask-box-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+@media (prefers-reduced-motion: no-preference) { .ask-box[open] { animation: rise .25s var(--ease) both; } }
+/* "don't like" on a cooking ingredient */
+.ing-nope { margin-top: 6px; } .ing-nope .chip { font-size: .7rem; padding: 4px 8px; min-height: 0; }

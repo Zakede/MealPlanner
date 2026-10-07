@@ -134,3 +134,35 @@ def test_ran_out_on_the_cook_page_asks_with_context(profile, client, monkeypatch
 
 def test_home_has_an_ask_box(profile, client):
     assert "Ask Zettai" in client.get("/").data.decode()
+
+
+def test_not_for_me_on_the_cook_page_lands_on_the_swap(profile, client):
+    client.post("/plan/generate")
+    with profile.app_context():
+        meal = next(m for m in plans.meals_between(THU, THU) if m["kind"] == "cook")
+    resp = client.post(f"/recipes/{meal['recipe_id']}/pref", data={"status": "never", "meal_id": meal["id"]},
+                       headers={"Referer": f"/cook/{meal['id']}"})
+    assert resp.status_code == 302
+    page = client.get(resp.headers["Location"], follow_redirects=True)
+    assert page.status_code == 200                                  # used to be Not Found
+    with profile.app_context():
+        assert not any(m["recipe_id"] == meal["recipe_id"] and m["status"] in ("draft", "approved")
+                       for m in plans.meals_between(THU, THU) if m["kind"] != "leftover")
+
+
+def test_dont_like_an_ingredient_from_the_cook_page(profile, client):
+    client.post("/plan/generate")
+    with profile.app_context():
+        meal = next(m for m in plans.meals_between(THU, THU) if m["kind"] == "cook")
+        food = store.recipe(meal["recipe_id"])["ingredients"][0]["name"]
+    page = client.get(f"/cook/{meal['id']}").data.decode()
+    assert f"Don&#39;t like {food.lower()}" in page or f"Don't like {food.lower()}" in page
+    assert "data-confirm-yes" in page
+    resp = client.post("/recipes/dislike", data={"name": food, "meal_id": meal["id"]}, follow_redirects=True)
+    assert resp.status_code == 200 and f"no more {food.lower()}".encode() in resp.data
+    with profile.app_context():
+        assert food.lower() in store.split_list(store.settings()["dislikes"])
+        for m in plans.meals_between(THU, THU + (THU - THU)):
+            if m["recipe_id"] and m["kind"] != "leftover" and m["status"] in ("draft", "approved"):
+                names = [i["name"].lower() for i in store.recipe(m["recipe_id"])["ingredients"]]
+                assert food.lower() not in names

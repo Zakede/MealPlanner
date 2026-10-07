@@ -146,14 +146,53 @@ def delete(recipe_id):
     return redirect(url_for("recipes.index"))
 
 
+def _meal_from_form():
+    """The plan meal a cook-page button was pressed on, so we can follow its slot after a swap."""
+    from .. import plans
+    try:
+        row = plans.query("SELECT date, slot FROM plan_meals WHERE id = ?", (int(request.form.get("meal_id") or 0),),
+                          one=True)
+    except ValueError:
+        return None
+    return dict(row) if row else None
+
+
+def _after_swap(meal):
+    """Back to where you were: the meal now in that slot, or the page you came from if it still exists."""
+    from .. import plans
+    if meal:
+        now = plans.meal_in_slot(meal["date"], meal["slot"])
+        if now and now["recipe_id"]:
+            return redirect(url_for("cook.cook", meal_id=now["id"]))
+        return redirect(url_for("plan.week"))
+    ref = request.referrer or ""
+    return redirect(url_for("plan.week") if "/cook/" in ref or not ref else ref)
+
+
+@bp.route("/dislike", methods=["POST"])
+def dislike():
+    """'I don't like this' on an ingredient: never plan dishes with it, and swap it out of upcoming meals."""
+    from .. import plans
+    name = (request.form.get("name") or "").strip()
+    if not name:
+        return redirect(request.referrer or url_for("plan.week"))
+    meal = _meal_from_form()
+    swapped = plans.dislike_food(name)
+    flash(f"Got it, no more {name.lower()}." + (f" Swapped {swapped} upcoming meal{'s' if swapped != 1 else ''}."
+                                                 if swapped else "") + " Undo it in Settings → Hard dislikes.", "ok")
+    return _after_swap(meal)
+
+
 @bp.route("/<int:recipe_id>/pref", methods=["POST"])
 def pref(recipe_id):
     from .. import plans
     status = request.form.get("status")
     if status == "never":
+        meal = _meal_from_form()
         swapped = plans.never_again(recipe_id)
         flash("Won't plan this again." + (f" Swapped it out of {swapped} upcoming meal{'s' if swapped != 1 else ''}."
                                           if swapped else ""), "ok")
+        return _after_swap(meal)
     else:
         store.set_recipe_pref(recipe_id, status)
         flash({"favorite": "Added to favourites.",

@@ -748,6 +748,31 @@ def never_again(recipe_id):
     return len(rows)
 
 
+def dislike_food(name):
+    """Never plan dishes with this ingredient again, and swap it out of upcoming meals. Returns meals swapped."""
+    word = name.strip().lower()[:40]
+    if not word:
+        return 0
+    current = store.split_list(store.settings().get("dislikes"))
+    if word not in current:
+        execute("UPDATE settings SET dislikes = ? WHERE id = 1", (", ".join(current + [word])[:400],))
+    rows = query("""SELECT DISTINCT m.id, m.date FROM plan_meals m JOIN recipe_ingredients ri ON ri.recipe_id = m.recipe_id
+                    JOIN foods f ON f.id = ri.food_id
+                    WHERE m.date >= ? AND m.status IN ('draft', 'approved') AND m.kind != 'leftover'
+                      AND lower(f.name) LIKE ?""", (get_today().isoformat(), f"%{word}%"))
+    for r in rows:
+        set_replace(r["id"], True)
+    for first in sorted({budget.week_bounds(_d(r["date"]))[0] for r in rows}):
+        replace_flagged(first)
+    return len(rows)
+
+
+def meal_in_slot(on, slot):
+    """The meal planned in a slot now (after a swap), or None."""
+    row = query("SELECT * FROM plan_meals WHERE date = ? AND slot = ? ORDER BY id DESC LIMIT 1", (on, slot), one=True)
+    return dict(row) if row else None
+
+
 def add_meal(on, slot, recipe_id):
     """Put a chosen recipe into a slot, sized to that slot's share of the day."""
     recipe = store.recipe(recipe_id)

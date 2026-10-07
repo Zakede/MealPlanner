@@ -1,7 +1,36 @@
-// Confirm buttons: <button data-confirm="Are you sure?">
+// Confirm buttons: <button data-confirm="Are you sure?" data-confirm-yes="Delete">, asked in the page, not a browser box.
+const askBox = (() => {
+  const dlg = document.createElement("dialog");
+  dlg.className = "ask-box";
+  dlg.innerHTML = '<p class="ask-box-msg"></p><div class="ask-box-actions">' +
+    '<button type="button" class="btn secondary" value="no">Cancel</button>' +
+    '<button type="button" class="btn" value="yes">Yes</button></div>';
+  document.body.append(dlg);
+  let done = null;
+  dlg.addEventListener("click", (e) => {
+    const b = e.target.closest("button");
+    if (b) dlg.close(b.value);
+    else if (e.target === dlg) dlg.close("no");          // tap outside the box
+  });
+  dlg.addEventListener("close", () => { if (done) done(dlg.returnValue === "yes"); done = null; });
+  return (msg, yes) => new Promise((resolve) => {
+    dlg.querySelector(".ask-box-msg").textContent = msg;
+    dlg.querySelector('[value="yes"]').textContent = yes || "Yes";
+    done = resolve;
+    dlg.returnValue = "no";
+    dlg.showModal();
+    dlg.querySelector('[value="yes"]').focus();
+  });
+})();
 document.addEventListener("click", (e) => {
   const el = e.target.closest("[data-confirm]");
-  if (el && !confirm(el.dataset.confirm)) e.preventDefault();
+  if (!el || el.dataset.confirmed) { if (el) delete el.dataset.confirmed; return; }
+  e.preventDefault();
+  askBox(el.dataset.confirm, el.dataset.confirmYes).then((ok) => {
+    if (!ok) return;
+    el.dataset.confirmed = "1";
+    el.click();                          // runs the button or link for real this time
+  });
 });
 
 const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;

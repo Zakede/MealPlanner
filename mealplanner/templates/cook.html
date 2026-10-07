@@ -24,6 +24,12 @@
         <span><b class="num-big" style="font-size:1.05rem">{{ ((i.grams * factor)|round|int)|amount }}</b>
           {% if is_cook and cook_portions > meal.portion %}<br><small class="muted">yours {{ ((i.grams * plate)|round|int)|amount }}</small>{% endif %}</span>
       </div>
+      {% if not i.instead_of %}
+      <form method="post" action="{{ url_for('recipes.dislike') }}" class="ing-nope">
+        <input type="hidden" name="name" value="{{ i.name }}"><input type="hidden" name="meal_id" value="{{ meal.id }}">
+        <button class="chip" data-confirm="Never plan anything with {{ i.name|lower }} again? Upcoming meals with it get swapped." data-confirm-yes="I don't like it">Don't like {{ i.name|lower }}</button>
+      </form>
+      {% endif %}
     </li>
     {% endfor %}
     {% if booster %}<li><div class="line"><span>+ {{ booster.name }} <small class="muted">(flavour boost)</small></span><b>{{ (booster.grams|round|int)|amount }}</b></div></li>{% endif %}
@@ -67,7 +73,7 @@
   </form>
   <form method="post" action="{{ url_for('cook.skip', meal_id=meal.id) }}"><button class="btn secondary small">Skip</button></form>
   <form method="post" action="{{ url_for('recipes.pref', recipe_id=r.id) }}"><input type="hidden" name="status" value="favorite"><button class="btn secondary small" aria-label="Favourite">♥</button></form>
-  <form method="post" action="{{ url_for('recipes.pref', recipe_id=r.id) }}"><input type="hidden" name="status" value="never"><button class="btn secondary small" data-confirm="Never plan {{ r.name }} again?">Not for me</button></form>
+  <form method="post" action="{{ url_for('recipes.pref', recipe_id=r.id) }}"><input type="hidden" name="status" value="never"><input type="hidden" name="meal_id" value="{{ meal.id }}"><button class="btn secondary small" data-confirm="Never plan {{ r.name }} again? Upcoming meals with it get swapped for something else." data-confirm-yes="Not for me">Not for me</button></form>
 </div>
 {% endif %}
 {% if meal.status in ('draft', 'approved') and r.ingredients and meal.kind != 'leftover' %}
@@ -151,8 +157,8 @@ document.querySelectorAll(".ing").forEach(li => {
     li.setAttribute("aria-checked", on);
     li.style.opacity = on ? 0.4 : 1;
   };
-  li.addEventListener("click", toggle);
-  li.addEventListener("keydown", e => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); toggle(); } });
+  li.addEventListener("click", (e) => { if (!e.target.closest(".ing-nope")) toggle(); });
+  li.addEventListener("keydown", e => { if (e.target === li && (e.key === " " || e.key === "Enter")) { e.preventDefault(); toggle(); } });
 });
 
 // One step at a time, with a countdown when the step mentions minutes.

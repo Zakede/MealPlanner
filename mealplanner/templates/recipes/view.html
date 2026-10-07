@@ -34,7 +34,8 @@
   <h2>Ingredients</h2>
   <table>
     {% for i in r.ingredients %}
-    <tr><td>{{ i.name }}</td><td class="num"><b>{{ ((i.grams * factor)|round|int)|amount }}</b></td></tr>
+    <tr><td>{{ i.name }}</td><td class="num"><b>{{ ((i.grams * factor)|round|int)|amount }}</b></td>
+      <td class="num"><form method="post" action="{{ url_for('recipes.dislike') }}"><input type="hidden" name="name" value="{{ i.name }}"><button class="chip" aria-label="I don't like {{ i.name }}" title="I don't like this" data-confirm="Never plan anything with {{ i.name|lower }} again? Upcoming meals with it get swapped." data-confirm-yes="I don't like it">✕</button></form></td></tr>
     {% endfor %}
   </table>
 </div>
