@@ -157,3 +157,21 @@ def test_shopping_for_one_day(profile, client):
 def plans_today(app):
     return app.config["TODAY"]
 
+
+
+def test_already_have_an_item_on_the_shopping_list(profile, client):
+    client.post("/plan/generate")
+    client.post("/plan/approve")
+    with profile.app_context():
+        item = query("SELECT * FROM shopping_list WHERE week_start = ? AND checked = 0 LIMIT 1",
+                     (MON.isoformat(),), one=True)
+        spent = plans.week_budget(MON)["spent"]
+    page = client.get("/plan/shopping").data.decode()
+    assert "Have it" in page
+    resp = client.post(f"/plan/shopping/have/{item['food_id']}", data={"grams": item["grams"]}, follow_redirects=True)
+    assert b"Added to your pantry, not to spending" in resp.data
+    with profile.app_context():
+        assert query("SELECT checked FROM shopping_list WHERE id = ?", (item["id"],), one=True)["checked"] == 1
+        assert query("SELECT price_paid FROM pantry_items WHERE food_id = ? ORDER BY id DESC",
+                     (item["food_id"],), one=True)["price_paid"] == 0
+        assert plans.week_budget(MON)["spent"] == spent           # not counted as money spent

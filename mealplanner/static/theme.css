@@ -381,3 +381,9 @@ input[type="file"]::file-selector-button:hover { border-color: var(--fuji); colo
 @media (prefers-reduced-motion: no-preference) { .ask-box[open] { animation: rise .25s var(--ease) both; } }
 /* "don't like" on a cooking ingredient */
 .ing-nope { margin-top: 6px; } .ing-nope .chip { font-size: .7rem; padding: 4px 8px; min-height: 0; }
+.have-btn { font-size: .68rem; padding: 4px 8px; min-height: 0; white-space: nowrap; }
+/* shopping rows on a phone: name gets the width, buttons sit on their own line */
+@media (max-width: 520px) {
+  .shop-row { grid-template-columns: 52px minmax(0, 1fr); row-gap: 8px; }
+  .shop-row .row-actions { grid-column: 1 / -1; justify-content: flex-end; flex-wrap: wrap; }
+}

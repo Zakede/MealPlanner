@@ -490,6 +490,20 @@ def day_bought(food_id):
     return redirect(url_for("plan.shopping", week=request.values.get("week"), day=request.values.get("day")))
 
 
+@bp.route("/shopping/have/<int:food_id>", methods=["POST"])
+def have(food_id):
+    """'I already have this': into the pantry at no cost (not spending), and off the list."""
+    try:
+        grams = max(1, int(float(request.form.get("grams") or 0)))
+    except ValueError:
+        abort(400)
+    plans.buy_for_day(selected_week(), food_id, grams, 0)
+    food = store.food(food_id)
+    if food:
+        flash(f"Got it, you have {food['name'].lower()}. Added to your pantry, not to spending.", "ok")
+    return redirect(url_for("plan.shopping", week=request.values.get("week"), day=request.values.get("day")))
+
+
 @bp.route("/shopping/<int:item_id>/bought", methods=["POST"])
 def bought(item_id):
     raw = (request.form.get("price") or "").strip()

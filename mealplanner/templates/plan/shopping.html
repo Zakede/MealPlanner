@@ -65,6 +65,10 @@
       </form>
       {% endif %}
       {% if not i.checked %}
+      <form method="post" action="{{ url_for('plan.have', food_id=i.food_id, week=wk, day=day.isoformat() if day else None) }}">
+        <input type="hidden" name="grams" value="{{ i.grams|int }}">
+        <button class="chip have-btn" aria-label="I already have {{ i.name }}" title="I already have this">Have it</button>
+      </form>
       <form method="post" action="{{ url_for('plan.skip', food_id=i.food_id, week=wk) }}"><button class="icon-btn" aria-label="Don't buy {{ i.name }}" title="Don't buy this">✕</button></form>
       {% endif %}
     </span>
