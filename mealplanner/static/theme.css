@@ -387,3 +387,23 @@ input[type="file"]::file-selector-button:hover { border-color: var(--fuji); colo
   .shop-row { grid-template-columns: 52px minmax(0, 1fr); row-gap: 8px; }
   .shop-row .row-actions { grid-column: 1 / -1; justify-content: flex-end; flex-wrap: wrap; }
 }
+/* shopping: mark as you go, finish at the end */
+.shop-legend { display: grid; gap: 4px; font-size: .78rem; margin: 0 0 10px; padding: 10px 12px; border: 1px solid var(--line); }
+.shop-legend b { color: var(--fuji); margin-right: 4px; }
+.shop-pick { display: inline-flex; border: 1px solid var(--line-strong); }
+.shop-pick label { position: relative; cursor: pointer; }
+.shop-pick input { position: absolute; opacity: 0; pointer-events: none; }
+.shop-pick span { display: block; padding: 7px 9px; font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; white-space: nowrap; }
+.shop-pick label + label span { border-left: 1px solid var(--line-strong); }
+.shop-pick input:checked + span { background: var(--fuji); color: var(--on-fuji); }
+.shop-pick input[value=skip]:checked + span { background: var(--seal, #e5566e); color: #fff; }
+.shop-pick input:focus-visible + span { outline: 2px solid var(--fuji); outline-offset: 2px; }
+.shop-price { width: 84px; margin: 0; padding: 7px 8px; }
+.shop-row.is-bought b, .shop-row.is-have b { opacity: .55; text-decoration: line-through; }
+.shop-row.is-skip b { opacity: .45; }
+.link-btn { background: none; border: 0; padding: 0; color: var(--fuji); font: inherit; text-decoration: underline; cursor: pointer; }
+.shop-finish { position: sticky; bottom: calc(var(--nav-h, 64px) + 8px); z-index: 5; display: flex; gap: 10px; align-items: center;
+  justify-content: space-between; margin: 14px 0; padding: 10px 12px; background: var(--bg, #0b0c0d); border: 1px solid var(--fuji); }
+.shop-finish span { font-size: .8rem; }
+
+.shop-legend .muted { font-size: inherit; }

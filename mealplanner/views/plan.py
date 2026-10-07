@@ -490,6 +490,76 @@ def day_bought(food_id):
     return redirect(url_for("plan.shopping", week=request.values.get("week"), day=request.values.get("day")))
 
 
+@bp.route("/shopping/finish", methods=["POST"])
+def finish_shopping():
+    """Everything ticked on the list at once: bought (with price), have it already, or skip."""
+    first, f = selected_week(), request.form
+    bought = have = 0
+    skips = []
+    for key, action in f.items():
+        if not key.startswith("act_"):
+            continue
+        try:
+            food_id = int(key[4:])
+            grams = max(1, int(float(f.get(f"grams_{food_id}") or 0)))
+            est = int(float(f.get(f"est_{food_id}") or 0))
+        except ValueError:
+            continue
+        if action == "bought":
+            raw = (f.get(f"price_{food_id}") or "").strip()
+            plans.buy_for_day(first, food_id, grams, int(raw) if raw.isdigit() else est)
+            bought += 1
+        elif action == "have":
+            plans.buy_for_day(first, food_id, grams, 0)
+            have += 1
+        elif action == "skip":
+            skips.append(food_id)
+    for key in f:
+        if key.startswith("got_extra_"):
+            execute("UPDATE shopping_extra SET checked = 1 WHERE id = ?", (key[10:],))
+            bought += 1
+    changed = plans.skip_foods(first, skips)
+    parts = [f"{bought} bought" if bought else "", f"{have} already at home" if have else "",
+             f"{len(skips)} skipped ({changed} meal{'s' if changed != 1 else ''} re-planned)" if skips else ""]
+    done = ", ".join(p for p in parts if p)
+    flash(f"Shopping saved: {done}." if done else "Nothing was marked, so nothing changed.", "ok" if done else "error")
+    return redirect(url_for("plan.shopping", week=request.values.get("week"), day=request.values.get("day")))
+
+
+@bp.route("/food-info/<int:food_id>")
+def food_info(food_id):
+    """'What's this?' on the shopping list: what a food is and where to find it."""
+    from .. import llm
+    from ..pricing import COUNTRIES, country_code
+    food = store.food(food_id)
+    if not food:
+        abort(404)
+    fallback = {"text": f"{food['name']}: {CATEGORY_WORDS.get(food.get('category') or '', 'a food')}."
+                        + (f" One is about {food['piece_g']:g} g." if food.get("piece_g") else ""), "ai": False}
+    p = llm.provider()
+    if p is None:
+        return jsonify(fallback)
+    s = store.settings()
+    prompt = f"""Someone shopping in {COUNTRIES[country_code(s)][0]} sees "{food['name']}" on their list and doesn't know it.
+In plain English (no Japanese script; a romanised name is fine), say in at most 3 short sentences:
+what it is, what it looks like or how it's packed, and which part of the shop it's in.
+Reply with ONE JSON object and nothing else: {{"text": "..."}}"""
+    try:
+        text = str(llm.extract_json(p.complete(prompt)).get("text") or "").strip()[:400]
+    except (llm.LLMError, AttributeError):
+        text = ""
+    return jsonify({"text": text, "ai": True} if text else fallback)
+
+
+CATEGORY_WORDS = {"poultry": "chicken or other poultry, in the meat section", "meat": "meat, in the meat section",
+                  "fish": "fish, in the fish section", "seafood": "seafood, in the fish section",
+                  "egg": "eggs", "dairy": "a dairy product, in the chilled section",
+                  "soy": "a soy product like tofu, in the chilled section", "legume": "beans or lentils",
+                  "grain": "rice, noodles, bread or another grain", "veg": "a vegetable, in the produce section",
+                  "fruit": "a fruit, in the produce section", "sauce": "a sauce or seasoning",
+                  "fat": "an oil or fat", "snack": "a snack"}
+
+
 @bp.route("/shopping/have/<int:food_id>", methods=["POST"])
 def have(food_id):
     """'I already have this': into the pantry at no cost (not spending), and off the list."""

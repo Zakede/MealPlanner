@@ -175,3 +175,34 @@ def test_already_have_an_item_on_the_shopping_list(profile, client):
         assert query("SELECT price_paid FROM pantry_items WHERE food_id = ? ORDER BY id DESC",
                      (item["food_id"],), one=True)["price_paid"] == 0
         assert plans.week_budget(MON)["spent"] == spent           # not counted as money spent
+
+
+def test_finish_shopping_saves_everything_at_once(profile, client):
+    client.post("/plan/generate")
+    client.post("/plan/approve")
+    with profile.app_context():
+        items = [dict(r) for r in query("SELECT * FROM shopping_list WHERE week_start = ? AND checked = 0 LIMIT 3",
+                                        (MON.isoformat(),))]
+        spent = plans.week_budget(MON)["spent"]
+    page = client.get("/plan/shopping").data.decode()
+    assert "Finish shopping" in page and ("What&#39;s this?" in page or "What's this?" in page)
+    a, b, c = items
+    data = {f"act_{a['food_id']}": "bought", f"grams_{a['food_id']}": a["grams"], f"est_{a['food_id']}": a["est_cost"],
+            f"price_{a['food_id']}": "500",
+            f"act_{b['food_id']}": "have", f"grams_{b['food_id']}": b["grams"], f"est_{b['food_id']}": b["est_cost"],
+            f"act_{c['food_id']}": "skip", f"grams_{c['food_id']}": c["grams"], f"est_{c['food_id']}": c["est_cost"]}
+    resp = client.post("/plan/shopping/finish", data=data, follow_redirects=True)
+    assert b"Shopping saved: 1 bought, 1 already at home, 1 skipped" in resp.data
+    with profile.app_context():
+        assert plans.week_budget(MON)["spent"] == spent + 500
+        assert c["food_id"] in plans.skipped_foods(MON)
+        left = {r["food_id"] for r in query("SELECT food_id FROM shopping_list WHERE week_start = ? AND checked = 0",
+                                            (MON.isoformat(),))}
+        assert not left & {a["food_id"], b["food_id"], c["food_id"]}
+
+
+def test_whats_this_without_ai_still_explains(profile, client):
+    with profile.app_context():
+        food = query("SELECT id, name FROM foods WHERE category = 'soy' LIMIT 1", one=True)
+    data = client.get(f"/plan/food-info/{food['id']}").get_json()
+    assert food["name"] in data["text"] and "soy" in data["text"]

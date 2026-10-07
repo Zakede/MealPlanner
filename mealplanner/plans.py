@@ -554,16 +554,28 @@ def skip_food(first, food_id, skip=True):
 
     Returns how many meals changed.
     """
-    db = get_db()
-    changed = 0
     if skip:
-        db.execute("INSERT OR IGNORE INTO shopping_skip (week_start, food_id) VALUES (?, ?)", (first.isoformat(), food_id))
-        db.execute("DELETE FROM shopping_list WHERE week_start = ? AND food_id = ?", (first.isoformat(), food_id))
-        db.commit()
-        changed = refit_week(first, lambda recipe: any(i["id"] == food_id for i in recipe["ingredients"]))
-    else:
-        db.execute("DELETE FROM shopping_skip WHERE week_start = ? AND food_id = ?", (first.isoformat(), food_id))
-        db.commit()
+        return skip_foods(first, [food_id])
+    db = get_db()
+    db.execute("DELETE FROM shopping_skip WHERE week_start = ? AND food_id = ?", (first.isoformat(), food_id))
+    db.commit()
+    if query("SELECT 1 FROM plan_meals WHERE status = 'approved' AND date BETWEEN ? AND ? LIMIT 1",
+             (first.isoformat(), (first + timedelta(days=6)).isoformat())):
+        build_shopping_list(first)
+    return 0
+
+
+def skip_foods(first, food_ids):
+    """Not buying several foods: one re-plan for all of them. Returns how many meals changed."""
+    ids = set(food_ids)
+    if not ids:
+        return 0
+    db = get_db()
+    for fid in ids:
+        db.execute("INSERT OR IGNORE INTO shopping_skip (week_start, food_id) VALUES (?, ?)", (first.isoformat(), fid))
+        db.execute("DELETE FROM shopping_list WHERE week_start = ? AND food_id = ?", (first.isoformat(), fid))
+    db.commit()
+    changed = refit_week(first, lambda recipe: any(i["id"] in ids for i in recipe["ingredients"]))
     if query("SELECT 1 FROM plan_meals WHERE status = 'approved' AND date BETWEEN ? AND ? LIMIT 1",
              (first.isoformat(), (first + timedelta(days=6)).isoformat())):
         build_shopping_list(first)

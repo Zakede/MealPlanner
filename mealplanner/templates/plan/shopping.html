@@ -43,42 +43,43 @@
 </div>
 {% endif %}
 
+{% endif %}
+
+<form method="post" action="{{ url_for('plan.finish_shopping', week=wk, day=day.isoformat() if day else None) }}" id="shop-form">
+{% if sections %}
+<div class="shop-legend">
+  <span><b>Bought</b> got it now · add the price if you know it</span>
+  <span><b>Have it</b> already at home · costs nothing</span>
+  <span><b>Skip</b> not buying · meals that need it change</span>
+  <span class="muted">Not sure what something is? Tap <b>What's this?</b> Nothing saves until <b>Finish shopping</b>.</span>
+</div>
+{% endif %}
 {% for title, rows in sections %}
 <h2 class="section-title">{{ title }}</h2>
 <div class="day-list">
   {% for i in rows %}
-  <div class="lp shop-row {{ 'done' if i.checked }}">
+  <div class="lp shop-row {{ 'done' if i.checked }}" data-food="{{ i.food_id }}">
     <span class="t">{{ i.buy }}</span>
-    <div><b>{% if i.checked %}<s>{{ i.name }}</s>{% else %}{{ i.name }}{% endif %}</b><small>{{ i.grams|int }} g needed · about {{ cur }}{{ i.est_cost|int }}</small></div>
+    <div><b>{% if i.checked %}<s>{{ i.name }}</s>{% else %}{{ i.name }}{% endif %}</b><small>{{ i.grams|int }} g needed · about {{ cur }}{{ i.est_cost|int }}
+      · <button type="button" class="link-btn" data-info="{{ i.food_id }}" data-name="{{ i.name }}">What's this?</button></small></div>
     <span class="row-actions">
       {% if i.checked %}<span class="tag">in pantry</span>
-      {% elif day %}
-      <form method="post" action="{{ url_for('plan.day_bought', food_id=i.food_id, week=wk, day=day.isoformat()) }}" class="bought-form">
-        <input type="hidden" name="grams" value="{{ i.grams|int }}"><input type="hidden" name="est" value="{{ i.est_cost|int }}">
-        <input name="price" inputmode="numeric" placeholder="{{ cur }}{{ i.est_cost|int }}" aria-label="Price paid for {{ i.name }}">
-        <button class="icon-btn" aria-label="Bought {{ i.name }}">✓</button>
-      </form>
-      {% elif not preview and i.id %}
-      <form method="post" action="{{ url_for('plan.bought', item_id=i.id, week=wk) }}" class="bought-form">
-        <input name="price" inputmode="numeric" placeholder="{{ cur }}{{ i.est_cost|int }}" aria-label="Price paid for {{ i.name }}">
-        <button class="icon-btn" aria-label="Bought {{ i.name }}">✓</button>
-      </form>
-      {% endif %}
-      {% if not i.checked %}
-      <form method="post" action="{{ url_for('plan.have', food_id=i.food_id, week=wk, day=day.isoformat() if day else None) }}">
-        <input type="hidden" name="grams" value="{{ i.grams|int }}">
-        <button class="chip have-btn" aria-label="I already have {{ i.name }}" title="I already have this">Have it</button>
-      </form>
-      <form method="post" action="{{ url_for('plan.skip', food_id=i.food_id, week=wk) }}"><button class="icon-btn" aria-label="Don't buy {{ i.name }}" title="Don't buy this">✕</button></form>
+      {% else %}
+      <input type="hidden" name="grams_{{ i.food_id }}" value="{{ i.grams|int }}"><input type="hidden" name="est_{{ i.food_id }}" value="{{ i.est_cost|int }}">
+      <span class="shop-pick" role="radiogroup" aria-label="{{ i.name }}">
+        <label><input type="radio" name="act_{{ i.food_id }}" value="bought"><span>Bought</span></label>
+        <label><input type="radio" name="act_{{ i.food_id }}" value="have"><span>Have it</span></label>
+        <label><input type="radio" name="act_{{ i.food_id }}" value="skip"><span>Skip</span></label>
+      </span>
+      <input name="price_{{ i.food_id }}" class="shop-price" inputmode="numeric" placeholder="{{ cur }}{{ i.est_cost|int }}" aria-label="Price paid for {{ i.name }}" hidden>
       {% endif %}
     </span>
   </div>
   {% endfor %}
 </div>
 {% else %}
-<div class="card empty"><p>Nothing to buy{{ ' for this day' if day }}. The pantry already covers {{ 'it' if day else 'the plan' }}.</p></div>
+{% if has_plan %}<div class="card empty"><p>Nothing to buy{{ ' for this day' if day }}. The pantry already covers {{ 'it' if day else 'the plan' }}.</p></div>{% endif %}
 {% endfor %}
-{% endif %}
 
 <h2 class="section-title">Your own items</h2>
 <div class="day-list">
@@ -87,12 +88,21 @@
     <span class="t">{{ e.amount or '' }}</span>
     <div><b>{% if e.checked %}<s>{{ e.name }}</s>{% else %}{{ e.name }}{% endif %}</b>{% if e.est_cost %}<small>about {{ cur }}{{ e.est_cost }}</small>{% endif %}</div>
     <span class="row-actions">
-      <form method="post" action="{{ url_for('plan.extra_action', extra_id=e.id, action='toggle', week=wk) }}"><button class="icon-btn" aria-label="{{ 'Untick' if e.checked else 'Got' }} {{ e.name }}">{{ '↺' if e.checked else '✓' }}</button></form>
-      <form method="post" action="{{ url_for('plan.extra_action', extra_id=e.id, action='delete', week=wk) }}"><button class="icon-btn" aria-label="Remove {{ e.name }}">✕</button></form>
+      {% if e.checked %}<button class="icon-btn" formaction="{{ url_for('plan.extra_action', extra_id=e.id, action='toggle', week=wk) }}" aria-label="Untick {{ e.name }}">↺</button>
+      {% else %}<span class="shop-pick"><label><input type="checkbox" name="got_extra_{{ e.id }}" value="1"><span>Got it</span></label></span>{% endif %}
+      <button class="icon-btn" formaction="{{ url_for('plan.extra_action', extra_id=e.id, action='delete', week=wk) }}" aria-label="Remove {{ e.name }}">✕</button>
     </span>
   </div>
   {% endfor %}
 </div>
+{% if sections or extras %}
+<div class="shop-finish">
+  <span id="shop-count" aria-live="polite">Nothing marked yet</span>
+  <button class="btn" id="shop-done">Finish shopping</button>
+</div>
+{% endif %}
+</form>
+
 <form method="post" action="{{ url_for('plan.extra', week=wk) }}" class="card form add-extra">
   <div class="row3">
     <label>Item<input name="name" required placeholder="Coffee beans"></label>
@@ -136,5 +146,68 @@ document.getElementById("share")?.addEventListener("click", async (e) => {
     e.target.textContent = "Copied";
   } catch (err) { /* share cancelled */ }
 });
+
+// Mark things as you go (nothing reloads), then save them all with Finish shopping.
+(() => {
+  const form = document.getElementById("shop-form");
+  if (!form) return;
+  const key = "zettai-shop" + location.pathname + location.search;
+  const store = {
+    get() { try { return JSON.parse(localStorage.getItem(key) || "{}"); } catch (e) { return {}; } },
+    set(v) { try { localStorage.setItem(key, JSON.stringify(v)); } catch (e) { /* private mode */ } },
+    clear() { try { localStorage.removeItem(key); } catch (e) { /* private mode */ } },
+  };
+  const count = document.getElementById("shop-count");
+  const refresh = () => {
+    const n = { bought: 0, have: 0, skip: 0 };
+    form.querySelectorAll(".shop-row[data-food]").forEach((row) => {
+      const picked = row.querySelector("input[type=radio]:checked");
+      row.classList.remove("is-bought", "is-have", "is-skip");
+      const price = row.querySelector(".shop-price");
+      if (price) price.hidden = !(picked && picked.value === "bought");
+      if (picked) { row.classList.add("is-" + picked.value); n[picked.value]++; }
+    });
+    const got = form.querySelectorAll("input[name^=got_extra_]:checked").length;
+    const bits = [n.bought + got && `${n.bought + got} bought`, n.have && `${n.have} at home`, n.skip && `${n.skip} skipped`].filter(Boolean);
+    if (count) count.textContent = bits.length ? bits.join(" · ") : "Nothing marked yet";
+    const saved = {};
+    form.querySelectorAll("input[type=radio]:checked, input[name^=got_extra_]:checked").forEach((i) => { saved[i.name] = i.value; });
+    form.querySelectorAll(".shop-price").forEach((i) => { if (i.value) saved[i.name] = i.value; });
+    store.set(saved);
+  };
+  // put back what was marked before a refresh
+  Object.entries(store.get()).forEach(([name, value]) => {
+    const el = form.querySelector(`[name="${name}"][value="${value}"]`) || form.querySelector(`.shop-price[name="${name}"]`);
+    if (!el) return;
+    if (el.type === "radio" || el.type === "checkbox") el.checked = true; else el.value = value;
+  });
+  // tap the picked one again to clear it
+  form.querySelectorAll(".shop-pick input[type=radio]").forEach((r) => {
+    r.addEventListener("pointerdown", () => { r.dataset.was = r.checked ? "1" : ""; });
+    r.addEventListener("click", () => { if (r.dataset.was) { r.checked = false; r.dataset.was = ""; refresh(); } });
+  });
+  form.addEventListener("change", refresh);
+  form.addEventListener("input", (e) => { if (e.target.classList.contains("shop-price")) refresh(); });
+  form.addEventListener("submit", () => store.clear());
+  refresh();
+
+  // "What's this?"
+  const info = document.createElement("dialog");
+  info.className = "ask-box";
+  info.innerHTML = '<p class="ask-box-msg"><b class="info-name"></b><br><span class="info-text"></span></p>' +
+    '<div class="ask-box-actions"><button type="button" class="btn">OK</button></div>';
+  document.body.append(info);
+  info.addEventListener("click", (e) => { if (e.target.closest("button") || e.target === info) info.close(); });
+  form.querySelectorAll("[data-info]").forEach((b) => b.addEventListener("click", async () => {
+    info.querySelector(".info-name").textContent = b.dataset.name;
+    const text = info.querySelector(".info-text");
+    text.textContent = "Looking it up…";
+    info.showModal();
+    try {
+      const r = await fetch(`{{ url_for('plan.food_info', food_id=0) }}`.replace(/0$/, b.dataset.info));
+      text.textContent = (await r.json()).text || "No info on this one yet.";
+    } catch (e) { text.textContent = "Couldn't look it up right now."; }
+  }));
+})();
 </script>
 {% endblock %}
