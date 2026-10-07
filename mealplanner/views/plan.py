@@ -319,6 +319,12 @@ def add_activity(day):
     except ValueError:
         commute = 0
     weekly = bool(f.get("weekly"))
+    if kind == "work":
+        # new work hours replace the usual ones instead of showing up as a second work block
+        if weekly:
+            execute("UPDATE schedule_days SET work_start = NULL, work_end = NULL WHERE weekday = ?", (on.weekday(),))
+        else:
+            plans.set_override(on, work_mode="off", work_start=None, work_end=None, commute_min=None, work_kind=None)
     execute("INSERT INTO activities (date, weekday, label, kind, start, end, intensity, commute_min)"
             " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             (None if weekly else on.isoformat(), on.weekday() if weekly else None, label, kind, start, end,

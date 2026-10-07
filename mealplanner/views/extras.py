@@ -4,7 +4,7 @@ from flask import Blueprint, flash, redirect, render_template, request, url_for
 
 from .. import budget, logbook, plans, store, today
 from ..db import execute, query
-from ..extras import WORKOUT_METS, best_picks, combo_for, workout_kcal
+from ..extras import WORKOUT_IDEAS, WORKOUT_METS, WORKOUTS, best_picks, combo_for, weekly_status, workout_kcal
 
 bp = Blueprint("extras", __name__)
 SLOTS = ("breakfast", "lunch", "dinner", "snack")
@@ -133,13 +133,39 @@ def workouts():
         kcal = known or workout_kcal(kind, minutes, effort, s["weight_kg"])
         execute("INSERT INTO workouts (date, kind, minutes, effort, kcal, kcal_estimated, note) VALUES (?, ?, ?, ?, ?, ?, ?)",
                 (on.isoformat(), kind, minutes, effort, kcal, 0 if known else 1, (request.form.get("note") or "")[:120]))
-        flash(f"Logged {minutes} min of {kind}, about {kcal} kcal.", "ok")
+        msg = f"Logged {minutes} min of {WORKOUTS[kind][0].lower()}, about {kcal} kcal."
+        if request.form.get("feed") and on >= today():
+            # count it as a training day: that day's targets go up and the rest of it re-plans
+            plans.set_override(on, gym=1)
+            if store.targets() is not None:
+                plans.replan_rest_of_day(on)
+            msg += f" {'Today' if on == today() else on.strftime('%A')} now has gym-day food."
+        flash(msg, "ok")
         return redirect(url_for("extras.workouts"))
     first, last = budget.week_bounds(today())
     week = logbook.workouts_between(first, last)
-    return render_template("workouts.html", week=week, kinds=WORKOUT_METS, today=today(),
+    earlier = logbook.workouts_between(first - timedelta(days=28), first - timedelta(days=1))
+    everything = week + earlier
+    last_day = max((w["date"] for w in everything), default=None)
+    days_since = (today() - date.fromisoformat(last_day)).days if last_day else None
+    goal = s.get("training_days") or 0
+    sessions = len({w["date"] for w in week})
+    # one-tap repeats: the most recent distinct (kind, minutes, effort)
+    repeats, seen = [], set()
+    for w in sorted(everything, key=lambda w: (w["date"], w["id"]), reverse=True):
+        key = (w["kind"], w["minutes"], w["effort"])
+        if key not in seen:
+            seen.add(key)
+            repeats.append(w)
+        if len(repeats) == 3:
+            break
+    days = [first + timedelta(days=i) for i in range(7)]
+    per_day = {d: sum(w["minutes"] for w in week if w["date"] == d.isoformat()) for d in days}
+    return render_template("workouts.html", week=week, kinds=WORKOUTS, today=today(),
                            minutes=sum(w["minutes"] for w in week), kcal=sum(w["kcal"] for w in week),
-                           earlier=logbook.workouts_between(first - timedelta(days=28), first - timedelta(days=1)))
+                           earlier=earlier, goal=goal, sessions=sessions, repeats=repeats, ideas=WORKOUT_IDEAS,
+                           status=weekly_status(sessions, goal, days_since), per_day=per_day,
+                           top=max([30] + list(per_day.values())))
 
 
 @bp.route("/workouts/<int:workout_id>/delete", methods=["POST"])

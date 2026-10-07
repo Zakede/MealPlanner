@@ -77,3 +77,36 @@ def test_progress_shows_money_food_and_habits(profile, client):
         assert word in page
     assert "1,100" in page
     assert client.get("/progress?span=30").status_code == 200
+
+
+def test_flexible_mode_keeps_schedule_work(profile):
+    from mealplanner import plans
+    with profile.app_context():
+        execute("UPDATE settings SET schedule_mode = 'flexible' WHERE id = 1")
+        execute("UPDATE schedule_days SET work_start = NULL, work_end = NULL")
+        execute("UPDATE schedule_days SET work_start = '10:00', work_end = '19:00' WHERE weekday = 3")
+        thu = date(2026, 10, 8)
+        day = plans.build_days([thu])[thu]
+        assert day["work_start"] == "10:00" and day["blocks"][0]["kind"] == "work"
+
+
+def test_adding_work_replaces_usual_work(profile, client):
+    from mealplanner import plans
+    client.post("/plan/day/2026-10-08/activity", data={"kind": "work", "start": "12:00", "end": "20:00"})
+    with profile.app_context():
+        thu = date(2026, 10, 8)
+        blocks = plans.build_days([thu])[thu]["blocks"]
+        assert [(b["start"], b["end"]) for b in blocks if b["kind"] == "work"] == [("12:00", "20:00")]
+
+
+def test_workouts_page_types_repeats_and_gym_day(profile, client):
+    page = client.get("/workouts").data.decode()
+    for word in ("Yoga", "Boxing", "Jump rope", "Ideas by time", "Nothing logged yet"):
+        assert word in page
+    client.post("/workouts", data={"date": "2026-10-07", "kind": "yoga", "minutes": "30", "effort": "4", "feed": "1"})
+    with profile.app_context():
+        from mealplanner import plans
+        assert plans.override(date(2026, 10, 7))["gym"] == 1
+        assert query("SELECT kind FROM workouts", one=True)["kind"] == "yoga"
+    page = client.get("/workouts").data.decode()
+    assert "Do it again" in page and "+ today" in page and "1<small" in page

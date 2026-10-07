@@ -160,6 +160,7 @@ def edit():
         lock_on=bool(s.get("password_hash")),
         food_names=[f["name"] for f in store.foods()],
         has_key=bool(s.get("gemini_key")),
+        shared_key=bool(__import__("os").environ.get("GEMINI_API_KEY")),
         max_pace=MAX_PACE_KG_WEEK,
     )
 

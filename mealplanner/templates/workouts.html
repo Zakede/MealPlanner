@@ -1,38 +1,88 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 {% block title %}Workouts · Zettai{% endblock %}
 {% block content %}
 <h1>Workouts</h1>
-<div class="tiles">
-  <div class="tile"><small>This week</small><span class="num-big">{{ minutes }}<small> min</small></span></div>
-  <div class="tile"><small>Burnt (est.)</small><span class="num-big k">{{ kcal }}<small> kcal</small></span></div>
+
+<div class="plate">
+  <div>
+    <span class="lbl">This week{% if goal %} · goal {{ goal }} session{{ 's' if goal != 1 }}{% endif %}</span>
+    <span class="num-big">{{ sessions }}{% if goal %}<small style="font: 700 1rem var(--text)"> / {{ goal }}</small>{% endif %}</span>
+  </div>
+  <div class="stamp">{{ minutes }} min<b>{{ kcal }} kcal</b></div>
+  <div class="bars">
+    <div class="wk-bars">
+      {% for d, m in per_day.items() %}
+      <div class="bc-col" title="{{ d.strftime('%a') }}: {{ m }} min"><i style="height: {{ [4, m * 100 // top]|max if m else 0 }}%"></i><small>{{ d.strftime('%a')[:2] }}</small></div>
+      {% endfor %}
+    </div>
+    <p class="small" style="margin:0">{{ status }}</p>
+  </div>
 </div>
 
-<details class="card" {{ 'open' if not week }}>
+{% if repeats %}
+<h2 class="section-title">Do it again</h2>
+<div class="repeat-list">
+  {% for w in repeats %}
+  <form method="post">
+    <input type="hidden" name="date" value="{{ today.isoformat() }}"><input type="hidden" name="kind" value="{{ w.kind }}">
+    <input type="hidden" name="minutes" value="{{ w.minutes }}"><input type="hidden" name="effort" value="{{ w.effort }}">
+    <input type="hidden" name="note" value="{{ w.note }}"><input type="hidden" name="feed" value="1">
+    <button class="repeat">{{ icon(kinds.get(w.kind, kinds['other'])[1]) }}<b>{{ kinds.get(w.kind, kinds['other'])[0] }}</b><small>{{ w.minutes }} min · effort {{ w.effort }}</small><span>+ today</span></button>
+  </form>
+  {% endfor %}
+</div>
+{% endif %}
+
+<details class="card" id="log" {{ 'open' if not repeats }}>
   <summary><b>Log a workout</b></summary>
   <form method="post" class="form" style="margin-top:12px">
+    {% for group in ['Gym', 'Cardio', 'Fun', 'Calm', 'Sports'] %}
+    <span class="lbl">{{ group }}</span>
+    <div class="act-kinds kind-picks">
+      {% for k, (label, ico, g, lo, hi) in kinds.items() if g == group %}
+      <label><input type="radio" name="kind" value="{{ k }}" {{ 'checked' if k == 'weights' }}><span>{{ icon(ico) }}{{ label }}</span></label>
+      {% endfor %}
+    </div>
+    {% endfor %}
     <div class="row">
+      <label>Minutes<input name="minutes" type="number" inputmode="numeric" required value="45"></label>
       <label>Date<input type="date" name="date" value="{{ today.isoformat() }}"></label>
-      <label>Type<select name="kind">{% for k in kinds %}<option value="{{ k }}">{{ 'HIIT' if k == 'hiit' else k|capitalize }}</option>{% endfor %}</select></label>
     </div>
-    <div class="row">
-      <label>Minutes<input name="minutes" type="number" required value="60"></label>
-      <label>kcal (if your watch knows)<input name="kcal" type="number" placeholder="estimate"></label>
-    </div>
-    <label>Effort: <output id="eff">6</output>/10
+    <label>Effort: <output id="eff">6</output>/10 <span class="muted small">(1 easy, 10 all-out)</span>
       <input type="range" name="effort" min="1" max="10" value="6" oninput="document.getElementById('eff').value=this.value"></label>
-    <label>Note<input name="note" placeholder="push day, 5x5 squats"></label>
-    <button class="btn wide">Log</button>
+    <details>
+      <summary class="small muted">Extra details</summary>
+      <label>kcal (if your watch knows)<input name="kcal" type="number" inputmode="numeric" placeholder="we'll estimate"></label>
+      <label>Note<input name="note" placeholder="push day, 5x5 squats"></label>
+    </details>
+    <label class="small" style="color:var(--ink)"><input type="checkbox" name="feed" value="1" checked> Count as a gym day: eat a bit more and re-plan the rest of the day</label>
+    <button class="btn wide">Log it</button>
   </form>
-  <p class="muted small">Just a log. It doesn't change your food targets.</p>
 </details>
+
+<h2 class="section-title">Ideas by time</h2>
+<div class="idea-list">
+  {% for mins, k, eff, what in ideas %}
+  <form method="post" class="idea-row">
+    <input type="hidden" name="date" value="{{ today.isoformat() }}"><input type="hidden" name="kind" value="{{ k }}">
+    <input type="hidden" name="minutes" value="{{ mins }}"><input type="hidden" name="effort" value="{{ eff }}">
+    <input type="hidden" name="note" value="{{ what }}">
+    <span class="t">{{ mins }}′</span>
+    <div><b>{{ kinds[k][0] }}</b><small>{{ what }}</small></div>
+    <button class="icon-btn" aria-label="Did it: log {{ kinds[k][0] }}" title="Did it">✓</button>
+  </form>
+  {% endfor %}
+</div>
 
 {% set all = week + earlier %}
 {% if all %}
+<h2 class="section-title">History</h2>
 <div class="day-list">
   {% for w in all %}
   <div class="lp">
-    <span class="t">{{ w.date[5:] }}</span>
-    <div><b>{{ 'HIIT' if w.kind == 'hiit' else w.kind|capitalize }} · {{ w.minutes }} min</b>
+    <span class="t">{{ w.date[5:].replace('-', '/') }}</span>
+    <div><b>{{ kinds.get(w.kind, kinds['other'])[0] }} · {{ w.minutes }} min</b>
       <small>effort {{ w.effort }}/10 · {{ w.kcal }} kcal{{ ' (est.)' if w.kcal_estimated }}{% if w.note %} · {{ w.note }}{% endif %}</small></div>
     <form method="post" action="{{ url_for('extras.delete_workout', workout_id=w.id) }}"><button class="icon-btn" aria-label="Delete workout" data-confirm="Delete this workout?">✕</button></form>
   </div>

@@ -39,6 +39,8 @@ def test_microwave_only_kitchen_plans_without_stove(profile):
 def test_flexible_mode_spreads_prep_days(profile):
     with profile.app_context():
         execute("UPDATE settings SET schedule_mode = 'flexible', prep_days = 2 WHERE id = 1")
+        # what setup saves for "it changes": no fixed work or gym days
+        execute("UPDATE schedule_days SET work_start = NULL, work_end = NULL, commute_min = 0, gym = 0")
         dates = [WED + timedelta(days=i) for i in range(5)]
         days = plans.build_days(dates)
         prep = [d for d in dates if days[d]["effort"] == "full"]
@@ -49,6 +51,8 @@ def test_flexible_mode_spreads_prep_days(profile):
 def test_flexible_week_batches_on_prep_days(profile):
     with profile.app_context():
         execute("UPDATE settings SET schedule_mode = 'flexible', prep_days = 2 WHERE id = 1")
+        # what setup saves for "it changes": no fixed work or gym days
+        execute("UPDATE schedule_days SET work_start = NULL, work_end = NULL, commute_min = 0, gym = 0")
         plans.generate_week(MON)
         meals = plans.meals_between(WED, SUN)
         assert any(m["kind"] == "leftover" for m in meals)

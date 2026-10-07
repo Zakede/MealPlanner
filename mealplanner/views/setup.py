@@ -100,8 +100,10 @@ def parse(form):
     v["area"] = form.get("area") if form.get("area") in areas(v["country"]) else "city"
     v["shop"] = form.get("shop") if form.get("shop") in shops(v["country"]) else "supermarket"
 
-    work_days = {d for d in range(7) if form.get(f"work_{d}")}
-    gym_days = {d for d in range(7) if form.get(f"gym_{d}")}
+    # "it changes" hides the fixed work/gym pickers, so their default ticks must not be saved
+    flexible = v["schedule_mode"] == "flexible"
+    work_days = set() if flexible else {d for d in range(7) if form.get(f"work_{d}")}
+    gym_days = set() if flexible else {d for d in range(7) if form.get(f"gym_{d}")}
     start, end = form.get("work_start") or "09:00", form.get("work_end") or "18:00"
     commute = int(_num(form, "commute_min", 0, 240))
     weekday_effort = form.get("weekday_effort") if form.get("weekday_effort") in dict(EFFORTS) else "low"

@@ -144,8 +144,9 @@ def build_days(dates, s=None):
     for d in dates:
         day = dict(sched[d.weekday()])
         if flexible:
-            day.update(work_start=None, work_end=None, commute_min=0, gym=0, away=0,
-                       effort="full" if d in prep else "low")
+            # hours change week to week: only the cooking rhythm is defaulted. Work or gym you put in the
+            # Schedule (or on a day) still counts, so editing it always shows up.
+            day.update(effort="full" if d in prep else "low")
         if d.weekday() in prep_weekdays:
             day["effort"] = "full"
         o = overrides.get(d)

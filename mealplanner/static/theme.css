@@ -289,3 +289,45 @@ input[type="time"] { min-width: 0; }
 .units-pick { margin-bottom: 14px; }
 .sched-tags .sched-gym { color: var(--fuji); border-color: var(--fuji); background: transparent; }
 .habit-row b { white-space: nowrap; }
+
+/* workouts */
+.wk-bars { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; height: 70px; align-items: end; margin-bottom: 8px; }
+.repeat-list { display: grid; gap: 8px; margin-bottom: 14px; }
+.repeat { width: 100%; display: grid; grid-template-columns: 28px 1fr auto; grid-template-rows: auto auto; column-gap: 12px;
+  align-items: center; text-align: left; padding: 12px 14px; background: transparent; color: var(--ink);
+  border: 1px solid var(--line-strong); cursor: pointer; font: inherit; }
+.repeat:hover { border-color: var(--fuji); }
+.repeat .ico { grid-row: 1 / span 2; width: 24px; height: 24px; color: var(--fuji); }
+.repeat b { font-size: .95rem; }
+.repeat small { grid-column: 2; color: var(--muted); font-size: .75rem; }
+.repeat span { grid-row: 1 / span 2; grid-column: 3; color: var(--fuji); font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; }
+.kind-picks { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 12px; }
+.kind-picks label { margin: 0; }
+.kind-picks input { position: absolute; opacity: 0; pointer-events: none; }
+.kind-picks span { display: inline-flex; align-items: center; gap: 6px; padding: 7px 11px 7px 8px; font-size: .8rem;
+  border: 1px solid var(--line-strong); cursor: pointer; text-transform: none; letter-spacing: 0; color: var(--ink); }
+.kind-picks span .ico { width: 16px; height: 16px; color: var(--fuji); }
+.kind-picks input:checked + span { background: var(--fuji); color: var(--on-fuji); border-color: var(--fuji); }
+.kind-picks input:checked + span .ico { color: var(--on-fuji); }
+.idea-list { display: grid; gap: 6px; margin-bottom: 14px; }
+.idea-row { display: grid; grid-template-columns: 3em 1fr auto; gap: 12px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); }
+.idea-row .t { font: 900 1.3rem var(--head); font-stretch: 75%; color: var(--fuji-light); }
+.idea-row b { display: block; font-size: .9rem; }
+.idea-row small { color: var(--muted); font-size: .75rem; }
+
+/* settings on phones: options read like options, not form labels */
+.form .tag-picks label, .form .opt span, .form .opt b, .form .opt small, .form label.plain {
+  text-transform: none; letter-spacing: 0; }
+.form .tag-picks label { font-size: .82rem; padding: 8px 12px; }
+.form .opt b { font-size: .9rem; }
+.form .opt small { font-size: .75rem; color: inherit; opacity: .8; }
+.form label.plain { font-size: .82rem; color: var(--muted); }
+.opts.two { align-items: stretch; }
+@media (max-width: 520px) {
+  .form .row:has(select), .form .row:has(input[type="range"]) { grid-template-columns: 1fr; }
+}
+input[type="file"] { padding: 10px; font: inherit; font-size: .82rem; color: var(--muted); }
+input[type="file"]::file-selector-button { font: 600 .72rem var(--text); text-transform: uppercase; letter-spacing: .06em;
+  background: transparent; color: var(--ink); border: 1px solid var(--line-strong); padding: 8px 12px; margin-right: 10px; cursor: pointer; }
+input[type="file"]::file-selector-button:hover { border-color: var(--fuji); color: var(--fuji); }
+

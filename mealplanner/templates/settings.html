@@ -136,10 +136,13 @@
   <label>Cuisines I'm tired of<input name="cuisines_tired" value="{{ s.cuisines_tired }}"></label>
 
   <h2>AI helper</h2>
-  <label>Gemini API key {% if has_key %}<span class="good">· saved</span>{% endif %}
+  {% if shared_key %}
+  <p class="small" style="margin:0 0 6px"><span class="good">On</span> · this site has a shared AI key, so you don't need your own.</p>
+  {% endif %}
+  <label {{ 'hidden' if shared_key }}>Gemini API key {% if has_key %}<span class="good">· saved</span>{% endif %}
     <input name="gemini_key" type="password" autocomplete="off" placeholder="{{ 'Leave blank to keep the saved key, - to remove it' if has_key else 'Paste a key from aistudio.google.com/apikey' }}">
   </label>
-  <p class="muted small">Used for recipe ideas, imports, receipt photos and setup help. Stays on this computer.</p>
+  <p class="muted small">Used for recipe ideas, adding recipes, receipt photos and setup help.</p>
 
   <button class="btn wide" type="submit">Save</button>
 </form>
@@ -186,12 +189,12 @@
   <p class="muted small">Your data as one JSON file: easy to move to another computer or fix by hand. It leaves out your AI key.</p>
   <a class="btn secondary wide" href="{{ url_for('track.backup') }}">Download backup</a>
   <form method="post" action="{{ url_for('track.restore') }}" enctype="multipart/form-data" class="form" style="margin-top:14px">
-    <label>Restore from a backup file (.json). This replaces this profile's data; your AI key stays.
+    <label class="plain">Restore from a backup file (.json). This replaces this profile's data; your AI key stays.
       <input type="file" name="file" accept=".json,application/json" required></label>
     <button class="btn secondary wide">Restore backup</button>
   </form>
   <form method="post" action="{{ url_for('track.reset') }}" class="form" style="margin-top:14px">
-    <label>Type RESET to delete all plans, pantry, recipes you added, ratings and settings
+    <label class="plain">Type RESET to delete all plans, pantry, recipes you added, ratings and settings
       <input name="confirm" autocomplete="off" placeholder="RESET"></label>
     <label class="small" style="color:var(--ink)"><input type="checkbox" name="keep_key" checked>Keep my AI key</label>
     <button class="btn danger wide">Reset everything</button>
