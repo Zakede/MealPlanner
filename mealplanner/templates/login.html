@@ -7,7 +7,7 @@
     <label for="password">Password</label>
     <input id="password" name="password" type="password" autocomplete="current-password" autofocus required>
     <button class="btn wide">Open</button>
-    {% if people|length > 1 %}<a class="btn secondary wide" href="{{ url_for('people.pick') }}">Someone else</a>{% endif %}
+    <a class="btn secondary wide" href="{{ url_for('people.pick') }}">Not you? Pick someone else or make your own</a>
   </form>
 </div>
 {% endblock %}

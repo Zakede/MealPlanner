@@ -14,8 +14,8 @@
   {% endfor %}
 </div>
 
-<details class="card" {{ 'open' if not chosen }}>
-  <summary><b>{{ "I'm new here" if not chosen else 'Add someone' }}</b></summary>
+<details class="card" open>
+  <summary><b>I'm new here · add someone</b></summary>
   <form method="post" action="{{ url_for('people.create') }}" class="form" style="margin-top:12px">
     <label>{{ 'Your name' if not chosen else 'Their name' }}<input name="name" maxlength="30" required placeholder="Ken"></label>
     <button class="btn wide">Make my profile</button>

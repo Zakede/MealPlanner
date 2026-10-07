@@ -23,10 +23,7 @@ def use(pid):
 
 @bp.route("/new", methods=["POST"])
 def create():
-    # anyone past the site password can add themselves; a locked profile has to be unlocked first
-    from .auth import lock_enabled, unlocked
-    if session.get("profile") and lock_enabled() and not unlocked():
-        return redirect(url_for("auth.login"))
+    # anyone past the site password can add themselves, even on a phone last used by someone with a lock
     try:
         pid = profiles.create(request.form.get("name", ""))
     except ValueError as e:

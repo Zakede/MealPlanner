@@ -84,7 +84,7 @@ def test_new_phone_never_lands_in_a_set_up_profile(profile):
     phone = profile.test_client()
     resp = phone.get("/")
     assert resp.status_code == 302 and "/people/" in resp.headers["Location"]
-    assert "I&#39;m new here" in phone.get("/people/").data.decode()
+    assert "new here" in phone.get("/people/").data.decode()
     resp = phone.post("/people/new", data={"name": "Aiko"})
     assert "/setup/" in resp.headers["Location"]
     phone.post("/setup/", data={"profile_name": "Aiko", "sex": "female", "age": "24", "height_cm": "160",
@@ -94,3 +94,19 @@ def test_new_phone_never_lands_in_a_set_up_profile(profile):
     with profile.app_context():
         assert store.settings()["age"] == 25 and store.settings()["sex"] == "male"   # first profile untouched
         assert [p["name"] for p in profiles.all_profiles()] == ["Me", "Aiko"]
+
+
+def test_new_person_on_a_phone_left_on_a_locked_profile(profile, client):
+    """A friend set a password on this phone's profile: you can still pick someone else or make your own."""
+    from mealplanner.views.auth import set_password
+    with profile.test_request_context():
+        from flask import session
+        session["profile"] = "main"
+        set_password("friendpass")
+    page = client.get("/login").data.decode()
+    assert "Not you?" in page
+    resp = client.post("/people/new", data={"name": "Zake"})
+    assert "/setup" in resp.headers["Location"]
+    with client.session_transaction() as sess:
+        assert sess["profile"] != "main"
+    assert client.get("/setup/").status_code == 200        # in your own profile, no login asked
