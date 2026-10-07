@@ -69,7 +69,8 @@ def require_login():
     from ..profiles import all_profiles, main_set_up
     if site_hash() and not session.get("site_ok") and request.endpoint not in GATE_OPEN:
         return redirect(url_for("auth.gate", next=request.full_path if request.method == "GET" else None))
-    if request.endpoint in OPEN_ENDPOINTS or request.endpoint is None:
+    # the password page itself never asks who's eating, or the two would send you back and forth forever
+    if request.endpoint in OPEN_ENDPOINTS or request.endpoint in GATE_OPEN or request.endpoint is None:
         return None
     # a phone that hasn't picked a person yet is asked who's eating, so nobody lands in someone else's profile
     if not session.get("profile") and (len(all_profiles()) > 1 or main_set_up()):
