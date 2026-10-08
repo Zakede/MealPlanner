@@ -58,6 +58,7 @@ def test_gemini_key_saved_kept_and_cleared(app, client):
 
 def test_provider_prefers_gemini_when_key_set(app, monkeypatch):
     monkeypatch.setenv("MEALPLANNER_LLM", "auto")
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     with app.app_context():
         execute("UPDATE settings SET gemini_key = 'k' WHERE id = 1")
         p = llm.provider()
@@ -94,3 +95,47 @@ def test_gemini_request_shape(tmp_path, monkeypatch):
     assert sent["headers"]["X-goog-api-key"] == "secret"
     parts = sent["body"]["contents"][0]["parts"]
     assert parts[0]["text"] == "read this" and parts[1]["inline_data"]["mime_type"] == "image/jpeg"
+
+
+def test_provider_prefers_openrouter_when_key_set(app, monkeypatch):
+    monkeypatch.setenv("MEALPLANNER_LLM", "auto")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "or-k")
+    with app.app_context():
+        execute("UPDATE settings SET gemini_key = 'k' WHERE id = 1")
+        p = llm.provider()
+        assert isinstance(p.inner, llm.OpenRouterProvider) and p.inner.model == llm.DEFAULT_OPENROUTER_MODEL
+
+
+def test_openrouter_request_shape_and_fallback(tmp_path, monkeypatch):
+    from urllib.error import HTTPError
+    sent = []
+
+    class Resp:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def read(self):
+            return json.dumps({"choices": [{"message": {"content": '{"ok": true}'}}]}).encode()
+
+    def fake_urlopen(req, timeout=None):
+        body = json.loads(req.data)
+        sent.append((req.full_url, dict(req.header_items()), body))
+        if body["model"] == llm.DEFAULT_OPENROUTER_MODEL:
+            raise HTTPError(req.full_url, 404, "gone", {}, None)
+        return Resp()
+
+    import urllib.request
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    img = tmp_path / "r.jpg"
+    img.write_bytes(b"\xff\xd8jpeg")
+    out = llm.OpenRouterProvider("secret").complete("read this", images=[str(img)], model="opencode-go/vision")
+    assert out == '{"ok": true}'
+    url, headers, body = sent[0]
+    assert url.endswith("/chat/completions") and headers["Authorization"] == "Bearer secret"
+    content = body["messages"][0]["content"]
+    assert content[0]["text"] == "read this" and content[1]["image_url"]["url"].startswith("data:image/jpeg;base64,")
+    # the first model was gone, so the backup answered
+    assert [b["model"] for _, _, b in sent] == [llm.DEFAULT_OPENROUTER_MODEL, "openai/gpt-6-luna"]

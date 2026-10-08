@@ -9,6 +9,13 @@ from mealplanner import create_app
 from mealplanner.db import execute
 
 
+@pytest.fixture(autouse=True)
+def no_real_ai_keys(monkeypatch):
+    """Keys on the machine running the tests must never reach a real AI service."""
+    for name in ("OPENROUTER_API_KEY", "GEMINI_API_KEY"):
+        monkeypatch.delenv(name, raising=False)
+
+
 @pytest.fixture
 def app(tmp_path):
     app = create_app({

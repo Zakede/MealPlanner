@@ -19,6 +19,10 @@ DEFAULT_VISION_MODEL = "opencode-go/deepseek-v4-flash-vision-exp"
 DEFAULT_GEMINI_MODEL = "gemini-3.8-flash"
 # tried in order when Google retires a model name
 GEMINI_FALLBACKS = ("gemini-3.8-flash", "gemini-flash-latest")
+# OpenRouter: picked on a photo of a Japanese receipt (2026-10-08). Haiku read every line and the total
+# right in ~5 s for ~$0.0007; GPT-6 Luna was also right (~7 s) and is the backup.
+DEFAULT_OPENROUTER_MODEL = "anthropic/claude-haiku-5.5"
+OPENROUTER_FALLBACKS = ("anthropic/claude-haiku-5.5", "openai/gpt-6-luna")
 RETRY_WAITS = (2, 5)
 
 
@@ -183,6 +187,72 @@ class GeminiProvider:
         raise LLMError(last_error)
 
 
+class OpenRouterProvider:
+    """Any model on OpenRouter (OpenAI-style chat API) over plain HTTPS. Reads text and photos."""
+    name = "openrouter"
+    API = "https://openrouter.ai/api/v1/chat/completions"
+
+    def __init__(self, key, model=None, timeout=90):
+        self.key = key
+        self.model = model or DEFAULT_OPENROUTER_MODEL
+        self.timeout = timeout
+
+    def complete(self, prompt, images=(), model=None):
+        import base64
+        import mimetypes
+        from urllib.error import HTTPError, URLError
+        from urllib.request import Request, urlopen
+
+        content = [{"type": "text", "text": prompt}]
+        for path in images:
+            mime = mimetypes.guess_type(path)[0] or "image/jpeg"
+            with open(path, "rb") as f:
+                url = f"data:{mime};base64," + base64.b64encode(f.read()).decode()
+            content.append({"type": "image_url", "image_url": {"url": url}})
+        # model names passed in by callers belong to opencode/Gemini; OpenRouter uses its own
+        models = [self.model] + [m for m in OPENROUTER_FALLBACKS if m != self.model]
+        last_error = "no OpenRouter model answered"
+        for use in models:
+            body = json.dumps({"model": use, "temperature": 0.3, "max_tokens": 4096 if images else 2048,
+                               "response_format": {"type": "json_object"},
+                               "messages": [{"role": "user", "content": content}]}).encode()
+            for attempt in range(len(RETRY_WAITS) + 1):
+                req = Request(self.API, data=body, method="POST",
+                              headers={"Content-Type": "application/json", "Authorization": f"Bearer {self.key}",
+                                       "X-Title": "Zettai"})
+                try:
+                    with urlopen(req, timeout=self.timeout) as resp:
+                        data = json.loads(resp.read().decode())
+                except HTTPError as e:
+                    if e.code == 401:
+                        raise LLMError("the OpenRouter key was rejected")
+                    if e.code == 402:
+                        raise LLMError("the OpenRouter account is out of credit")
+                    if e.code in (404, 400) and attempt == 0:
+                        last_error = f"model {use} isn't available"
+                        break  # try the next model
+                    if e.code in (429, 500, 502, 503, 504) and attempt < len(RETRY_WAITS):
+                        time.sleep(RETRY_WAITS[attempt])
+                        continue
+                    last_error = f"the AI is busy right now (error {e.code}). Try again in a minute"
+                    break
+                except (URLError, TimeoutError) as e:
+                    raise LLMError(f"couldn't reach the AI ({e.__class__.__name__})")
+                try:
+                    text = (data["choices"][0]["message"]["content"] or "").strip()
+                except (KeyError, IndexError, TypeError):
+                    text = ""
+                if text:
+                    return text
+                last_error = "the AI sent an empty answer"
+                break
+        raise LLMError(last_error)
+
+
+def openrouter_key():
+    return os.environ.get("OPENROUTER_API_KEY") or None
+
+
 def gemini_key():
     key = os.environ.get("GEMINI_API_KEY")
     if key:
@@ -195,7 +265,7 @@ def gemini_key():
 
 
 def provider():
-    """The configured provider: Gemini when a key is set, otherwise opencode.
+    """The configured provider: OpenRouter when its key is set, then Gemini, otherwise opencode.
 
     Tests put a fake one in app.config["LLM_PROVIDER"]; MEALPLANNER_LLM=none turns models off.
     """
@@ -206,6 +276,8 @@ def provider():
     choice = os.environ.get("MEALPLANNER_LLM", "auto")
     if choice == "none":
         return None
+    if openrouter_key() and choice in ("auto", "openrouter"):
+        return Saver(OpenRouterProvider(openrouter_key(), model=os.environ.get("MEALPLANNER_OPENROUTER_MODEL")))
     key = gemini_key()
     if key and choice in ("auto", "gemini"):
         return Saver(GeminiProvider(key, model=os.environ.get("MEALPLANNER_GEMINI_MODEL")))
