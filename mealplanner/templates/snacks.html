@@ -2,6 +2,7 @@
 {% block title %}Snacks · Zettai{% endblock %}
 {% block content %}
 <h1>Snacks &amp; cravings</h1>
+<p class="small"><a href="{{ url_for('pantry.snacks') }}">Snack stash: what you've bought and how many you've eaten →</a></p>
 <div class="tiles">
   <div class="tile"><small>Daily snack room</small><span class="num-big">{{ allowance }}<small> kcal</small></span><a class="small" href="{{ url_for('settings.edit') }}">Change</a></div>
   <div class="tile"><small>Best snack</small><b>{{ snacks[0].name if snacks else '—' }}</b><small>{% if snacks %}{{ snacks[0].per_serving.protein|round|int }} g protein{% endif %}</small></div>

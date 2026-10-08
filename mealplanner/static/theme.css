@@ -536,3 +536,26 @@ input[type="file"]::file-selector-button:hover { border-color: var(--fuji); colo
 .found-go { position: sticky; bottom: calc(76px + env(safe-area-inset-bottom)); display: grid; gap: 8px; margin-top: 14px;
   padding: 10px 0; background: var(--body, #0B0C0D); }
 .rc-actions .btn.secondary { background: var(--body, #0B0C0D); }
+
+/* Snack stash: snacks per day this week */
+.snack-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; align-items: end; height: 120px;
+  margin: 6px 0 16px; padding: 10px 8px 6px; border: 1px solid var(--line); }
+.sw-day { display: grid; grid-template-rows: auto 1fr auto; justify-items: center; height: 100%; gap: 2px; }
+.sw-day i { align-self: end; width: 70%; min-height: 2px; background: var(--peony, #f28aa8); transition: height .4s; }
+.sw-day.is-today i { background: var(--fuji, #5BC2B5); }
+.sw-day small { font-size: .7rem; color: var(--muted); text-transform: uppercase; }
+.sw-day.is-today small { color: var(--ink); font-weight: 700; }
+.sw-n { font-size: .75rem; font-weight: 700; min-height: 1em; }
+.snack-row .t { display: grid; justify-items: center; font-weight: 800; font-size: 1.2rem; line-height: 1; }
+.snack-row .t small { font-size: .6rem; font-weight: 400; color: var(--muted); text-transform: uppercase; }
+.snack-row .row-actions { display: flex; gap: 6px; align-items: center; }
+.snack-row .row-actions form { margin: 0; }
+/* receipt confirm: what kind of item, and new foods */
+.kind-tag { display: inline-block; margin-left: 6px; padding: 0 6px; font-size: .68rem; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; border: 1px solid var(--line-strong); color: var(--muted); vertical-align: middle; }
+.kind-tag.snack { border-color: var(--peony, #f28aa8); color: var(--peony, #f28aa8); }
+.kind-tag.new { border-color: var(--gold, #f4c96a); color: var(--gold, #f4c96a); }
+.snack-row { grid-template-columns: 52px minmax(0, 1fr); }
+.snack-row .row-actions { grid-column: 2; justify-content: flex-start; margin-top: 8px; }
+.found-edit summary { text-decoration: none; }
+.found-edit summary::before { content: "Edit"; text-decoration: underline; }

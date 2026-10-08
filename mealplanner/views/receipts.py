@@ -66,11 +66,22 @@ def review(rows, header, warnings):
 
 @bp.route("/save", methods=["POST"])
 def save():
-    added, errors = receipts.save_rows(request.form, today())
+    from ..plans import replan_if_planned
+    out = receipts.save_rows(request.form, today())
     lastscan.clear("receipt")
-    for e in errors:
+    for e in out["errors"]:
         flash(e, "error")
-    flash(f"Added {added} item{'s' if added != 1 else ''} to the pantry.", "ok")
+    added = out["added"]
+    msg = f"Added {added} item{'s' if added != 1 else ''} to the pantry."
+    if out["new_foods"]:
+        msg += " New foods: " + ", ".join(out["new_foods"][:6]) + ("…" if len(out["new_foods"]) > 6 else "") + "."
+    flash(msg, "ok")
+    # fresh ingredients change what's worth cooking and what's left to buy
+    if out["cooking"] and replan_if_planned():
+        flash("This week's meals and shopping list now use what you bought.", "ok")
+    if out["snacks"]:
+        flash(f"{out['snacks']} snack{'s' if out['snacks'] != 1 else ''} went into your snack stash.", "ok")
+        return redirect(url_for("pantry.snacks"))
     return redirect(url_for("pantry.index"))
 
 

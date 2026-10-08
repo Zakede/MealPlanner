@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Snacks · Zettai{% endblock %}
+{% block content %}
+<h1 class="rise">Snack stash</h1>
+
+<div class="tiles rise" style="--i:1">
+  <div class="tile"><small>This week</small><span class="num-big">{{ wk.count }}</span>
+    <small>snack{{ 's' if wk.count != 1 }} · {{ '{:,}'.format(wk.kcal) }} kcal</small></div>
+  <div class="tile"><small>Today</small><span class="num-big">{{ wk.today }}</span>
+    <small>last week {{ wk.last_week }} · {{ '{:,}'.format(wk.last_week_kcal) }} kcal</small></div>
+</div>
+
+{% set top = [wk.days|map(attribute='count')|max, 1]|max %}
+<div class="snack-week" aria-label="Snacks per day this week">
+  {% for d in wk.days %}
+  <div class="sw-day {{ 'is-today' if d.date == today_date }}" title="{{ d.count }} snack{{ 's' if d.count != 1 }}, {{ d.kcal }} kcal">
+    <span class="sw-n">{{ d.count or '' }}</span>
+    <i style="height: {{ (d.count * 100 // top) if d.count else 0 }}%"></i>
+    <small>{{ d.date.strftime('%a')[:2] }}</small>
+  </div>
+  {% endfor %}
+</div>
+
+<h2 class="section-title">In the stash</h2>
+{% if stash %}
+<div class="day-list">
+  {% for s in stash %}
+  <div class="lp snack-row">
+    <span class="t">{{ '%.0f'|format(s.packs) if s.packs >= 1 else '<1' }}<small>left</small></span>
+    <div><b>{{ s.name }}</b><small>{{ s.pack_kcal }} kcal a pack ({{ s.pack_g }} g) · {{ '%.0f'|format(s.protein * s.pack_g / 100) }} g protein</small></div>
+    <span class="row-actions">
+      <form method="post" action="{{ url_for('pantry.eat_snack', item_id=s.id) }}"><input type="hidden" name="share" value="0.5"><button class="chip">Half</button></form>
+      <form method="post" action="{{ url_for('pantry.eat_snack', item_id=s.id) }}"><input type="hidden" name="share" value="1"><button class="btn small">Ate one</button></form>
+    </span>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card empty"><p>No snacks waiting. Snacks on a scanned receipt land here, so eating one is a single tap.</p>
+  <a class="btn" href="{{ url_for('receipts.upload') }}">Scan a receipt</a></div>
+{% endif %}
+
+{% if wk.entries %}
+<h2 class="section-title">Eaten this week</h2>
+<div class="day-list">
+  {% for e in wk.entries[:20] %}
+  <div class="lp"><span class="t">{{ e.date[5:] }}</span><div><b>{{ e.name }}</b><small>{{ e.kcal }} kcal</small></div><span></span></div>
+  {% endfor %}
+</div>
+{% endif %}
+<p class="muted small">Ate a snack that isn't in the stash? <a href="{{ url_for('foodlog.page') }}">Log it here</a>.</p>
+{% endblock %}

@@ -216,3 +216,25 @@ def staples():
 @bp.route("/api/foods")
 def api_foods():
     return jsonify(store.foods())
+
+@bp.route("/snacks")
+def snacks():
+    from .. import snacks as snack_stash
+    return render_template("pantry/snacks.html", stash=snack_stash.stash(), wk=snack_stash.week(today()),
+                           today_date=today())
+
+
+@bp.route("/snacks/<int:item_id>/eat", methods=["POST"])
+def eat_snack(item_id):
+    from .. import snacks as snack_stash
+    try:
+        share = float(request.form.get("share") or 1)
+    except ValueError:
+        share = 1.0
+    done = snack_stash.eat(item_id, share, today())
+    if done:
+        flash(f"Logged {done['name']}, {done['kcal']} kcal.", "ok")
+        for n in done["notes"]:
+            flash(n, "ok")
+    return redirect(url_for("pantry.snacks"))
+

@@ -16,21 +16,24 @@
   {% for w in warnings %}<div class="flash flash-warn">{{ w }}</div>{% endfor %}
 
   {% if rows %}
-  <p class="found-ask">Is this right? Untick anything that isn't food, or tap <b>Edit</b> to fix a line.</p>
+  <p class="found-ask">Is this right? Anything not in your foods yet gets added as a new food. Untick what you don't want, or tap <b>Edit</b> to fix a line.</p>
   <ul class="found-list">
     {% for r in rows %}{% set i = loop.index0 %}
-    <li class="found-row {{ 'needs' if not r.food }}" data-row>
+    <li class="found-row" data-row>
+      <input type="hidden" name="kind_{{ i }}" value="{{ r.kind or 'cooking' }}">
+      <input type="hidden" name="packs_{{ i }}" value="{{ r.packs or 1 }}">
+      {% if r.new %}<input type="hidden" name="new_{{ i }}" value="{{ r.new|tojson|forceescape }}">{% endif %}
       <label class="found-line">
         <input type="checkbox" name="include_{{ i }}" {{ 'checked' if r.include }}>
         <span class="found-text">
-          <b data-show="food">{{ r.food or r.name_ja }}</b>
-          <small><span data-show="grams">{{ r.grams }}</span> g · <span data-show="location">{{ r.location }}</span>{% if r.name_ja and r.food and r.name_ja != r.food %} · on receipt: {{ r.name_ja }}{% endif %}</small>
-          {% if not r.food %}<small class="found-warn">Not matched to a food · tick it and pick one to keep it</small>{% endif %}
+          <b><span data-show="food">{{ r.food or r.name_en or r.name_ja }}</span>{% if r.kind == 'snack' %}<span class="kind-tag snack">snack</span>{% elif r.kind in ('drink', 'ready') %}<span class="kind-tag">{{ r.kind }}</span>{% elif r.kind == 'other' %}<span class="kind-tag">not food</span>{% endif %}{% if r.new %}<span class="kind-tag new">new food</span>{% endif %}</b>
+          {% if r.name_ja and r.name_ja != r.food %}<small lang="ja">{{ r.name_ja }}</small>{% endif %}
+          <small><span data-show="grams">{{ r.grams }}</span> g{% if r.packs and r.packs > 1 %} · {{ r.packs }} packs{% endif %} · <span data-show="location">{{ r.location }}</span>{% if r.new and r.new.kcal %} · {{ r.new.kcal|round|int }} kcal/100 g{% endif %}</small>
         </span>
         <span class="found-price">{{ cur }}<span data-show="price">{{ r.price }}</span></span>
       </label>
       <details class="found-edit">
-        <summary>Edit</summary>
+        <summary aria-label="Edit"></summary>
         <div class="row3">
           <label>Food<input name="food_{{ i }}" list="food-names" value="{{ r.food }}" data-field="food"></label>
           <label>Grams<input name="grams_{{ i }}" type="number" value="{{ r.grams }}" data-field="grams"></label>
@@ -48,7 +51,7 @@
     <button class="btn wide" id="rv-go">Looks right: add {{ found|length }} to pantry</button>
     <a class="btn secondary wide" href="{{ url_for('receipts.upload') }}">Scan again</a>
   </div>
-  <p class="muted small">Food not in the list? Add it in Foods first, or leave the row unticked.</p>
+  <p class="muted small">New foods get calories estimated from the receipt; fix them any time in Foods.</p>
   {% else %}
   <div class="card empty"><p>No items found on that photo. Try a flatter, closer photo with no glare.</p>
     <a class="btn" href="{{ url_for('receipts.upload') }}">Scan again</a></div>
@@ -65,8 +68,8 @@
     form.querySelectorAll("[data-row]").forEach((row) => {
       const on = row.querySelector("input[type=checkbox]").checked;
       row.classList.toggle("off", !on);
-      // ticking a line that isn't matched yet opens Edit so a food can be picked
-      if (on && row.classList.contains("needs") && !row.querySelector('[data-field="food"]').value) row.querySelector("details").open = true;
+      // a ticked line with no name opens Edit so one can be typed
+      if (on && !row.querySelector('[data-field="food"]').value) row.querySelector("details").open = true;
       // the summary line follows what's typed in Edit
       row.querySelectorAll("[data-field]").forEach((f) => {
         const show = row.querySelector(`[data-show="${f.dataset.field}"]`);

@@ -10,7 +10,8 @@ REPLY = {"store": "Life", "date": "2026-10-06", "total_yen": 932,
          "items": [{"name_ja": "鶏むね肉", "food": "Chicken breast", "grams": 520, "price_yen": 398},
                    {"name_ja": "卵 10個入", "food": "Egg", "grams": 600, "price_yen": 268},
                    {"name_ja": "冷凍ほうれん草", "food": "Frozen spinach", "grams": 300, "price_yen": 198},
-                   {"name_ja": "謎の商品", "food": None, "grams": 0, "price_yen": 68}]}
+                   {"name_ja": "レジ袋", "name_en": "Plastic bag", "kind": "other", "food": None, "grams": 0,
+                    "price_yen": 68}]}
 
 
 class FakeVision:
@@ -32,7 +33,7 @@ def test_rows_from_reply(app):
     assert chicken["food"] == "Chicken breast" and chicken["expiry"] == "2026-10-09" and chicken["include"]
     assert egg["expiry"] == "2026-10-21"
     assert spinach["location"] == "freezer"
-    assert not unknown["include"] and any("謎の商品" in w for w in warnings)
+    assert not unknown["include"] and any("レジ袋" in w for w in warnings)
     assert not any("total says" in w for w in warnings)
 
 
@@ -49,7 +50,7 @@ def test_upload_review_and_save(app, client):
                        content_type="multipart/form-data")
     assert resp.status_code == 200 and "鶏むね肉" in resp.data.decode()
     page = resp.data.decode()
-    assert "Found 4 items" in page and "Looks right: add" in page and "Not matched to a food" in page
+    assert "Found 4 items" in page and "Looks right: add 3" in page and "not food" in page
     assert 'data-scan="receipt"' in client.get("/receipts/").data.decode()
     prompt, images, model = fake.calls[0]
     assert len(images) == 1 and "vision" in model and "Chicken breast" in prompt
@@ -64,10 +65,43 @@ def test_upload_review_and_save(app, client):
         assert 76.5 < store.food_by_name("Chicken breast")["current_price"] < 80
 
 
-def test_save_rejects_unknown_food(app, client):
+def test_unknown_food_is_created_from_the_receipt(app, client):
     resp = client.post("/receipts/save", data={"count": "1", "include_0": "on", "food_0": "Dragon fruit",
-                                               "grams_0": "100", "price_0": "300"}, follow_redirects=True)
-    assert b"isn&#39;t in your food list" in resp.data or b"isn't in your food list" in resp.data
+                                               "kind_0": "cooking", "grams_0": "300", "price_0": "300",
+                                               "new_0": json.dumps({"kcal": 50, "protein": 1.1, "carbs": 11,
+                                                                    "fat": 0.4, "category": "fruit"})},
+                       follow_redirects=True)
+    assert b"New foods: Dragon fruit" in resp.data
+    with app.app_context():
+        f = store.food_by_name("Dragon fruit")
+        assert f["kcal"] == 50 and f["category"] == "fruit" and f["price_per_100g"] == 100
+        assert query("SELECT quantity FROM pantry_items WHERE food_id = ?", (f["id"],), one=True)["quantity"] == 300
+
+
+def test_snack_from_receipt_goes_to_stash_and_eating_logs_it(app, client):
+    snack = {"name_ja": "ポテトチップス うすしお", "name_en": "Potato chips (lightly salted)", "kind": "snack",
+             "food": None, "grams": 120, "packs": 2, "price_yen": 276,
+             "new_food": {"kcal": 554, "protein": 4.7, "carbs": 54.7, "fat": 35.2, "category": "snack"}}
+    with app.app_context():
+        rows, _, _ = receipts.rows_from_reply({"items": [snack]}, TODAY)
+    r = rows[0]
+    assert r["include"] and r["food"] == "Potato chips (lightly salted)" and r["new"]["category"] == "snack"
+    resp = client.post("/receipts/save", data={"count": "1", "include_0": "on", "food_0": r["food"], "kind_0": "snack",
+                                               "packs_0": "2", "grams_0": "120", "price_0": "276",
+                                               "location_0": "shelf", "new_0": json.dumps(r["new"])})
+    assert resp.headers["Location"].endswith("/pantry/snacks")
+    page = client.get("/pantry/snacks").data.decode()
+    assert "Potato chips (lightly salted)" in page and "332 kcal a pack" in page
+    with app.app_context():
+        item = query("SELECT id FROM pantry_items", one=True)["id"]
+    client.post(f"/pantry/snacks/{item}/eat", data={"share": "1"})
+    client.post(f"/pantry/snacks/{item}/eat", data={"share": "0.5"})
+    with app.app_context():
+        logged = query("SELECT * FROM food_log WHERE source = 'snack' ORDER BY id")
+        assert [e["kcal"] for e in logged] == [332, 166] and logged[0]["yen"] == 0
+        assert query("SELECT quantity FROM pantry_items WHERE id = ?", (item,), one=True)["quantity"] == 30
+    page = client.get("/pantry/snacks").data.decode()
+    assert '<span class="num-big">2</span>' in page
 
 
 def test_non_image_rejected(app, client):
@@ -101,3 +135,23 @@ def test_last_scan_kept_when_phone_drops(app, client):
     client.post("/receipts/save", data={"count": "0"})
     assert "Your last receipt is ready" not in client.get("/receipts/").data.decode()
     assert client.get("/receipts/last").status_code == 302
+
+
+def test_cooking_items_replan_week_and_leave_the_list(app, client):
+    from mealplanner import plans
+    from mealplanner.db import execute
+    with app.app_context():
+        execute("UPDATE settings SET age = 25, sex = 'male', setup_done = 1 WHERE id = 1")
+        first = plans.current_week()[0]
+        plans.generate_week(first)
+        before = {i["name"]: i["grams"] for i in plans.shopping_preview(first)}
+    # buy plenty of the biggest thing on the list
+    name = max(before, key=before.get)
+    resp = client.post("/receipts/save", data={"count": "1", "include_0": "on", "food_0": name,
+                                               "kind_0": "cooking", "grams_0": str(int(before[name]) + 500),
+                                               "price_0": "2400", "location_0": "fridge", "expiry_0": "2026-10-14"},
+                       follow_redirects=True)
+    assert b"now use what you bought" in resp.data
+    with app.app_context():
+        after = {i["name"]: i["grams"] for i in plans.shopping_preview(first)}
+    assert after.get(name, 0) < before[name]
