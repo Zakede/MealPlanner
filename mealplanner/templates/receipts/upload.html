@@ -8,7 +8,14 @@
   <div class="card empty"><p>No AI helper is set up for reading photos. Add a Gemini key in Settings, or add items in the pantry by hand.</p>
     <a class="btn" href="{{ url_for('settings.edit') }}#ai">Set up the AI helper</a></div>
 {% else %}
-<form method="post" enctype="multipart/form-data" id="rc" data-scan="receipt">
+{% if last %}
+<a class="card last-scan" href="{{ url_for('receipts.last') }}">
+  <span class="found-check" aria-hidden="true">✓</span>
+  <span><b>Your last receipt is ready</b><small>{{ last.rows|length }} item{{ 's' if last.rows|length != 1 }}{% if last.header.store %} from {{ last.header.store }}{% endif %} · read {{ 'just now' if last.minutes < 1 else last.minutes ~ ' min ago' if last.minutes < 60 else (last.minutes // 60) ~ ' h ago' }}</small></span>
+  <span class="last-go">Review →</span>
+</a>
+{% endif %}
+<form method="post" enctype="multipart/form-data" id="rc" data-scan="receipt" data-last="{{ url_for('receipts.last') }}">
   <input id="photo" type="file" name="photo" accept="image/*" required class="rc-file">
   <div class="drop" id="drop" tabindex="0" role="button" aria-label="Add a receipt photo: tap, drop or paste">
     <div class="drop-empty">
@@ -69,7 +76,8 @@
     empty.hidden = false; view.hidden = true; drop.classList.remove("has");
     name.textContent = ""; go.disabled = true;
   });
-  drop.addEventListener("click", (e) => { if (!drop.classList.contains("has") && !e.target.closest("label")) file.click(); });
+  // tap the box (or the photo, to change it) to pick a picture; not while it's being read
+  drop.addEventListener("click", (e) => { if (!drop.classList.contains("reading") && !e.target.closest("label, .drop-clear")) file.click(); });
   drop.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); file.click(); } });
   ["dragenter", "dragover"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add("over"); }));
   ["dragleave", "drop"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.remove("over"); }));

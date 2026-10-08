@@ -3,7 +3,7 @@ import tempfile
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 
-from .. import llm, logbook, orders, store, today
+from .. import lastscan, llm, logbook, orders, store, today
 from ..db import execute, query
 from ..pricing import currency
 
@@ -74,7 +74,8 @@ def page():
     picks = [dict(r) for r in query("SELECT * FROM quick_picks ORDER BY chain, item")]
     return render_template("log.html", picks=picks, foods=store.foods(), recipes=store.recipes(),
                            today_log=logbook.food_today(today()), slots=SLOTS, slot=guess_slot(),
-                           tab=request.args.get("tab", "picks"), estimate=None, ai=llm.provider() is not None)
+                           tab=request.args.get("tab", "picks"), estimate=None, ai=llm.provider() is not None,
+                           last_order=lastscan.load("order"))
 
 
 @bp.route("/pick/<int:pick_id>", methods=["POST"])
@@ -186,13 +187,26 @@ def order():
     except llm.LLMError as e:
         flash(f"Couldn't read the order: {e}.", "error")
         return redirect(url_for("foodlog.page", tab="order"))
+    lastscan.save("order", rows=rows, header=header, warnings=warnings)
     return render_template("log_order.html", rows=rows, header=header, warnings=warnings,
+                           slots=SLOTS, slot=guess_slot())
+
+
+@bp.route("/order/last")
+def order_last():
+    """The last order that was read, if the phone gave up waiting for it."""
+    scan = lastscan.load("order")
+    if not scan:
+        flash("That scan isn't kept any more. Add the order again.", "error")
+        return redirect(url_for("foodlog.page", tab="order"))
+    return render_template("log_order.html", rows=scan["rows"], header=scan["header"], warnings=scan["warnings"],
                            slots=SLOTS, slot=guess_slot())
 
 
 @bp.route("/order/save", methods=["POST"])
 def order_save():
     entries, errors = orders.entries_from_form(request.form)
+    lastscan.clear("order")
     for e in errors:
         flash(e, "error")
     if not entries:

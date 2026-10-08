@@ -3,7 +3,7 @@ import tempfile
 
 from flask import Blueprint, current_app, flash, jsonify, redirect, render_template, request, url_for
 
-from .. import llm, receipts, store, today
+from .. import lastscan, llm, receipts, store, today
 
 bp = Blueprint("receipts", __name__, url_prefix="/receipts")
 IMAGE_TYPES = {".jpg", ".jpeg", ".png", ".webp", ".heic"}
@@ -18,7 +18,7 @@ def vision_model():
 def upload():
     p = llm.provider()
     if request.method == "GET":
-        return render_template("receipts/upload.html", available=p is not None)
+        return render_template("receipts/upload.html", available=p is not None, last=lastscan.load("receipt"))
     photo = request.files.get("photo")
     if not photo or not photo.filename:
         flash("Pick a photo of the receipt.", "error")
@@ -45,7 +45,18 @@ def upload():
             flash(f"Couldn't read the receipt: {e}. Try a sharper, flatter photo.", "error")
             return redirect(url_for("receipts.upload"))
     rows, header, warnings = receipts.rows_from_reply(parsed, today())
+    lastscan.save("receipt", rows=rows, header=header, warnings=warnings)
     return review(rows, header, warnings)
+
+
+@bp.route("/last")
+def last():
+    """The last receipt that was read, if the phone gave up waiting for it."""
+    scan = lastscan.load("receipt")
+    if not scan:
+        flash("That scan isn't kept any more. Scan the receipt again.", "error")
+        return redirect(url_for("receipts.upload"))
+    return review(scan["rows"], scan["header"], scan["warnings"])
 
 
 def review(rows, header, warnings):
@@ -56,6 +67,7 @@ def review(rows, header, warnings):
 @bp.route("/save", methods=["POST"])
 def save():
     added, errors = receipts.save_rows(request.form, today())
+    lastscan.clear("receipt")
     for e in errors:
         flash(e, "error")
     flash(f"Added {added} item{'s' if added != 1 else ''} to the pantry.", "ok")

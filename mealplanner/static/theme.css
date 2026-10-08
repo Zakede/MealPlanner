@@ -473,32 +473,23 @@ input[type="file"]::file-selector-button:hover { border-color: var(--fuji); colo
 }
 @keyframes rc-print { from { clip-path: inset(0 0 100% 0); transform: translateY(-10px); } to { clip-path: inset(0); } }
 
-/* Scanning sheet: shown while a receipt or order uploads and gets read */
-.scan-sheet { border: 1px solid var(--line-strong); background: var(--panel, #111); color: var(--ink); padding: 18px;
-  width: min(420px, calc(100vw - 32px)); text-align: center; }
-.scan-sheet::backdrop { background: rgb(0 0 0 / .75); }
-.ss-photo { position: relative; height: 220px; display: grid; place-items: center; overflow: hidden;
-  background: rgb(0 0 0 / .25); border: 1px solid var(--line); margin-bottom: 14px; }
-.ss-photo img { max-width: 100%; max-height: 100%; object-fit: contain; transition: filter .4s; }
-.ss-doc { width: 96px; height: 140px; background: #f7f3ea;
-  background-image: repeating-linear-gradient(#f7f3ea 0 14px, #c9c2b3 14px 16px); background-clip: content-box; padding: 18px 14px; }
-.ss-beam { position: absolute; left: 0; right: 0; top: 0; height: 3px; opacity: 0;
-  background: var(--fuji, #5BC2B5); box-shadow: 0 0 18px 6px color-mix(in srgb, var(--fuji, #5BC2B5) 55%, transparent); }
-.scan-sheet.scanning .ss-beam { opacity: 1; animation: ss-sweep 1.5s ease-in-out infinite alternate; }
-.scan-sheet.scanning .ss-photo img { filter: saturate(.5) brightness(.8); }
-.scan-sheet.scanning .ss-photo::after { content: ""; position: absolute; inset: 0;
-  background: linear-gradient(transparent 0 48%, color-mix(in srgb, var(--fuji, #5BC2B5) 18%, transparent) 50%, transparent 52%);
-  background-size: 100% 12px; opacity: .5; }
-@keyframes ss-sweep { from { top: 4%; } to { top: 94%; } }
-.scan-sheet.found .ss-photo { border-color: var(--fuji, #5BC2B5); }
-.scan-sheet.found .ss-photo::before { content: "✓"; position: absolute; z-index: 1; display: grid; place-items: center;
-  width: 72px; height: 72px; background: var(--fuji, #5BC2B5); color: #0B0C0D; font: 900 2.4rem/1 var(--head, sans-serif);
-  animation: ss-pop .35s cubic-bezier(.3, 1.6, .5, 1) both; }
-@keyframes ss-pop { from { transform: scale(.3); opacity: 0; } }
-.ss-title { margin: 0 0 10px; font-size: 1.5rem; }
+/* Scanning: progress right under the photo, the page stays usable */
+.drop.reading { cursor: progress; }
+.drop.reading .scan { height: 4px; opacity: 1; }
+.drop.has .drop-preview img { cursor: pointer; }
+.scan-inline { scroll-margin: 90px 0 110px; margin: 10px 0 4px; padding: 14px; border: 1px solid var(--line-strong); background: var(--panel, #111); }
+.si-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+.si-title { font-family: var(--head); text-transform: uppercase; font-size: 1.1rem; }
+.si-time { font-variant-numeric: tabular-nums; color: var(--muted); font-size: .85rem; }
+.si-sub { margin: 4px 0 10px; font-size: .78rem; color: var(--muted); }
+.si-actions { display: flex; gap: 8px; } .si-actions .btn { flex: 1; margin: 0; }
+.si-actions [hidden] { display: none; }
+.scan-inline.failed { border-color: #e5566e; }
+.scan-inline.failed .ss-bar, .scan-inline.failed .ss-steps, .scan-inline.failed .si-sub, .scan-inline.failed .si-time { display: none; }
+.scan-inline.found { border-color: var(--fuji, #5BC2B5); }
 .ss-bar { height: 6px; background: var(--line); overflow: hidden; }
 .ss-bar i { display: block; height: 100%; width: 2%; background: var(--fuji, #5BC2B5); transition: width .4s ease-out; }
-.ss-steps { list-style: none; margin: 14px 0 8px; padding: 0; display: grid; gap: 6px; text-align: left; }
+.ss-steps { list-style: none; margin: 12px 0 4px; padding: 0; display: grid; gap: 6px; text-align: left; }
 .ss-steps li { display: flex; align-items: center; gap: 10px; color: var(--muted); }
 .ss-steps li::before { content: ""; width: 14px; height: 14px; flex: none; border: 1px solid var(--line-strong); }
 .ss-steps li.now { color: var(--ink); font-weight: 700; }
@@ -508,15 +499,14 @@ input[type="file"]::file-selector-button:hover { border-color: var(--fuji); colo
 .ss-steps li.done::before { content: "✓"; display: grid; place-items: center; background: var(--fuji, #5BC2B5); color: #0B0C0D;
   border-color: var(--fuji, #5BC2B5); font-size: 11px; font-weight: 900; }
 @keyframes ss-spin { to { transform: rotate(360deg); } }
-.ss-sub { margin: 4px 0 0; font-size: .78rem; color: var(--muted); }
-.scan-sheet.failed .ss-sub, .scan-sheet.failed .ss-bar, .scan-sheet.failed .ss-steps { display: none; }
-.scan-sheet.failed .ss-photo { border-color: #e5566e; }
-.ss-err p { margin: 0 0 14px; color: #ff8a9b; }
-.ss-err-actions { display: flex; gap: 8px; } .ss-err-actions .btn { flex: 1; }
-@media (prefers-reduced-motion: reduce) {
-  .scan-sheet.scanning .ss-beam { animation: none; top: 50%; }
-  .ss-steps li.now::before { animation: none; }
-}
+@keyframes ss-pop { from { transform: scale(.3); opacity: 0; } }
+.ss-err p { margin: 0 0 12px; color: #ff8a9b; }
+@media (prefers-reduced-motion: reduce) { .ss-steps li.now::before { animation: none; } }
+.card.last-scan { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; margin-bottom: 12px;
+  border: 1px solid var(--fuji, #5BC2B5); color: var(--ink); text-decoration: none; }
+.last-scan .found-check { width: 40px; height: 40px; font-size: 1.3rem; }
+.last-scan small { display: block; color: var(--muted); }
+.last-go { color: var(--fuji, #5BC2B5); font-weight: 700; white-space: nowrap; }
 
 /* "Found N items" confirm screen after a scan */
 .found-hero { display: flex; align-items: center; gap: 14px; margin: 6px 0 10px; }

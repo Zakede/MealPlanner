@@ -80,7 +80,14 @@
 
 <section class="tab-panel" data-panel="order" {% if tab != 'order' %}hidden{% endif %}>
   {% if ai %}
-  <form method="post" action="{{ url_for('foodlog.order') }}" enctype="multipart/form-data" class="card form" id="order" data-scan="order">
+  {% if last_order %}
+  <a class="card last-scan" href="{{ url_for('foodlog.order_last') }}">
+    <span class="found-check" aria-hidden="true">✓</span>
+    <span><b>Your last order is ready</b><small>{{ last_order.rows|length }} dish{{ 'es' if last_order.rows|length != 1 }}{% if last_order.header.place %} from {{ last_order.header.place }}{% endif %} · read {{ 'just now' if last_order.minutes < 1 else last_order.minutes ~ ' min ago' if last_order.minutes < 60 else (last_order.minutes // 60) ~ ' h ago' }}</small></span>
+    <span class="last-go">Review →</span>
+  </a>
+  {% endif %}
+  <form method="post" action="{{ url_for('foodlog.order') }}" enctype="multipart/form-data" class="card form" id="order" data-scan="order" data-last="{{ url_for('foodlog.order_last') }}">
     <h2>Food you ordered</h2>
     <p class="muted small">Delivery, takeout or a restaurant bill. Add the receipt or a screenshot of the order and the calories get estimated for each dish. You check them before anything is logged.</p>
     <input id="order-photo" type="file" name="photo" accept="image/*" class="rc-file">
@@ -158,7 +165,7 @@
     };
     file.addEventListener("change", () => use(file.files[0]));
     document.getElementById("order-camera").addEventListener("change", (e) => use(e.target.files[0]));
-    drop.addEventListener("click", (e) => { if (!drop.classList.contains("has") && !e.target.closest("label")) file.click(); });
+    drop.addEventListener("click", (e) => { if (!drop.classList.contains("reading") && !e.target.closest("label")) file.click(); });
     drop.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); file.click(); } });
     ["dragenter", "dragover"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add("over"); }));
     ["dragleave", "drop"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.remove("over"); }));

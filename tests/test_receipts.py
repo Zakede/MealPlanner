@@ -89,3 +89,15 @@ def test_api_for_other_ocr_apps(app, client):
     data = resp.get_json()
     assert data["rows"][0]["food"] == "Firm tofu" and data["rows"][0]["grams"] == 450
     assert client.post("/receipts/api", json={"nope": 1}).status_code == 400
+
+
+def test_last_scan_kept_when_phone_drops(app, client):
+    app.config["LLM_PROVIDER"] = FakeVision()
+    client.post("/receipts/", data={"photo": (io.BytesIO(b"\xff\xd8fakejpeg"), "r.jpg")},
+                content_type="multipart/form-data")
+    page = client.get("/receipts/").data.decode()
+    assert "Your last receipt is ready" in page and "4 items" in page
+    assert "Found 4 items" in client.get("/receipts/last").data.decode()
+    client.post("/receipts/save", data={"count": "0"})
+    assert "Your last receipt is ready" not in client.get("/receipts/").data.decode()
+    assert client.get("/receipts/last").status_code == 302
