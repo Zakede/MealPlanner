@@ -232,6 +232,8 @@
   });
   addEventListener("resize", () => open?.close(false));
   document.querySelectorAll("select").forEach(enhance);
+  // pages swapped in without a reload (after a receipt scan) get the same pickers
+  window.zettaiEnhance = (root) => root.querySelectorAll("select").forEach(enhance);
 })();
 
 // Mini notifications: the page asks every minute what's worth knowing (cook soon, thaw tonight, drink water...).

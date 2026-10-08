@@ -6,6 +6,7 @@
 <div class="actions">
   <a class="chip {{ 'ok' if not is_next }}" href="{{ url_for('plan.shopping') }}">This week</a>
   <a class="chip {{ 'ok' if is_next }}" href="{{ url_for('plan.shopping', week='next') }}">Next week</a>
+  {% if sections or extras %}<button type="button" class="chip receipt-open" id="receipt-open">🧾 Receipt view</button>{% endif %}
 </div>
 {% if has_plan and days %}
 <div class="actions shop-days">
@@ -104,6 +105,54 @@
 {% endif %}
 </form>
 
+{% if sections or extras %}
+<dialog class="receipt-dlg" id="receipt" aria-label="Shopping list as a receipt">
+  <div class="receipt">
+    <header class="rc-head">
+      <b class="rc-shop">ZETTAI MART</b>
+      <span>Shopping list · {{ 'today' if day == today else (day.strftime('%a %d %b') if day else 'week of ' ~ first.strftime('%d %b')) }}</span>
+      {% if preview %}<span class="rc-note">Draft plan, not approved yet</span>{% endif %}
+    </header>
+    <p class="rc-hint">Tap a line when it's in the basket</p>
+    {% for title, rows in sections %}
+    <div class="rc-sec">{{ title }}</div>
+    <ul class="rc-list">
+      {% for i in rows %}
+      <li class="rc-line {{ 'done' if i.checked }}" {% if not i.checked %}data-food="{{ i.food_id }}" tabindex="0" role="button" aria-pressed="false"{% endif %}>
+        <span class="rc-name">{{ i.name }}</span><span class="rc-dots" aria-hidden="true"></span><span class="rc-price">{{ cur }}{{ '{:,}'.format(i.est_cost|int) }}</span>
+        <small class="rc-qty">{{ i.buy }}{% if i.checked %} · in pantry{% endif %}</small>
+      </li>
+      {% endfor %}
+    </ul>
+    {% endfor %}
+    {% if extras %}
+    <div class="rc-sec">Your own items</div>
+    <ul class="rc-list">
+      {% for e in extras %}
+      <li class="rc-line {{ 'done' if e.checked }}" {% if not e.checked %}data-extra="{{ e.id }}" tabindex="0" role="button" aria-pressed="false"{% endif %}>
+        <span class="rc-name">{{ e.name }}</span><span class="rc-dots" aria-hidden="true"></span><span class="rc-price">{{ (cur ~ '{:,}'.format(e.est_cost)) if e.est_cost else '—' }}</span>
+        {% if e.amount %}<small class="rc-qty">{{ e.amount }}</small>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+    <div class="rc-totals">
+      <div class="rc-row"><span>Items to buy</span><span id="rc-left">{{ count }}</span></div>
+      <div class="rc-row"><span>In basket</span><span id="rc-got">{{ cur }}0</span></div>
+      <div class="rc-row rc-total"><span>Total (est.)</span><span>{{ cur }}{{ '{:,}'.format(total|int) }}</span></div>
+      {% if has_plan %}{% set left = budget.remaining - budget.reserved %}
+      <div class="rc-row"><span>Budget left</span><span>{{ cur }}{{ '{:,}'.format(left) }}</span></div>{% endif %}
+    </div>
+    <div class="rc-bars" aria-hidden="true"></div>
+    <p class="rc-foot">Prices are estimates · thank you for cooking at home</p>
+  </div>
+  <div class="rc-actions">
+    <button type="button" class="btn secondary" id="receipt-close">Close</button>
+    <button type="button" class="btn" id="receipt-done">Finish shopping</button>
+  </div>
+</dialog>
+{% endif %}
+
 <form method="post" action="{{ url_for('plan.extra', week=wk) }}" class="card form add-extra">
   <div class="row3">
     <label>Item<input name="name" required placeholder="Coffee beans"></label>
@@ -178,6 +227,7 @@ document.getElementById("share")?.addEventListener("click", async (e) => {
     form.querySelectorAll("input[type=radio]:checked, input[name^=got_extra_]:checked").forEach((i) => { saved[i.name] = i.value; });
     form.querySelectorAll(".shop-price").forEach((i) => { if (i.value) saved[i.name] = i.value; });
     store.set(saved);
+    if (typeof syncReceipt === "function") syncReceipt();
   };
   // put back what was marked before a refresh
   Object.entries(store.get()).forEach(([name, value]) => {
@@ -197,6 +247,52 @@ document.getElementById("share")?.addEventListener("click", async (e) => {
       refresh();
     });
   });
+  // Receipt view: the same list as a till receipt. Tapping a line marks it Bought (or Got it) in the list,
+  // and anything marked in the list shows struck through here.
+  const dlg = document.getElementById("receipt");
+  const syncReceipt = () => {
+    if (!dlg) return;
+    let got = 0;
+    dlg.querySelectorAll(".rc-line[data-food], .rc-line[data-extra]").forEach((li) => {
+      const input = li.dataset.food
+        ? form.querySelector(`input[name="act_${li.dataset.food}"]:checked`)
+        : form.querySelector(`input[name="got_extra_${li.dataset.extra}"]`);
+      const state = li.dataset.food ? (input ? input.value : "") : (input && input.checked ? "bought" : "");
+      li.classList.toggle("in-basket", state === "bought");
+      li.classList.toggle("dropped", state === "have" || state === "skip");
+      li.setAttribute("aria-pressed", state === "bought");
+      if (state === "bought") got += parseInt(li.querySelector(".rc-price").textContent.replace(/[^0-9]/g, "")) || 0;
+    });
+    const left = dlg.querySelectorAll(".rc-line[data-food]:not(.in-basket):not(.dropped), .rc-line[data-extra]:not(.in-basket)").length;
+    dlg.querySelector("#rc-left").textContent = left;
+    dlg.querySelector("#rc-got").textContent = "{{ cur }}" + got.toLocaleString();
+  };
+  if (dlg) {
+    const tap = (li) => {
+      if (li.dataset.food) {
+        const r = form.querySelector(`input[name="act_${li.dataset.food}"][value="bought"]`);
+        const on = form.querySelector(`input[name="act_${li.dataset.food}"]:checked`);
+        if (on) on.checked = false;   // tap again (or tap a Have it / Skip line) to put it back to "to buy"
+        if (on !== r) r.checked = true;
+      } else {
+        const c = form.querySelector(`input[name="got_extra_${li.dataset.extra}"]`);
+        if (c) c.checked = !c.checked;
+      }
+      refresh();
+    };
+    dlg.querySelectorAll(".rc-line[data-food], .rc-line[data-extra]").forEach((li) => {
+      li.addEventListener("click", () => tap(li));
+      li.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tap(li); } });
+    });
+    const remember = (open) => { try { localStorage.setItem("zettai-receipt", open ? "1" : ""); } catch (e) { /* private mode */ } };
+    document.getElementById("receipt-open").addEventListener("click", () => { syncReceipt(); dlg.showModal(); remember(true); });
+    document.getElementById("receipt-close").addEventListener("click", () => dlg.close());
+    dlg.addEventListener("close", () => remember(false));
+    dlg.addEventListener("click", (e) => { if (e.target === dlg) dlg.close(); });
+    document.getElementById("receipt-done").addEventListener("click", () => { dlg.close(); form.requestSubmit(document.getElementById("shop-done")); });
+    // it stays open across a refresh, so you don't lose your place in the shop
+    try { if (localStorage.getItem("zettai-receipt") === "1") { syncReceipt(); dlg.showModal(); } } catch (e) { /* private mode */ }
+  }
   form.addEventListener("change", refresh);
   form.addEventListener("input", (e) => { if (e.target.classList.contains("shop-price")) refresh(); });
   form.addEventListener("submit", () => store.clear());

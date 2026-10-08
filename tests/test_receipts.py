@@ -48,6 +48,9 @@ def test_upload_review_and_save(app, client):
     resp = client.post("/receipts/", data={"photo": (io.BytesIO(b"\xff\xd8fakejpeg"), "r.jpg")},
                        content_type="multipart/form-data")
     assert resp.status_code == 200 and "鶏むね肉" in resp.data.decode()
+    page = resp.data.decode()
+    assert "Found 4 items" in page and "Looks right: add" in page and "Not matched to a food" in page
+    assert 'data-scan="receipt"' in client.get("/receipts/").data.decode()
     prompt, images, model = fake.calls[0]
     assert len(images) == 1 and "vision" in model and "Chicken breast" in prompt
 

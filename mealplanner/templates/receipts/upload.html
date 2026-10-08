@@ -8,7 +8,7 @@
   <div class="card empty"><p>No AI helper is set up for reading photos. Add a Gemini key in Settings, or add items in the pantry by hand.</p>
     <a class="btn" href="{{ url_for('settings.edit') }}#ai">Set up the AI helper</a></div>
 {% else %}
-<form method="post" enctype="multipart/form-data" id="rc">
+<form method="post" enctype="multipart/form-data" id="rc" data-scan="receipt">
   <input id="photo" type="file" name="photo" accept="image/*" required class="rc-file">
   <div class="drop" id="drop" tabindex="0" role="button" aria-label="Add a receipt photo: tap, drop or paste">
     <div class="drop-empty">
@@ -40,6 +40,7 @@
 {% endif %}
 {% endblock %}
 {% block scripts %}
+<script src="{{ url_for('static', filename='scan.js') }}" defer></script>
 <script>
 (() => {
   const form = document.getElementById("rc");

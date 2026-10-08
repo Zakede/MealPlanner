@@ -1,8 +1,15 @@
 {% extends "base.html" %}
 {% block title %}Check your order · Zettai{% endblock %}
 {% block content %}
-<h1>Check your order</h1>
-<p class="muted">{{ header.place or 'Your order' }}{% if header.total %} · total {{ cur }}{{ '{:,}'.format(header.total) }}{% endif %}. Calories are estimates: fix anything you know better.</p>
+{% set kc = rows|map(attribute='kcal')|select|sum %}
+<div class="found-hero rise">
+  <span class="found-check" aria-hidden="true">✓</span>
+  <div>
+    <h1>Found {{ rows|length }} dish{{ 'es' if rows|length != 1 }}</h1>
+    <p class="muted">{{ header.place or 'Your order' }}{% if header.total %} · total {{ cur }}{{ '{:,}'.format(header.total) }}{% endif %}{% if kc %} · about {{ '{:,}'.format(kc|int) }} kcal{% endif %}</p>
+  </div>
+</div>
+<p class="found-ask">Is this right? Calories are estimates: fix anything you know better, then say how much you ate.</p>
 {% for w in warnings %}<div class="flash flash-warn">{{ w }}</div>{% endfor %}
 
 <form method="post" action="{{ url_for('foodlog.order_save') }}" id="order-form">

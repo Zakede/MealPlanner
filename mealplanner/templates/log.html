@@ -80,7 +80,7 @@
 
 <section class="tab-panel" data-panel="order" {% if tab != 'order' %}hidden{% endif %}>
   {% if ai %}
-  <form method="post" action="{{ url_for('foodlog.order') }}" enctype="multipart/form-data" class="card form" id="order">
+  <form method="post" action="{{ url_for('foodlog.order') }}" enctype="multipart/form-data" class="card form" id="order" data-scan="order">
     <h2>Food you ordered</h2>
     <p class="muted small">Delivery, takeout or a restaurant bill. Add the receipt or a screenshot of the order and the calories get estimated for each dish. You check them before anything is logged.</p>
     <input id="order-photo" type="file" name="photo" accept="image/*" class="rc-file">
@@ -123,6 +123,7 @@
 {% endif %}
 {% endblock %}
 {% block scripts %}
+<script src="{{ url_for('static', filename='scan.js') }}" defer></script>
 <script>
 (() => {
   // tabs switch in place

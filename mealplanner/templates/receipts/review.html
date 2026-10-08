@@ -1,34 +1,85 @@
 {% extends "base.html" %}
 {% block title %}Check receipt · Zettai{% endblock %}
 {% block content %}
-<h1>Check the receipt</h1>
-<p class="muted">{{ header.store or 'Receipt' }} · {{ header.date }}{% if header.total %} · total {{ cur }}{{ '{:,}'.format(header.total) }}{% endif %}</p>
-{% for w in warnings %}<div class="flash flash-warn">{{ w }}</div>{% endfor %}
-
-<form method="post" action="{{ url_for('receipts.save') }}">
+{% set found = rows|selectattr('include')|list %}
+<form method="post" action="{{ url_for('receipts.save') }}" id="rv">
   <input type="hidden" name="count" value="{{ rows|length }}">
   <datalist id="food-names">{% for f in foods %}<option value="{{ f.name }}">{% endfor %}</datalist>
-  <div class="day-list">
-    {% for r in rows %}{% set i = loop.index0 %}
-    <div class="card form receipt-row" style="margin:0">
-      <label class="small" style="display:flex;align-items:center;gap:6px;margin-bottom:6px;color:var(--ink)">
-        <input type="checkbox" name="include_{{ i }}" {{ 'checked' if r.include }}> <b>{{ r.name_ja }}</b> <span class="muted">{{ cur }}{{ r.price }}</span>
-      </label>
-      <div class="row3">
-        <label>Food<input name="food_{{ i }}" list="food-names" value="{{ r.food }}"></label>
-        <label>Grams<input name="grams_{{ i }}" type="number" value="{{ r.grams }}"></label>
-        <label>{{ cur }}<input name="price_{{ i }}" type="number" value="{{ r.price }}"></label>
-      </div>
-      <div class="row">
-        <label>Use by<input name="expiry_{{ i }}" type="date" value="{{ r.expiry }}"></label>
-        <label>Where<select name="location_{{ i }}">{% for l in ['fridge', 'freezer', 'shelf'] %}<option {{ 'selected' if r.location == l }}>{{ l }}</option>{% endfor %}</select></label>
-      </div>
+
+  <div class="found-hero rise">
+    <span class="found-check" aria-hidden="true">✓</span>
+    <div>
+      <h1>Found {{ rows|length }} item{{ 's' if rows|length != 1 }}</h1>
+      <p class="muted">{{ header.store or 'Receipt' }} · {{ header.date }}{% if header.total %} · total {{ cur }}{{ '{:,}'.format(header.total) }}{% endif %}</p>
     </div>
-    {% else %}
-    <div class="card empty"><p>No items found on that photo.</p></div>
-    {% endfor %}
   </div>
-  <button class="btn wide" style="margin-top:14px">Add ticked items to pantry</button>
+  {% for w in warnings %}<div class="flash flash-warn">{{ w }}</div>{% endfor %}
+
+  {% if rows %}
+  <p class="found-ask">Is this right? Untick anything that isn't food, or tap <b>Edit</b> to fix a line.</p>
+  <ul class="found-list">
+    {% for r in rows %}{% set i = loop.index0 %}
+    <li class="found-row {{ 'needs' if not r.food }}" data-row>
+      <label class="found-line">
+        <input type="checkbox" name="include_{{ i }}" {{ 'checked' if r.include }}>
+        <span class="found-text">
+          <b data-show="food">{{ r.food or r.name_ja }}</b>
+          <small><span data-show="grams">{{ r.grams }}</span> g · <span data-show="location">{{ r.location }}</span>{% if r.name_ja and r.food and r.name_ja != r.food %} · on receipt: {{ r.name_ja }}{% endif %}</small>
+          {% if not r.food %}<small class="found-warn">Not matched to a food · tick it and pick one to keep it</small>{% endif %}
+        </span>
+        <span class="found-price">{{ cur }}<span data-show="price">{{ r.price }}</span></span>
+      </label>
+      <details class="found-edit">
+        <summary>Edit</summary>
+        <div class="row3">
+          <label>Food<input name="food_{{ i }}" list="food-names" value="{{ r.food }}" data-field="food"></label>
+          <label>Grams<input name="grams_{{ i }}" type="number" value="{{ r.grams }}" data-field="grams"></label>
+          <label>{{ cur }}<input name="price_{{ i }}" type="number" value="{{ r.price }}" data-field="price"></label>
+        </div>
+        <div class="row">
+          <label>Use by<input name="expiry_{{ i }}" type="date" value="{{ r.expiry }}"></label>
+          <label>Where<select name="location_{{ i }}" data-field="location">{% for l in ['fridge', 'freezer', 'shelf'] %}<option {{ 'selected' if r.location == l }}>{{ l }}</option>{% endfor %}</select></label>
+        </div>
+      </details>
+    </li>
+    {% endfor %}
+  </ul>
+  <div class="found-go">
+    <button class="btn wide" id="rv-go">Looks right: add {{ found|length }} to pantry</button>
+    <a class="btn secondary wide" href="{{ url_for('receipts.upload') }}">Scan again</a>
+  </div>
+  <p class="muted small">Food not in the list? Add it in Foods first, or leave the row unticked.</p>
+  {% else %}
+  <div class="card empty"><p>No items found on that photo. Try a flatter, closer photo with no glare.</p>
+    <a class="btn" href="{{ url_for('receipts.upload') }}">Scan again</a></div>
+  {% endif %}
 </form>
-<p class="muted small">Food not in the list? Add it in Foods first, or leave the row unticked.</p>
+{% endblock %}
+{% block scripts %}
+<script>
+(() => {
+  const form = document.getElementById("rv"), go = document.getElementById("rv-go");
+  if (!go) return;
+  const sync = () => {
+    let n = 0, yen = 0;
+    form.querySelectorAll("[data-row]").forEach((row) => {
+      const on = row.querySelector("input[type=checkbox]").checked;
+      row.classList.toggle("off", !on);
+      // ticking a line that isn't matched yet opens Edit so a food can be picked
+      if (on && row.classList.contains("needs") && !row.querySelector('[data-field="food"]').value) row.querySelector("details").open = true;
+      // the summary line follows what's typed in Edit
+      row.querySelectorAll("[data-field]").forEach((f) => {
+        const show = row.querySelector(`[data-show="${f.dataset.field}"]`);
+        if (show && f.value) show.textContent = f.value;
+      });
+      const food = row.querySelector('[data-field="food"]');
+      food.required = on;
+      if (on) { n++; yen += +(row.querySelector('[data-field="price"]').value || 0); }
+    });
+    go.disabled = n === 0;
+    go.textContent = n ? `Looks right: add ${n} to pantry · {{ cur }}${yen.toLocaleString()}` : "Nothing ticked";
+  };
+  form.addEventListener("input", sync); form.addEventListener("change", sync); sync();
+})();
+</script>
 {% endblock %}
